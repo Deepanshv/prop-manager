@@ -43,8 +43,8 @@ import {
 } from "lucide-react"
 
 const navItems = [
-  { href: "#", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "#", icon: Building2, label: "Properties" },
+  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/properties", icon: Building2, label: "Properties" },
   { href: "#", icon: Users, label: "Prospects" },
   { href: "#", icon: Settings, label: "Settings" },
 ]
@@ -90,9 +90,11 @@ export default function Home() {
           <SidebarMenu>
             {navItems.map((item, index) => (
               <SidebarMenuItem key={item.label}>
-                <SidebarMenuButton tooltip={item.label} isActive={index === 0}>
-                  <item.icon />
-                  <span>{item.label}</span>
+                <SidebarMenuButton asChild tooltip={item.label} isActive={index === 0}>
+                  <a href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
