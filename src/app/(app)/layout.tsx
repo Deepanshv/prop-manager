@@ -40,7 +40,7 @@ export const useAuth = () => {
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/properties", icon: Building2, label: "Properties" },
-  { href: "#", icon: Users, label: "Prospects" },
+  { href: "/prospects", icon: Users, label: "Prospects" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ]
 
