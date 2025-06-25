@@ -4,16 +4,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow users to create, read, update, and delete their own properties.
-    // The `ownerUid` on the property document must match the authenticated user's UID.
+    // Allow users to read, write, and delete their own properties.
+    // The ownerUid must match the user's UID.
     match /properties/{propertyId} {
-      allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerUid;
 
-      // Allow users to manage files only for properties they own.
-      // This rule checks the `ownerUid` of the parent property document.
+      // Allow users to manage files associated with their own properties.
       match /files/{fileId} {
-        allow read, create, delete: if request.auth != null && get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
+        allow read, write, delete: if request.auth != null && exists(/databases/$(database)/documents/properties/$(propertyId)) && get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
       }
     }
   }
