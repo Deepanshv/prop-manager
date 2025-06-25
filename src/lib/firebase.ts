@@ -1,17 +1,18 @@
+
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
-// IMPORTANT: Replace with your own configuration and use environment variables
+// IMPORTANT: For security, you should move this to a .env.local file!
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyA5iKyqhZl-MW44GM_udwNthTBRbPIX9_o",
+  authDomain: "property-manager-8f81f.firebaseapp.com",
+  projectId: "property-manager-8f81f",
+  storageBucket: "property-manager-8f81f.appspot.com",
+  messagingSenderId: "644647608964",
+  appId: "1:644647608964:web:30e419501ccce24a1e58d1"
 };
 
 let app: FirebaseApp | null = null;
@@ -19,7 +20,7 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 
-// Initialize Firebase only if all essential config values are present.
+// Initialize Firebase.
 // This is to prevent crashing the app if the .env.local file is not set up.
 if (firebaseConfig.apiKey && firebaseConfig.projectId) {
   try {
