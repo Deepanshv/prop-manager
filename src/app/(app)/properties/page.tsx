@@ -19,9 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  Pencil,
   Plus,
   Trash,
+  View,
 } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
@@ -68,12 +68,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
-import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../layout'
+import { useRouter } from 'next/navigation'
 
 const propertyTypes = ['Single Family', 'Multi-Family', 'Condo', 'Townhouse', 'Land', 'Other']
 
@@ -109,6 +108,7 @@ export interface Property {
 
 export default function PropertyManagerPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [properties, setProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
@@ -153,19 +153,9 @@ export default function PropertyManagerPage() {
   }, [user, toast])
 
   const handleAddProperty = () => {
-    setSelectedProperty(null)
     form.reset({
       address: { street: '', city: '', state: '', zip: '' },
       purchasePrice: 0,
-    })
-    setIsModalOpen(true)
-  }
-
-  const handleEditProperty = (property: Property) => {
-    setSelectedProperty(property)
-    form.reset({
-      ...property,
-      purchaseDate: property.purchaseDate.toDate(),
     })
     setIsModalOpen(true)
   }
@@ -203,16 +193,9 @@ export default function PropertyManagerPage() {
     }
 
     try {
-      if (selectedProperty) {
-        const propDocRef = doc(db, 'properties', selectedProperty.id)
-        await updateDoc(propDocRef, propertyData)
-        toast({ title: 'Success', description: 'Property updated successfully.' })
-      } else {
-        await addDoc(collection(db, 'properties'), propertyData)
-        toast({ title: 'Success', description: 'Property added successfully.' })
-      }
+      await addDoc(collection(db, 'properties'), propertyData)
+      toast({ title: 'Success', description: 'Property added successfully.' })
       setIsModalOpen(false)
-      setSelectedProperty(null)
     } catch (error) {
       console.error('Error writing document: ', error)
       toast({ title: 'Error', description: 'Failed to save property.', variant: 'destructive' })
@@ -291,8 +274,8 @@ export default function PropertyManagerPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditProperty(prop)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          <DropdownMenuItem onClick={() => router.push(`/properties/${prop.id}`)}>
+                            <View className="mr-2 h-4 w-4" /> View/Edit Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleDeleteProperty(prop)} className="text-destructive focus:text-destructive">
@@ -317,143 +300,128 @@ export default function PropertyManagerPage() {
                   Showing <strong>1-{properties.length}</strong> of <strong>{properties.length}</strong> properties
               </div>
               <div className="flex gap-2">
-                  <Button variant="outline" size="sm"><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                  <Button variant="outline" size="sm">Next <ChevronRight className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="sm" disabled><ChevronLeft className="h-4 w-4" /> Previous</Button>
+                  <Button variant="outline" size="sm" disabled>Next <ChevronRight className="h-4 w-4" /></Button>
               </div>
           </div>
         </div>
       </main>
 
-      {/* Add/Edit Property Modal */}
+      {/* Add Property Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedProperty ? 'Edit Property' : 'Add New Property'}</DialogTitle>
+            <DialogTitle>Add New Property</DialogTitle>
             <DialogDescription>
-              {selectedProperty ? 'Update the details of your property.' : 'Fill in the form to add a new property to your portfolio.'}
+              Fill in the form to add a new property to your portfolio.
             </DialogDescription>
           </DialogHeader>
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className={cn(!selectedProperty && 'hidden')}>
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
-            </TabsList>
-            <TabsContent value="details">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="address.street"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Street Address</FormLabel>
-                          <FormControl><Input placeholder="123 Main St" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="address.city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl><Input placeholder="Anytown" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="address.state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State</FormLabel>
-                          <FormControl><Input placeholder="CA" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="address.zip"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Zip Code</FormLabel>
-                          <FormControl><Input placeholder="12345" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="propertyType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Property Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              {propertyTypes.map((type) => (
-                                <SelectItem key={type} value={type}>{type}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="purchasePrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Purchase Price</FormLabel>
-                          <FormControl><Input type="number" placeholder="250000" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="purchaseDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Purchase Date</FormLabel>
-                           <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                                  {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                    <Button type="submit">Save Property</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </TabsContent>
-            {selectedProperty && (
-                <TabsContent value="files">
-                    <div className="pt-4">
-                        <FileManager entityType="properties" entityId={selectedProperty.id} />
-                    </div>
-                </TabsContent>
-            )}
-          </Tabs>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="address.street"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Street Address</FormLabel>
+                      <FormControl><Input placeholder="123 Main St" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address.city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl><Input placeholder="Anytown" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address.state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State</FormLabel>
+                      <FormControl><Input placeholder="CA" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address.zip"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zip Code</FormLabel>
+                      <FormControl><Input placeholder="12345" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="propertyType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Property Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {propertyTypes.map((type) => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="purchasePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Purchase Price</FormLabel>
+                      <FormControl><Input type="number" placeholder="250000" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="purchaseDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Purchase Date</FormLabel>
+                        <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button type="submit">Save Property</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -475,5 +443,3 @@ export default function PropertyManagerPage() {
     </>
   )
 }
-
-    

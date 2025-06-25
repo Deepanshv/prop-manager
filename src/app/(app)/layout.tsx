@@ -3,6 +3,7 @@
 
 import { onAuthStateChanged, signOut, User } from 'firebase/auth'
 import { Building2, LayoutDashboard, Loader2, LogOut, PanelLeft, Settings, Users } from 'lucide-react'
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import * as React from 'react'
 
@@ -113,10 +114,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
                   <SidebarMenuButton asChild tooltip={item.label} isActive={pathname === item.href}>
-                    <a href={item.href}>
+                    <Link href={item.href}>
                       <item.icon />
                       <span>{item.label}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
