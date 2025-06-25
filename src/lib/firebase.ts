@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 // IMPORTANT: Replace with your own configuration and use environment variables
@@ -16,6 +17,7 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
 // Initialize Firebase only if all essential config values are present.
 // This is to prevent crashing the app if the .env.local file is not set up.
@@ -24,16 +26,18 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
   } catch (error) {
     console.error("Firebase initialization error:", error);
     // If initialization fails, ensure services are null to prevent further errors.
     app = null;
     auth = null;
     db = null;
+    storage = null;
   }
 } else {
     // This will show in the browser console if the env vars are missing
     console.warn("Firebase configuration is missing or incomplete. Firebase features will be disabled. Please check your .env.local file.");
 }
 
-export { app, auth, db };
+export { app, auth, db, storage };
