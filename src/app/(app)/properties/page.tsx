@@ -1,3 +1,4 @@
+
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,22 +13,15 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore'
-import { User, onAuthStateChanged } from 'firebase/auth'
 import { format } from 'date-fns'
 import {
-  Building2,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
-  LogOut,
   MoreHorizontal,
-  PanelLeft,
   Pencil,
   Plus,
-  Settings,
   Trash,
-  Users,
 } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
@@ -43,7 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -66,18 +59,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -89,16 +70,10 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { auth, db } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
 import { FileManager } from '@/components/file-manager'
-
-const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/properties", icon: Building2, label: "Properties" },
-  { href: "#", icon: Users, label: "Prospects" },
-  { href: "/settings", icon: Settings, label: "Settings" },
-]
+import { useAuth } from '../layout'
 
 const propertyTypes = ['Single Family', 'Multi-Family', 'Condo', 'Townhouse', 'Land', 'Other']
 
@@ -133,7 +108,7 @@ export interface Property {
 }
 
 export default function PropertyManagerPage() {
-  const [user, setUser] = React.useState<User | null>(null)
+  const { user } = useAuth()
   const [properties, setProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
@@ -144,17 +119,6 @@ export default function PropertyManagerPage() {
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
   })
-
-  React.useEffect(() => {
-    if (!auth) {
-      setLoading(false)
-      return
-    }
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-    })
-    return () => unsubscribe()
-  }, [])
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -212,13 +176,7 @@ export default function PropertyManagerPage() {
   }
 
   const confirmDelete = async () => {
-    if (!selectedProperty) return
-
-    if (!db) {
-      toast({ title: 'Error', description: 'Database not configured.', variant: 'destructive' })
-      setIsDeleteAlertOpen(false)
-      return
-    }
+    if (!selectedProperty || !db) return
       
     try {
       await deleteDoc(doc(db, 'properties', selectedProperty.id))
@@ -233,13 +191,8 @@ export default function PropertyManagerPage() {
   }
 
   const onSubmit = async (data: PropertyFormData) => {
-    if (!user) {
-      toast({ title: 'Authentication Error', description: 'You must be logged in.', variant: 'destructive' })
-      return
-    }
-
-    if (!db) {
-      toast({ title: 'Database Error', description: 'Firebase is not configured correctly.', variant: 'destructive' })
+    if (!user || !db) {
+      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
     }
 
@@ -251,12 +204,10 @@ export default function PropertyManagerPage() {
 
     try {
       if (selectedProperty) {
-        // Update
         const propDocRef = doc(db, 'properties', selectedProperty.id)
         await updateDoc(propDocRef, propertyData)
         toast({ title: 'Success', description: 'Property updated successfully.' })
       } else {
-        // Create
         await addDoc(collection(db, 'properties'), propertyData)
         toast({ title: 'Success', description: 'Property added successfully.' })
       }
@@ -293,138 +244,85 @@ export default function PropertyManagerPage() {
   )
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <h1 className="text-xl font-semibold text-foreground">Property-Manager</h1>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {navItems.map((item, index) => (
-              <SidebarMenuItem key={item.label}>
-                 <SidebarMenuButton asChild tooltip={item.label} isActive={index === 1}>
-                  <a href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-           <div className="flex items-center gap-3 p-2 rounded-md transition-colors w-full">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={user?.photoURL || "https://placehold.co/40x40.png"} alt="User Avatar" data-ai-hint="user avatar" />
-              <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col text-sm overflow-hidden">
-              <span className="font-semibold truncate">{user?.displayName || 'User'}</span>
-              <span className="text-muted-foreground truncate">{user?.email || ''}</span>
-            </div>
-          </div>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Log Out">
-                <LogOut />
-                <span>Log Out</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-      </Sidebar>
+    <>
+      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Property Manager</h1>
+          <Button onClick={handleAddProperty}>
+            <Plus className="mr-2 h-4 w-4" /> Add Property
+          </Button>
+        </div>
 
-      <SidebarInset className="flex flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
-          <SidebarTrigger className="md:hidden">
-            <PanelLeft />
-          </SidebarTrigger>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">Property Manager</h1>
-            <Button onClick={handleAddProperty}>
-              <Plus className="mr-2 h-4 w-4" /> Add Property
-            </Button>
+        <div className="border shadow-sm rounded-lg">
+          <div className="p-4 border-b">
+            <Input placeholder="Search by address..." className="max-w-sm" />
           </div>
-
-          <div className="border shadow-sm rounded-lg">
-            <div className="p-4 border-b">
-              <Input placeholder="Search by address..." className="max-w-sm" />
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Property Address</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Purchase Date</TableHead>
-                  <TableHead>Purchase Price</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableSkeleton />
-                ) : properties.length > 0 ? (
-                  properties.map((prop) => (
-                    <TableRow key={prop.id}>
-                      <TableCell className="font-medium">
-                        {`${prop.address.street}, ${prop.address.city}, ${prop.address.state} ${prop.address.zip}`}
-                      </TableCell>
-                      <TableCell>{prop.propertyType}</TableCell>
-                      <TableCell>{format(prop.purchaseDate.toDate(), 'PPP')}</TableCell>
-                      <TableCell>
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(prop.purchasePrice)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditProperty(prop)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDeleteProperty(prop)} className="text-destructive focus:text-destructive">
-                              <Trash className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      {!auth || !db ? "Firebase not configured. Please add credentials to your environment file." : user ? 'No properties found. Add one to get started!' : 'Please sign in to view your properties.'}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Property Address</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Purchase Date</TableHead>
+                <TableHead>Purchase Price</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableSkeleton />
+              ) : properties.length > 0 ? (
+                properties.map((prop) => (
+                  <TableRow key={prop.id}>
+                    <TableCell className="font-medium">
+                      {`${prop.address.street}, ${prop.address.city}, ${prop.address.state} ${prop.address.zip}`}
+                    </TableCell>
+                    <TableCell>{prop.propertyType}</TableCell>
+                    <TableCell>{format(prop.purchaseDate.toDate(), 'PPP')}</TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(prop.purchasePrice)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditProperty(prop)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleDeleteProperty(prop)} className="text-destructive focus:text-destructive">
+                            <Trash className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            <div className="p-4 border-t flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                    Showing <strong>1-{properties.length}</strong> of <strong>{properties.length}</strong> properties
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm"><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                    <Button variant="outline" size="sm">Next <ChevronRight className="h-4 w-4" /></Button>
-                </div>
-            </div>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    {db ? 'No properties found. Add one to get started!' : 'Firebase not configured. Please add credentials to your environment file.'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <div className="p-4 border-t flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                  Showing <strong>1-{properties.length}</strong> of <strong>{properties.length}</strong> properties
+              </div>
+              <div className="flex gap-2">
+                  <Button variant="outline" size="sm"><ChevronLeft className="h-4 w-4" /> Previous</Button>
+                  <Button variant="outline" size="sm">Next <ChevronRight className="h-4 w-4" /></Button>
+              </div>
           </div>
-        </main>
-      </SidebarInset>
+        </div>
+      </main>
 
       {/* Add/Edit Property Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -574,6 +472,6 @@ export default function PropertyManagerPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SidebarProvider>
+    </>
   )
 }
