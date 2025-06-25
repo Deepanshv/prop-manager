@@ -169,6 +169,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     }
     setUploadingFile(file)
     setUploadProgress(0)
+    setIsUploadDialogOpen(true)
 
     const storagePath = `users/${user.uid}/${entityType}/${entityId}/${file.name}`
     const storageRef = ref(storage, storagePath)
@@ -187,8 +188,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
       },
       async () => {
         if (!db) return;
-        const fileId = file.name;
-        const fileDocRef = doc(db, entityType, entityId, 'files', fileId)
+        const fileDocRef = doc(db, entityType, entityId, 'files', file.name)
 
         await setDoc(fileDocRef, {
           fileName: file.name,
@@ -259,15 +259,23 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     </>
   )
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Associated Files</CardTitle>
-            <Button onClick={() => setIsUploadDialogOpen(true)}>
+            <Button onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" /> Upload File
             </Button>
+            <Input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              onChange={handleFileChange} 
+            />
           </div>
         </CardHeader>
         <CardContent>
@@ -332,22 +340,18 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload a New File</DialogTitle>
+            <DialogTitle>Uploading File</DialogTitle>
           </DialogHeader>
-          {uploadingFile ? (
+          {uploadingFile && (
             <div className='space-y-2'>
                 <p className='text-sm text-muted-foreground'>Uploading: {uploadingFile.name}</p>
                 <Progress value={uploadProgress} />
                 <p className='text-xs text-center'>{Math.round(uploadProgress)}%</p>
             </div>
-          ) : (
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-                <Input id="file-upload" type="file" onChange={handleFileChange} />
-            </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={!!uploadingFile}>
-              Cancel
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

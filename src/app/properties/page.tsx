@@ -30,7 +30,7 @@ import {
   Users,
 } from 'lucide-react'
 import * as React from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 import {
@@ -320,12 +320,12 @@ export default function PropertyManagerPage() {
         <SidebarFooter>
            <div className="flex items-center gap-3 p-2 rounded-md transition-colors w-full">
             <Avatar className="h-9 w-9">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
-              <AvatarFallback>PM</AvatarFallback>
+              <AvatarImage src={user?.photoURL || "https://placehold.co/40x40.png"} alt="User Avatar" data-ai-hint="user avatar" />
+              <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col text-sm overflow-hidden">
-              <span className="font-semibold truncate">Pat Manager</span>
-              <span className="text-muted-foreground truncate">pat.manager@example.com</span>
+              <span className="font-semibold truncate">{user?.displayName || 'User'}</span>
+              <span className="text-muted-foreground truncate">{user?.email || ''}</span>
             </div>
           </div>
           <SidebarMenu>
