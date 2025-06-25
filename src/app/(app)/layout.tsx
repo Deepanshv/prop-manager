@@ -2,7 +2,7 @@
 'use client'
 
 import { onAuthStateChanged, signOut, User } from 'firebase/auth'
-import { Building2, LayoutDashboard, Loader2, LogOut, PanelLeft, Settings, Users } from 'lucide-react'
+import { Building2, Globe, LayoutDashboard, Loader2, LogOut, PanelLeft, Settings, Users } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import * as React from 'react'
@@ -42,6 +42,7 @@ const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/properties", icon: Building2, label: "Properties" },
   { href: "/prospects", icon: Users, label: "Prospects" },
+  { href: "/listings", icon: Globe, label: "Public Listings" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ]
 

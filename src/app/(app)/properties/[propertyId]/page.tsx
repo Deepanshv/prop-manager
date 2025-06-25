@@ -14,11 +14,12 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
@@ -41,6 +42,7 @@ const propertyFormSchema = z.object({
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
+  isListedPublicly: z.boolean().default(false),
 })
 
 type PropertyFormData = z.infer<typeof propertyFormSchema>
@@ -73,6 +75,7 @@ export default function PropertyDetailPage() {
           form.reset({
             ...propData,
             purchaseDate: propData.purchaseDate.toDate(),
+            isListedPublicly: propData.isListedPublicly || false,
           })
         } else {
           toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
@@ -251,6 +254,26 @@ export default function PropertyDetailPage() {
                             </FormItem>
                         )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="isListedPublicly"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <div className="space-y-0.5">
+                                    <FormLabel>List Publicly</FormLabel>
+                                    <FormDescription>
+                                    Make this property visible on the public listings page.
+                                    </FormDescription>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                                </FormItem>
+                            )}
+                            />
                     </div>
                     <div className="flex justify-end">
                         <Button type="submit" disabled={form.formState.isSubmitting}>

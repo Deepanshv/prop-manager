@@ -3,20 +3,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow users to manage their own user data
+    // Users can only manage their own profile data
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, update: if request.auth.uid == userId;
     }
 
-    // Allow users to manage their own properties
+    // Properties can be read by anyone IF public, but only written by the owner
     match /properties/{propertyId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerUid;
+      allow get, list: if resource.data.isListedPublicly == true;
+      allow read, write, delete: if request.auth.uid == resource.data.ownerUid;
 
-      // Allow users to manage files associated with their properties
+      // Files subcollection is only accessible by the property owner
       match /files/{fileId} {
-        allow read, create, delete: if get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
+        allow read, write, delete: if request.auth.uid == get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid;
       }
+    }
+
+    // Prospects are strictly private and can only be accessed by their owner
+    match /prospects/{prospectId} {
+      allow read, write, delete: if request.auth.uid == resource.data.ownerUid;
+
+      // Files subcollection is only accessible by the prospect owner
+       match /files/{fileId} {
+        allow read, write, delete: if request.auth.uid == get(/databases/$(database)/documents/prospects/$(prospectId)).data.ownerUid;
+      }
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

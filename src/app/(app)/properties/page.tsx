@@ -37,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -55,11 +56,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -88,6 +90,7 @@ const propertyFormSchema = z.object({
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
+  isListedPublicly: z.boolean().default(false),
 })
 
 type PropertyFormData = z.infer<typeof propertyFormSchema>
@@ -104,6 +107,7 @@ export interface Property {
   propertyType: string
   purchaseDate: Timestamp
   purchasePrice: number
+  isListedPublicly?: boolean
 }
 
 export default function PropertyManagerPage() {
@@ -118,6 +122,9 @@ export default function PropertyManagerPage() {
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
+    defaultValues: {
+        isListedPublicly: false,
+    }
   })
 
   React.useEffect(() => {
@@ -156,6 +163,7 @@ export default function PropertyManagerPage() {
     form.reset({
       address: { street: '', city: '', state: '', zip: '' },
       purchasePrice: 0,
+      isListedPublicly: false,
     })
     setIsModalOpen(true)
   }
@@ -206,21 +214,12 @@ export default function PropertyManagerPage() {
     <>
       {[...Array(5)].map((_, i) => (
         <TableRow key={i}>
-          <TableCell>
-            <Skeleton className="h-4 w-48" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-24" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-24" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-24" />
-          </TableCell>
-          <TableCell className="text-right">
-            <Skeleton className="h-8 w-8" />
-          </TableCell>
+          <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
         </TableRow>
       ))}
     </>
@@ -247,6 +246,7 @@ export default function PropertyManagerPage() {
                 <TableHead>Type</TableHead>
                 <TableHead>Purchase Date</TableHead>
                 <TableHead>Purchase Price</TableHead>
+                <TableHead>Public</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -263,6 +263,13 @@ export default function PropertyManagerPage() {
                     <TableCell>{format(prop.purchaseDate.toDate(), 'PPP')}</TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(prop.purchasePrice)}
+                    </TableCell>
+                    <TableCell>
+                      {prop.isListedPublicly ? (
+                        <Badge variant="secondary">Yes</Badge>
+                      ) : (
+                        <Badge variant="outline">No</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -288,7 +295,7 @@ export default function PropertyManagerPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     {db ? 'No properties found. Add one to get started!' : 'Firebase not configured. Please add credentials to your environment file.'}
                   </TableCell>
                 </TableRow>
@@ -396,7 +403,7 @@ export default function PropertyManagerPage() {
                   control={form.control}
                   name="purchaseDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem className="flex flex-col md:col-span-2">
                       <FormLabel>Purchase Date</FormLabel>
                         <Popover>
                         <PopoverTrigger asChild>
@@ -415,6 +422,26 @@ export default function PropertyManagerPage() {
                     </FormItem>
                   )}
                 />
+                 <FormField
+                    control={form.control}
+                    name="isListedPublicly"
+                    render={({ field }) => (
+                        <FormItem className="md:col-span-2 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                            <FormLabel>List Publicly</FormLabel>
+                            <FormDescription>
+                            Make this property visible on the public listings page.
+                            </FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                        </FormItem>
+                    )}
+                    />
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
