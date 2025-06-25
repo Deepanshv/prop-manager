@@ -1,27 +1,20 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Properties: Only the owner can read/update/delete. Any authenticated user can create.
+
+    // Allow users to create, read, update, and delete their own properties.
+    // The `ownerUid` on the property document must match the authenticated user's UID.
     match /properties/{propertyId} {
       allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
-      allow create: if request.auth != null;
-    }
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
 
-    // Files subcollection for properties: Only the owner of the parent property can manage them.
-    match /properties/{propertyId}/files/{fileId} {
-       allow read, write, delete: if request.auth != null && get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
-    }
-    
-    // Prospects and their files: Not yet implemented, but rules are here as a placeholder.
-    // Assuming the same ownership model as properties.
-    match /prospects/{prospectId} {
-      allow read, update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
-      allow create: if request.auth != null;
-    }
-
-    match /prospects/{prospectId}/files/{fileId} {
-       allow read, write, delete: if request.auth != null && get(/databases/$(database)/documents/prospects/$(prospectId)).data.ownerUid == request.auth.uid;
+      // Allow users to manage files only for properties they own.
+      // This rule checks the `ownerUid` of the parent property document.
+      match /files/{fileId} {
+        allow read, create, delete: if request.auth != null && get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
+      }
     }
   }
 }
