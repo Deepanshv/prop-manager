@@ -117,7 +117,7 @@ export default function SettingsPage() {
     if (!auth.currentUser || !storage || !event.target.files || event.target.files.length === 0) return
 
     const file = event.target.files[0]
-    const storageRef = ref(storage, `profile-pictures/${user.uid}`)
+    const storageRef = ref(storage, `users/${user.uid}/profile-picture/${file.name}`)
 
     try {
       await uploadBytes(storageRef, file)

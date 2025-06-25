@@ -48,7 +48,7 @@ import {
   ref,
   uploadBytesResumable,
 } from 'firebase/storage'
-import { User, onAuthStateChanged } from 'firebase/auth'
+import { User } from 'firebase/auth'
 import {
   File as FileIcon,
   FileArchive,
@@ -70,6 +70,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { Skeleton } from './ui/skeleton'
+import { useAuth } from '../app/(app)/layout'
 
 interface FileManagerProps {
   entityType: 'properties' | 'prospects'
@@ -105,7 +106,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 }
 
 export function FileManager({ entityType, entityId }: FileManagerProps) {
-  const [user, setUser] = React.useState<User | null>(null)
+  const { user } = useAuth()
   const [files, setFiles] = React.useState<FileMetadata[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false)
@@ -114,14 +115,6 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
   const [uploadingFile, setUploadingFile] = React.useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = React.useState(0)
   const { toast } = useToast()
-
-  React.useEffect(() => {
-    if (!auth) return
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-    })
-    return () => unsubscribe()
-  }, [])
 
   React.useEffect(() => {
     if (!db || !entityId) {
@@ -377,5 +370,3 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     </>
   )
 }
-
-    

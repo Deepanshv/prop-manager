@@ -46,8 +46,8 @@ function PropertyCard({ property }: { property: Property }) {
                 <CardDescription className="mt-1">{`${property.address.street}, ${property.address.city}, ${property.address.state}`}</CardDescription>
             </CardContent>
             <CardFooter className="p-4 pt-0">
-                 <Button className="w-full" asChild variant="secondary">
-                     <Link href={`/properties/${property.id}`}>View Details</Link>
+                 <Button className="w-full" asChild>
+                     <Link href={`/login`}>Contact Agent</Link>
                  </Button>
             </CardFooter>
         </Card>

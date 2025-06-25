@@ -13,7 +13,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import {
     Calendar as CalendarIcon,
     CheckCircle,
@@ -93,8 +93,8 @@ const ProspectStatusBadge = ({ status }: { status: Prospect['status'] }) => {
     const variantMap: Record<Prospect['status'], BadgeProps['variant']> = {
         'New': 'default',
         'Under Review': 'secondary',
-        'Offer Made': 'outline', // Choose a suitable variant
-        'Converted': 'default', // Consider a success variant if you add one
+        'Offer Made': 'outline',
+        'Converted': 'default',
         'Rejected': 'destructive',
     };
     const colorMap: Record<Prospect['status'], string> = {
@@ -193,11 +193,11 @@ export default function ProspectManagerPage() {
     
     const confirmConvert = async () => {
         if (!selectedProspect || !db) return;
-        // This would ideally trigger a Cloud Function to create a new Property
-        // and link it. For now, we'll just update the status.
+        // This would ideally trigger a Cloud Function to create a new Property.
+        // For this example, we'll just update the status on the client.
         try {
             await updateDoc(doc(db, 'prospects', selectedProspect.id), { status: 'Converted' });
-            toast({ title: "Success", description: "Prospect converted to Property."});
+            toast({ title: "Success", description: `Prospect marked as 'Converted'. Note: A backend function would be needed to create a property.`});
         } catch (error) {
             toast({ title: "Error", description: "Failed to convert prospect.", variant: 'destructive' });
         } finally {
