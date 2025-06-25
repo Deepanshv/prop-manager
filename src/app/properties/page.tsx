@@ -145,6 +145,10 @@ export default function PropertyManagerPage() {
   })
 
   React.useEffect(() => {
+    if (!auth) {
+      setLoading(false)
+      return
+    }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser)
     })
@@ -152,34 +156,35 @@ export default function PropertyManagerPage() {
   }, [])
 
   React.useEffect(() => {
-    if (user) {
-      setLoading(true)
-      const q = query(collection(db, 'properties'), where('ownerUid', '==', user.uid))
-      const unsubscribe = onSnapshot(
-        q,
-        (querySnapshot) => {
-          const props: Property[] = []
-          querySnapshot.forEach((doc) => {
-            props.push({ id: doc.id, ...doc.data() } as Property)
-          })
-          setProperties(props)
-          setLoading(false)
-        },
-        (error) => {
-          console.error('Error fetching properties: ', error)
-          toast({
-            title: 'Error',
-            description: 'Failed to fetch properties.',
-            variant: 'destructive',
-          })
-          setLoading(false)
-        }
-      )
-      return () => unsubscribe()
-    } else {
+    if (!user || !db) {
       setProperties([])
       setLoading(false)
+      return
     }
+
+    setLoading(true)
+    const q = query(collection(db, 'properties'), where('ownerUid', '==', user.uid))
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const props: Property[] = []
+        querySnapshot.forEach((doc) => {
+          props.push({ id: doc.id, ...doc.data() } as Property)
+        })
+        setProperties(props)
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Error fetching properties: ', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch properties.',
+          variant: 'destructive',
+        })
+        setLoading(false)
+      }
+    )
+    return () => unsubscribe()
   }, [user, toast])
 
   const handleAddProperty = () => {
@@ -206,23 +211,34 @@ export default function PropertyManagerPage() {
   }
 
   const confirmDelete = async () => {
-    if (selectedProperty) {
-      try {
-        await deleteDoc(doc(db, 'properties', selectedProperty.id))
-        toast({ title: 'Success', description: 'Property deleted successfully.' })
-      } catch (error) {
-        console.error('Error deleting document: ', error)
-        toast({ title: 'Error', description: 'Failed to delete property.', variant: 'destructive' })
-      } finally {
-        setIsDeleteAlertOpen(false)
-        setSelectedProperty(null)
-      }
+    if (!selectedProperty) return
+
+    if (!db) {
+      toast({ title: 'Error', description: 'Database not configured.', variant: 'destructive' })
+      setIsDeleteAlertOpen(false)
+      return
+    }
+      
+    try {
+      await deleteDoc(doc(db, 'properties', selectedProperty.id))
+      toast({ title: 'Success', description: 'Property deleted successfully.' })
+    } catch (error) {
+      console.error('Error deleting document: ', error)
+      toast({ title: 'Error', description: 'Failed to delete property.', variant: 'destructive' })
+    } finally {
+      setIsDeleteAlertOpen(false)
+      setSelectedProperty(null)
     }
   }
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user) {
       toast({ title: 'Authentication Error', description: 'You must be logged in.', variant: 'destructive' })
+      return
+    }
+
+    if (!db) {
+      toast({ title: 'Database Error', description: 'Firebase is not configured correctly.', variant: 'destructive' })
       return
     }
 
@@ -390,7 +406,7 @@ export default function PropertyManagerPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
-                      {user ? 'No properties found. Add one to get started!' : 'Please sign in to view your properties.'}
+                      {!auth || !db ? "Firebase not configured. Please add credentials to your environment file." : user ? 'No properties found. Add one to get started!' : 'Please sign in to view your properties.'}
                     </TableCell>
                   </TableRow>
                 )}
