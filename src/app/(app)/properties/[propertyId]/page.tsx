@@ -211,9 +211,9 @@ export default function PropertyDetailPage() {
                                 <FormLabel>State</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a state" /></SelectTrigger></FormControl>
-                                    <SelectContent><_NewLifecycle_>
+                                    <SelectContent>
                                     {indianStates.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                    </_NewLifecycle_></SelectContent>
+                                    </SelectContent>
                                 </Select>
                                 <FormMessage />
                                 </FormItem>
@@ -253,9 +253,9 @@ export default function PropertyDetailPage() {
                                 <FormItem><FormLabel>Area Unit</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
-                                    <SelectContent><_NewLifecycle_>
+                                    <SelectContent>
                                         {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
-                                    </_NewLifecycle_></SelectContent>
+                                    </SelectContent>
                                 </Select>
                                 <FormMessage />
                                 </FormItem>
@@ -271,9 +271,9 @@ export default function PropertyDetailPage() {
                                 <FormItem><FormLabel>Property Type</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
-                                    <SelectContent><_NewLifecycle_>
+                                    <SelectContent>
                                         {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                                    </_NewLifecycle_></SelectContent>
+                                    </SelectContent>
                                 </Select>
                                 <FormMessage />
                                 </FormItem>
@@ -306,9 +306,9 @@ export default function PropertyDetailPage() {
                                 <FormItem><FormLabel>Status</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
-                                    <SelectContent><_NewLifecycle_>
+                                    <SelectContent>
                                         {propertyStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                    </_NewLifecycle_></SelectContent>
+                                    </SelectContent>
                                 </Select>
                                 <FormMessage />
                                 </FormItem>
