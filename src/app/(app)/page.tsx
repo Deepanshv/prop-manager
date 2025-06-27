@@ -1,11 +1,13 @@
 
 'use client'
 import * as React from 'react'
+import dynamic from 'next/dynamic'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -31,6 +33,11 @@ import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
 import Link from 'next/link'
+
+const PropertiesMap = dynamic(() => import('@/components/properties-map').then(mod => mod.PropertiesMap), {
+  ssr: false,
+  loading: () => <Skeleton className="h-full w-full" />,
+});
 
 interface RecentActivity extends Property {
     activityType: 'New Property' | 'Lease Signed' | 'New Prospect' | 'Tour Scheduled';
@@ -126,6 +133,17 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Properties Overview</CardTitle>
+          <CardDescription>Your properties pinned on the map. Add latitude and longitude to a property to see it here.</CardDescription>
+        </CardHeader>
+        <CardContent className="h-[450px] p-0">
+          <PropertiesMap properties={properties} />
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>

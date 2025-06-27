@@ -47,6 +47,8 @@ const propertyFormSchema = z.object({
   status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
   soldPrice: z.coerce.number().optional(),
   soldDate: z.date().optional(),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
 }).refine(data => {
     if (data.status === 'Sold') {
         return data.soldPrice && data.soldPrice > 0 && data.soldDate;
@@ -96,6 +98,8 @@ export default function PropertyDetailPage() {
             isListedPublicly: propData.isListedPublicly || false,
             status: propData.status || 'Owned',
             soldDate: propData.soldDate?.toDate(),
+            latitude: propData.latitude,
+            longitude: propData.longitude,
           })
         } else {
           toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
@@ -124,6 +128,8 @@ export default function PropertyDetailPage() {
       purchaseDate: Timestamp.fromDate(data.purchaseDate),
       soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
       soldPrice: data.soldPrice ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
     };
     
     if (data.status !== 'Sold') {
@@ -286,6 +292,28 @@ export default function PropertyDetailPage() {
                             <FormMessage />
                             </FormItem>
                         )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="latitude"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Latitude</FormLabel>
+                                <FormControl><Input type="number" step="any" placeholder="34.0522" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="longitude"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Longitude</FormLabel>
+                                <FormControl><Input type="number" step="any" placeholder="-118.2437" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
                         />
                         <FormField
                             control={form.control}

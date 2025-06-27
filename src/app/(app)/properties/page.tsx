@@ -93,6 +93,8 @@ const propertyFormSchema = z.object({
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
 })
 
 type PropertyFormData = z.infer<typeof propertyFormSchema>
@@ -120,6 +122,8 @@ export interface Property {
   status?: 'Owned' | 'For Sale' | 'Sold'
   soldPrice?: number
   soldDate?: Timestamp
+  latitude?: number
+  longitude?: number
 }
 
 export default function PropertyManagerPage() {
@@ -186,6 +190,8 @@ export default function PropertyManagerPage() {
       isListedPublicly: false,
       propertyType: undefined,
       purchaseDate: undefined,
+      latitude: undefined,
+      longitude: undefined,
     })
     setIsModalOpen(true)
   }
@@ -456,6 +462,28 @@ export default function PropertyManagerPage() {
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="latitude"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Latitude</FormLabel>
+                        <FormControl><Input type="number" step="any" placeholder="34.0522" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="longitude"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Longitude</FormLabel>
+                        <FormControl><Input type="number" step="any" placeholder="-118.2437" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
                 />
                 <FormField
                   control={form.control}
