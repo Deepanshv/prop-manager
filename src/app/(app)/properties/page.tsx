@@ -152,13 +152,16 @@ export default function PropertyManagerPage() {
     }
 
     setLoading(true)
-    const q = query(collection(db, 'properties'), where('ownerUid', '==', user.uid), where('status', '!=', 'Sold'))
+    const q = query(collection(db, 'properties'), where('ownerUid', '==', user.uid))
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
         const props: Property[] = []
         querySnapshot.forEach((doc) => {
-          props.push({ id: doc.id, ...doc.data() } as Property)
+          const propertyData = { id: doc.id, ...doc.data() } as Property
+          if (propertyData.status !== 'Sold') {
+            props.push(propertyData)
+          }
         })
         setProperties(props)
         setLoading(false)
