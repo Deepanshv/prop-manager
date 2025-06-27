@@ -28,14 +28,52 @@ import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
 import type { Property } from '../page'
 
-const indianStates = [ 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry' ];
+const indianStatesAndCities = {
+  'Andaman and Nicobar Islands': ['Port Blair'],
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur'],
+  'Arunachal Pradesh': ['Itanagar'],
+  'Assam': ['Guwahati', 'Dispur'],
+  'Bihar': ['Patna', 'Gaya'],
+  'Chandigarh': ['Chandigarh'],
+  'Chhattisgarh': ['Raipur', 'Bhilai'],
+  'Dadra and Nagar Haveli and Daman and Diu': ['Daman', 'Silvassa'],
+  'Delhi': ['New Delhi', 'Delhi'],
+  'Goa': ['Panaji', 'Vasco da Gama'],
+  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
+  'Haryana': ['Faridabad', 'Gurugram', 'Panipat'],
+  'Himachal Pradesh': ['Shimla', 'Dharamshala'],
+  'Jammu and Kashmir': ['Srinagar', 'Jammu'],
+  'Jharkhand': ['Ranchi', 'Jamshedpur'],
+  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi-Dharwad'],
+  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode'],
+  'Ladakh': ['Leh', 'Kargil'],
+  'Lakshadweep': ['Kavaratti'],
+  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur'],
+  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane'],
+  'Manipur': ['Imphal'],
+  'Meghalaya': ['Shillong'],
+  'Mizoram': ['Aizawl'],
+  'Nagaland': ['Kohima', 'Dimapur'],
+  'Odisha': ['Bhubaneswar', 'Cuttack'],
+  'Puducherry': ['Puducherry'],
+  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar'],
+  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur'],
+  'Sikkim': ['Gangtok'],
+  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai'],
+  'Telangana': ['Hyderabad', 'Warangal'],
+  'Tripura': ['Agartala'],
+  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra'],
+  'Uttarakhand': ['Dehradun', 'Haridwar'],
+  'West Bengal': ['Kolkata', 'Asansol', 'Siliguri'],
+};
+const indianStates = Object.keys(indianStatesAndCities);
 const propertyTypes = ['Agricultural', 'Commercial', 'Residential', 'Tribal'];
 const landAreaUnits = ['Square Feet', 'Acre'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Area/Locality is required'),
-  city: z.string().min(1, 'City is required'),
+  city: z.string({ required_error: 'Please select a city.' }),
   state: z.string({ required_error: 'Please select a state.' }),
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
@@ -89,7 +127,8 @@ export default function PropertyDetailPage() {
     }
   })
 
-  const watchedStatus = form.watch('status')
+  const watchedStatus = form.watch('status');
+  const watchedState = form.watch('address.state');
 
   React.useEffect(() => {
     if (!user || !db || !propertyId) {
@@ -211,7 +250,13 @@ export default function PropertyDetailPage() {
                             <FormField control={form.control} name="address.state" render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>State</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select 
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    form.setValue('address.city', ''); // Reset city on state change
+                                  }} 
+                                  value={field.value}
+                                >
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a state" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                     {indianStates.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -221,7 +266,16 @@ export default function PropertyDetailPage() {
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="address.city" render={({ field }) => (
-                                <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                <FormLabel>City</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!watchedState}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a city" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {watchedState && (indianStatesAndCities[watchedState as keyof typeof indianStatesAndCities] || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
                             )}/>
                             <FormField control={form.control} name="address.street" render={({ field }) => (
                                 <FormItem className="md:col-span-2"><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Bandra West" {...field} /></FormControl><FormMessage /></FormItem>

@@ -2,8 +2,8 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc, serverTimestamp } from 'firebase/firestore'
-import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc, serverTimestamp } from 'firebase/firestore'
+import { ref as storageRef, uploadBytesResumable } from 'firebase/storage'
 import type { User } from 'firebase/auth'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin } from 'lucide-react'
@@ -32,13 +32,51 @@ import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-const indianStates = [ 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry' ];
+const indianStatesAndCities = {
+  'Andaman and Nicobar Islands': ['Port Blair'],
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur'],
+  'Arunachal Pradesh': ['Itanagar'],
+  'Assam': ['Guwahati', 'Dispur'],
+  'Bihar': ['Patna', 'Gaya'],
+  'Chandigarh': ['Chandigarh'],
+  'Chhattisgarh': ['Raipur', 'Bhilai'],
+  'Dadra and Nagar Haveli and Daman and Diu': ['Daman', 'Silvassa'],
+  'Delhi': ['New Delhi', 'Delhi'],
+  'Goa': ['Panaji', 'Vasco da Gama'],
+  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
+  'Haryana': ['Faridabad', 'Gurugram', 'Panipat'],
+  'Himachal Pradesh': ['Shimla', 'Dharamshala'],
+  'Jammu and Kashmir': ['Srinagar', 'Jammu'],
+  'Jharkhand': ['Ranchi', 'Jamshedpur'],
+  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi-Dharwad'],
+  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode'],
+  'Ladakh': ['Leh', 'Kargil'],
+  'Lakshadweep': ['Kavaratti'],
+  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur'],
+  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane'],
+  'Manipur': ['Imphal'],
+  'Meghalaya': ['Shillong'],
+  'Mizoram': ['Aizawl'],
+  'Nagaland': ['Kohima', 'Dimapur'],
+  'Odisha': ['Bhubaneswar', 'Cuttack'],
+  'Puducherry': ['Puducherry'],
+  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar'],
+  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur'],
+  'Sikkim': ['Gangtok'],
+  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai'],
+  'Telangana': ['Hyderabad', 'Warangal'],
+  'Tripura': ['Agartala'],
+  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra'],
+  'Uttarakhand': ['Dehradun', 'Haridwar'],
+  'West Bengal': ['Kolkata', 'Asansol', 'Siliguri'],
+};
+const indianStates = Object.keys(indianStatesAndCities);
 const propertyTypes = ['Agricultural', 'Commercial', 'Residential', 'Tribal'];
 const landAreaUnits = ['Square Feet', 'Acre'];
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Area/Locality is required'),
-  city: z.string().min(1, 'City is required'),
+  city: z.string({ required_error: 'Please select a city.' }),
   state: z.string({ required_error: 'Please select a state.' }),
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
@@ -159,7 +197,6 @@ const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property
 
 export default function PropertyManagerPage() {
   const { user } = useAuth()
-  const router = useRouter()
   const [properties, setProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
@@ -173,14 +210,17 @@ export default function PropertyManagerPage() {
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       isListedPublicly: false,
-      address: { street: '', city: '', zip: '', landmark: '', mapLocationLink: '', latitude: undefined, longitude: undefined },
-      landDetails: { khasraNumber: '', landbookNumber: '', area: undefined },
+      address: { street: '', city: '', state: undefined, zip: '', landmark: '', mapLocationLink: '', latitude: undefined, longitude: undefined },
+      landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
+      propertyType: undefined,
     },
   })
 
   const soldForm = useForm<MarkAsSoldFormData>({
     resolver: zodResolver(markAsSoldSchema),
   });
+
+  const watchedState = form.watch('address.state');
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -386,16 +426,31 @@ export default function PropertyManagerPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
                     <FormField control={form.control} name="address.state" render={({ field }) => (
                         <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a state" /></SelectTrigger></FormControl>
-                            <SelectContent>{indianStates.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                        </Select>
-                        <FormMessage />
+                          <FormLabel>State</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                                field.onChange(value);
+                                form.setValue('address.city', ''); // Reset city on state change
+                            }} 
+                            defaultValue={field.value}
+                          >
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select a state" /></SelectTrigger></FormControl>
+                              <SelectContent>{indianStates.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
                     )}/>
                     <FormField control={form.control} name="address.city" render={({ field }) => (
-                        <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!watchedState}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select a city" /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                  {watchedState && (indianStatesAndCities[watchedState as keyof typeof indianStatesAndCities] || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
                     )}/>
                     <FormField control={form.control} name="address.street" render={({ field }) => (
                         <FormItem className="md:col-span-2"><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Bandra West" {...field} /></FormControl><FormMessage /></FormItem>
@@ -484,28 +539,28 @@ export default function PropertyManagerPage() {
                <div className="space-y-2">
                 <h3 className="font-medium">Required Documents</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                   <FormField control={form.control} name="registryDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="registryDoc" render={({ field: { onChange, ...fieldProps } }) => (
                         <FormItem>
                             <FormLabel>Registry Document (Required)</FormLabel>
                             <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="landBookDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="landBookDoc" render={({ field: { onChange, ...fieldProps } }) => (
                         <FormItem>
                             <FormLabel>Land Book Document (Required)</FormLabel>
                             <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { onChange, ...fieldProps } }) => (
                         <FormItem>
                             <FormLabel>Aadhaar Card (Required)</FormLabel>
                             <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="panDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="panDoc" render={({ field: { onChange, ...fieldProps } }) => (
                         <FormItem>
                             <FormLabel>PAN Card (Optional)</FormLabel>
                             <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
