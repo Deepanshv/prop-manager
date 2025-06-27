@@ -2,9 +2,8 @@
 'use client'
 
 import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
+import L, { Map, Marker as LeafletMarker } from 'leaflet'
 import * as React from 'react'
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
 
 // Leaflet icon workaround
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -19,59 +18,57 @@ interface InteractiveMapProps {
   onMarkerMove: (lat: number, lng: number) => void
 }
 
-const DraggableMarker = ({ onMarkerMove, initialPosition }: { onMarkerMove: (lat: number, lng: number) => void, initialPosition: [number, number] }) => {
-  const markerRef = React.useRef<L.Marker>(null)
-
-  const eventHandlers = React.useMemo(
-    () => ({
-      dragend() {
-        const marker = markerRef.current
-        if (marker != null) {
-          const { lat, lng } = marker.getLatLng()
-          onMarkerMove(lat, lng)
-        }
-      },
-    }),
-    [onMarkerMove]
-  )
-  
-  // This effect ensures the marker position updates if the parent's `center` state changes,
-  // for example, after a geocoding call.
-  React.useEffect(() => {
-    if (markerRef.current) {
-        markerRef.current.setLatLng(initialPosition);
-    }
-  }, [initialPosition]);
-
-  return (
-    <Marker
-      draggable={true}
-      eventHandlers={eventHandlers}
-      position={initialPosition}
-      ref={markerRef}
-    />
-  )
-}
-
-const MapUpdater = ({ center }: { center: [number, number] }) => {
-  const map = useMap()
-  React.useEffect(() => {
-    map.flyTo(center, map.getZoom() < 13 ? 13 : map.getZoom())
-  }, [center, map])
-  return null
-}
-
 export const InteractiveMap = ({ center, onMarkerMove }: InteractiveMapProps) => {
-  return (
-    <div className="h-96 w-full rounded-md border overflow-hidden">
-      <MapContainer center={center} zoom={5} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <DraggableMarker onMarkerMove={onMarkerMove} initialPosition={center} />
-        <MapUpdater center={center} />
-      </MapContainer>
-    </div>
-  )
+  const mapContainerRef = React.useRef<HTMLDivElement>(null)
+  const mapRef = React.useRef<Map | null>(null)
+  const markerRef = React.useRef<LeafletMarker | null>(null)
+  const onMarkerMoveRef = React.useRef(onMarkerMove)
+
+  React.useEffect(() => {
+    onMarkerMoveRef.current = onMarkerMove
+  }, [onMarkerMove])
+
+  // Initialize map and marker
+  React.useEffect(() => {
+    // This effect runs only once on mount
+    if (mapContainerRef.current && !mapRef.current) {
+      const map = L.map(mapContainerRef.current).setView(center, 13)
+      mapRef.current = map
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map)
+
+      const marker = L.marker(center, { draggable: true }).addTo(map)
+      markerRef.current = marker
+
+      marker.on('dragend', () => {
+        if (markerRef.current) {
+          const { lat, lng } = markerRef.current.getLatLng()
+          onMarkerMoveRef.current(lat, lng)
+        }
+      })
+    }
+
+    // Cleanup function
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
+    }
+  }, []) // Empty array means it will only run on mount and unmount
+
+  // Handle updates to center prop
+  React.useEffect(() => {
+    if (mapRef.current && markerRef.current) {
+      const currentMapCenter = mapRef.current.getCenter()
+      if (currentMapCenter.lat !== center[0] || currentMapCenter.lng !== center[1]) {
+        mapRef.current.flyTo(center)
+        markerRef.current.setLatLng(center)
+      }
+    }
+  }, [center])
+  
+  return <div ref={mapContainerRef} className="h-96 w-full rounded-md border overflow-hidden" />
 }
