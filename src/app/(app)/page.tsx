@@ -109,12 +109,6 @@ export default function DashboardPage() {
     <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <Button asChild>
-          <Link href="/properties">
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Property
-          </Link>
-        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
