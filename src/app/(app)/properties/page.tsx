@@ -108,6 +108,9 @@ export interface Property {
   purchaseDate: Timestamp
   purchasePrice: number
   isListedPublicly?: boolean
+  status?: 'Owned' | 'For Sale' | 'Sold'
+  soldPrice?: number
+  soldDate?: Timestamp
 }
 
 export default function PropertyManagerPage() {
@@ -135,7 +138,7 @@ export default function PropertyManagerPage() {
     }
 
     setLoading(true)
-    const q = query(collection(db, 'properties'), where('ownerUid', '==', user.uid))
+    const q = query(collection(db, 'properties'), where('ownerUid', '==', user.uid), where('status', '!=', 'Sold'))
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
@@ -198,6 +201,7 @@ export default function PropertyManagerPage() {
       ...data,
       purchaseDate: Timestamp.fromDate(data.purchaseDate),
       ownerUid: user.uid,
+      status: 'Owned', // Default status on creation
     }
 
     try {
@@ -218,12 +222,19 @@ export default function PropertyManagerPage() {
           <TableCell><Skeleton className="h-4 w-24" /></TableCell>
           <TableCell><Skeleton className="h-4 w-24" /></TableCell>
           <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
           <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
         </TableRow>
       ))}
     </>
   )
+  
+  const StatusBadge = ({ status }: { status?: Property['status']}) => {
+    const s = status || 'Owned';
+    const variant: "secondary" | "default" | "outline" = s === 'Sold' ? 'default' : s === 'For Sale' ? 'outline' : 'secondary';
+    return <Badge variant={variant}>{s}</Badge>
+  }
+
 
   return (
     <>
@@ -246,7 +257,7 @@ export default function PropertyManagerPage() {
                 <TableHead>Type</TableHead>
                 <TableHead>Purchase Date</TableHead>
                 <TableHead>Purchase Price</TableHead>
-                <TableHead>Public</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -265,11 +276,7 @@ export default function PropertyManagerPage() {
                       {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(prop.purchasePrice)}
                     </TableCell>
                     <TableCell>
-                      {prop.isListedPublicly ? (
-                        <Badge variant="secondary">Yes</Badge>
-                      ) : (
-                        <Badge variant="outline">No</Badge>
-                      )}
+                      <StatusBadge status={prop.status} />
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

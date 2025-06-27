@@ -29,6 +29,7 @@ import { useAuth } from '../../layout'
 import type { Property } from '../page'
 
 const propertyTypes = ['Single Family', 'Multi-Family', 'Condo', 'Townhouse', 'Land', 'Other']
+const propertyStatuses = ['Owned', 'For Sale', 'Sold']
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Street is required'),
@@ -43,7 +44,18 @@ const propertyFormSchema = z.object({
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
-})
+  status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
+  soldPrice: z.coerce.number().optional(),
+  soldDate: z.date().optional(),
+}).refine(data => {
+    if (data.status === 'Sold') {
+        return data.soldPrice && data.soldPrice > 0 && data.soldDate;
+    }
+    return true;
+}, {
+    message: "Sold Price and Sold Date are required when status is 'Sold'.",
+    path: ["status"],
+});
 
 type PropertyFormData = z.infer<typeof propertyFormSchema>
 
@@ -57,7 +69,12 @@ export default function PropertyDetailPage() {
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
+    defaultValues: {
+        status: 'Owned',
+    }
   })
+
+  const watchedStatus = form.watch('status')
 
   React.useEffect(() => {
     if (!user || !db || !propertyId) {
@@ -76,6 +93,8 @@ export default function PropertyDetailPage() {
             ...propData,
             purchaseDate: propData.purchaseDate.toDate(),
             isListedPublicly: propData.isListedPublicly || false,
+            status: propData.status || 'Owned',
+            soldDate: propData.soldDate?.toDate(),
           })
         } else {
           toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
@@ -98,16 +117,29 @@ export default function PropertyDetailPage() {
       return
     }
 
-    const propertyData = {
+    const propertyData: Partial<Property> & {ownerUid: string} = {
       ...data,
-      purchaseDate: Timestamp.fromDate(data.purchaseDate),
       ownerUid: user.uid,
+      purchaseDate: Timestamp.fromDate(data.purchaseDate),
+      soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
+      soldPrice: data.soldPrice ?? null,
+    };
+    
+    if (data.status !== 'Sold') {
+        propertyData.soldDate = null;
+        propertyData.soldPrice = null;
     }
+
 
     try {
       const propDocRef = doc(db, 'properties', propertyId as string)
-      await updateDoc(propDocRef, propertyData)
+      await updateDoc(propDocRef, {
+        ...propertyData
+      })
       toast({ title: 'Success', description: 'Property updated successfully.' })
+       if (propertyData.status === 'Sold') {
+            router.push('/sold-properties')
+        }
     } catch (error) {
       console.error('Error updating document: ', error)
       toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' })
@@ -256,9 +288,67 @@ export default function PropertyDetailPage() {
                         />
                         <FormField
                             control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Status</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                    {propertyStatuses.map((s) => (
+                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {watchedStatus === 'Sold' && (
+                            <>
+                                <FormField
+                                    control={form.control}
+                                    name="soldPrice"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Sold Price</FormLabel>
+                                        <FormControl><Input type="number" placeholder="350000" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="soldDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                        <FormLabel>Sold Date</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </>
+                        )}
+                        
+                        <FormField
+                            control={form.control}
                             name="isListedPublicly"
                             render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <FormItem className="md:col-span-2 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel>List Publicly</FormLabel>
                                     <FormDescription>
