@@ -2,12 +2,32 @@
 'use client'
 
 import * as React from 'react'
-import { collection, onSnapshot, query, where } from 'firebase/firestore'
+import { collection, deleteDoc, doc, onSnapshot, query, where } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { Building } from 'lucide-react'
+import { Building, MoreHorizontal, Trash, View } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
@@ -17,7 +37,8 @@ import { useAuth } from '../layout'
 import type { Property } from '../properties/page'
 
 
-function SoldPropertyCard({ property }: { property: Property }) {
+function SoldPropertyCard({ property, onDelete }: { property: Property, onDelete: (property: Property) => void }) {
+    const router = useRouter();
     const formatCurrency = (amount?: number) => {
         if (typeof amount !== 'number') return 'N/A'
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
@@ -25,8 +46,8 @@ function SoldPropertyCard({ property }: { property: Property }) {
     const profitLoss = (property.soldPrice || 0) - property.purchasePrice
     
     return (
-        <Link href={`/properties/${property.id}`} className="block hover:shadow-lg transition-shadow rounded-lg">
-            <Card className="h-full flex flex-col">
+        <Card className="h-full flex flex-col">
+            <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
                     <div className="flex items-start gap-4">
                         <div className="bg-muted p-3 rounded-md">
@@ -48,13 +69,15 @@ function SoldPropertyCard({ property }: { property: Property }) {
                         <p className="font-semibold">{formatCurrency(property.soldPrice)}</p>
                     </div>
                 </CardContent>
-                <CardFooter className="mt-auto bg-muted/50 p-4 flex justify-between items-center text-sm">
-                     <div>
-                        <p className="text-muted-foreground">Sold Date</p>
-                        <p className="font-semibold">
-                            {property.soldDate ? format(property.soldDate.toDate(), 'PPP') : 'N/A'}
-                        </p>
-                    </div>
+            </Link>
+            <CardFooter className="mt-auto bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
+                 <div>
+                    <p className="text-muted-foreground">Sold Date</p>
+                    <p className="font-semibold">
+                        {property.soldDate ? format(property.soldDate.toDate(), 'PPP') : 'N/A'}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
                     <div className="text-right">
                        <p className="text-muted-foreground">Profit / Loss</p>
                        <p className={cn(
@@ -64,9 +87,27 @@ function SoldPropertyCard({ property }: { property: Property }) {
                             {formatCurrency(profitLoss)}
                         </p>
                     </div>
-                </CardFooter>
-            </Card>
-        </Link>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => router.push(`/properties/${property.id}`)}>
+                                <View className="mr-2 h-4 w-4" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => onDelete(property)} className="text-destructive focus:text-destructive">
+                                <Trash className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </CardFooter>
+        </Card>
     )
 }
 
@@ -113,6 +154,8 @@ export default function SoldPropertiesPage() {
   const { toast } = useToast()
   const [soldProperties, setSoldProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
+  const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -155,8 +198,29 @@ export default function SoldPropertiesPage() {
 
     return () => unsubscribe()
   }, [user, toast])
+  
+  const handleDeleteProperty = (property: Property) => {
+    setSelectedProperty(property);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedProperty || !db) return;
+
+    try {
+      await deleteDoc(doc(db, 'properties', selectedProperty.id));
+      toast({ title: 'Success', description: 'Property deleted permanently.' });
+    } catch (error) {
+      console.error('Error deleting document: ', error);
+      toast({ title: 'Error', description: 'Failed to delete property.', variant: 'destructive' });
+    } finally {
+      setIsDeleteAlertOpen(false);
+      setSelectedProperty(null);
+    }
+  };
 
   return (
+    <>
     <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Sold Properties</h1>
@@ -179,7 +243,7 @@ export default function SoldPropertiesPage() {
             soldProperties.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {soldProperties.map((prop) => (
-                        <SoldPropertyCard key={prop.id} property={prop} />
+                        <SoldPropertyCard key={prop.id} property={prop} onDelete={handleDeleteProperty} />
                     ))}
                 </div>
             ) : (
@@ -191,5 +255,21 @@ export default function SoldPropertiesPage() {
         )}
       </div>
     </main>
+
+    <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>This action cannot be undone. This will permanently delete the property record.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedProperty(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete}>Continue</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }
+
+    

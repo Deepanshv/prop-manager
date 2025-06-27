@@ -97,9 +97,28 @@ const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property
 
     return (
         <Card className="flex flex-col">
-             <CardHeader>
-                <div className="flex justify-between items-start">
+            <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
+                <CardHeader>
                     <CardTitle className="text-lg">{property.address.street}</CardTitle>
+                    <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {property.address.city}, {property.address.state}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    <div className="text-sm flex items-center gap-2 text-muted-foreground">
+                        <Building className="h-4 w-4" />
+                        <span>{property.propertyType}</span>
+                    </div>
+                     <div className="text-sm text-muted-foreground">
+                        Purchased on {format(property.purchaseDate.toDate(), 'PPP')}
+                     </div>
+                </CardContent>
+            </Link>
+            <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
+                <div>
+                    <p className="text-muted-foreground">Purchase Price</p>
+                    <p className="font-semibold text-base">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(property.purchasePrice)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Badge variant={property.status === 'For Sale' ? 'outline' : 'secondary'}>{property.status || 'Owned'}</Badge>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -122,23 +141,6 @@ const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property
                         </DropdownMenuContent>
                       </DropdownMenu>
                 </div>
-                <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {property.address.city}, {property.address.state}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-2">
-                <div className="text-sm flex items-center gap-2 text-muted-foreground">
-                    <Building className="h-4 w-4" />
-                    <span>{property.propertyType}</span>
-                </div>
-                 <div className="text-sm text-muted-foreground">
-                    Purchased on {format(property.purchaseDate.toDate(), 'PPP')}
-                 </div>
-            </CardContent>
-            <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm">
-                <div>
-                    <p className="text-muted-foreground">Purchase Price</p>
-                    <p className="font-semibold text-base">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(property.purchasePrice)}</p>
-                </div>
-                 <Badge variant={property.status === 'For Sale' ? 'outline' : 'secondary'}>{property.status || 'Owned'}</Badge>
             </CardFooter>
         </Card>
     )
@@ -476,3 +478,5 @@ export default function PropertyManagerPage() {
     </>
   )
 }
+
+    
