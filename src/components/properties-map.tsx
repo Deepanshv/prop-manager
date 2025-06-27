@@ -3,7 +3,7 @@
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import 'leaflet-defaulticon-compatibility';
+import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.js';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import type { Property } from '@/app/(app)/properties/page'
