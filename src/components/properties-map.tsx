@@ -15,14 +15,6 @@ interface PropertiesMapProps {
 }
 
 export function PropertiesMap({ properties }: PropertiesMapProps) {
-    // This state ensures we only render MapContainer on the client after the component has mounted.
-    // This helps prevent the "Map container is already initialized" error with React StrictMode.
-    const [isMounted, setIsMounted] = React.useState(false);
-
-    React.useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
     const propertiesWithCoords = properties?.filter(p => p.latitude != null && p.longitude != null) || [];
     
     const defaultCenter: LatLngExpression = [30, 0];
@@ -33,11 +25,6 @@ export function PropertiesMap({ properties }: PropertiesMapProps) {
         : defaultCenter;
 
     const mapZoom = propertiesWithCoords.length > 0 ? 4 : defaultZoom;
-
-    // Do not render the map on the server or before the initial client-side mount.
-    if (!isMounted) {
-        return null;
-    }
 
     return (
         <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={false} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}>
