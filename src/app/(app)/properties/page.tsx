@@ -474,32 +474,32 @@ export default function PropertyManagerPage() {
                <div className="space-y-2">
                 <h3 className="font-medium">Required Documents</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                   <FormField control={form.control} name="registryDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="registryDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
-                        <FormLabel>Registry Document (Required)</FormLabel>
-                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
-                        <FormMessage />
+                            <FormLabel>Registry Document (Required)</FormLabel>
+                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="landBookDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="landBookDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
-                        <FormLabel>Land Book Document (Required)</FormLabel>
-                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
-                        <FormMessage />
+                            <FormLabel>Land Book Document (Required)</FormLabel>
+                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
-                        <FormLabel>Aadhaar Card (Required)</FormLabel>
-                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
-                        <FormMessage />
+                            <FormLabel>Aadhaar Card (Required)</FormLabel>
+                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="panDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="panDoc" render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
-                        <FormLabel>PAN Card (Optional)</FormLabel>
-                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
-                        <FormMessage />
+                            <FormLabel>PAN Card (Optional)</FormLabel>
+                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormMessage />
                         </FormItem>
                     )} />
                 </div>
