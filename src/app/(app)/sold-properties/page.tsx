@@ -160,6 +160,7 @@ export default function SoldPropertiesPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [isUnsoldAlertOpen, setIsUnsoldAlertOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
+  const [selectedYear, setSelectedYear] = React.useState('all');
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -202,6 +203,24 @@ export default function SoldPropertiesPage() {
 
     return () => unsubscribe()
   }, [user, toast])
+
+  const availableYears = React.useMemo(() => {
+      if (soldProperties.length === 0) return [];
+      const years = new Set(soldProperties.map(p => 
+          p.soldDate ? p.soldDate.toDate().getFullYear().toString() : ''
+      ));
+      return Array.from(years).filter(Boolean).sort((a,b) => parseInt(b) - parseInt(a));
+  }, [soldProperties]);
+
+  const filteredProperties = React.useMemo(() => {
+      if (selectedYear === 'all') {
+          return soldProperties;
+      }
+      return soldProperties.filter(p => 
+          p.soldDate && p.soldDate.toDate().getFullYear().toString() === selectedYear
+      );
+  }, [soldProperties, selectedYear]);
+
   
   const handleDeleteProperty = (property: Property) => {
     setSelectedProperty(property);
@@ -254,14 +273,15 @@ export default function SoldPropertiesPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Sold Properties</h1>
         <div className="flex items-center gap-2">
-            <Select defaultValue="all">
+            <Select value={selectedYear} onValueChange={setSelectedYear} disabled={availableYears.length === 0}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by year" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">All Years</SelectItem>
-                    <SelectItem value="2025">2025</SelectItem>
-                    <SelectItem value="2024">2024</SelectItem>
+                    {availableYears.map(year => (
+                        <SelectItem key={year} value={year}>{year}</SelectItem>
+                    ))}
                 </SelectContent>
             </Select>
         </div>
@@ -269,16 +289,16 @@ export default function SoldPropertiesPage() {
 
       <div>
         {loading ? <PageSkeleton /> : (
-            soldProperties.length > 0 ? (
+            filteredProperties.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {soldProperties.map((prop) => (
+                    {filteredProperties.map((prop) => (
                         <SoldPropertyCard key={prop.id} property={prop} onDelete={handleDeleteProperty} onMarkAsUnsold={handleMarkAsUnsold} />
                     ))}
                 </div>
             ) : (
                 <div className="text-center py-16 border-2 border-dashed rounded-lg">
                     <h2 className="text-xl font-semibold text-muted-foreground">No Sold Properties Found</h2>
-                    <p className="mt-2 text-muted-foreground">When you mark a property as 'Sold', it will appear here.</p>
+                    <p className="mt-2 text-muted-foreground">{selectedYear !== 'all' ? `No properties were sold in ${selectedYear}.` : "When you mark a property as 'Sold', it will appear here."}</p>
                 </div>
             )
         )}

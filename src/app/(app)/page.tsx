@@ -106,16 +106,6 @@ export default function DashboardPage() {
     { title: "Portfolio Value", value: portfolioValue, icon: DollarSign, format: (v: number) => `₹${(v / 10000000).toFixed(2)} Cr` },
   ]
   
-  const getBadgeVariant = (index: number) => {
-    const variants = ["secondary", "outline", "default"]
-    return variants[index % variants.length] as "secondary" | "outline" | "default"
-  }
-  
-  const getActivityStatus = (index: number) => {
-    const statuses = ["New Property", "Lease Signed", "New Prospect"]
-    return statuses[index % statuses.length]
-  }
-
   return (
     <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -165,12 +155,12 @@ export default function DashboardPage() {
                   </TableRow>
                 ))
               ) : recentActivity.length > 0 ? (
-                recentActivity.map((activity, index) => (
+                recentActivity.map((activity) => (
                   <TableRow key={activity.id}>
                     <TableCell className="font-medium">{`${activity.address.street}, ${activity.address.city}`}</TableCell>
                     <TableCell>
-                      <Badge variant={getBadgeVariant(index)}>
-                        {getActivityStatus(index)}
+                      <Badge variant={"secondary"}>
+                        New Property
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">

@@ -108,6 +108,8 @@ const ProspectStatusBadge = ({ status }: { status: Prospect['status'] }) => {
     return <Badge variant={variantMap[status]} className={cn(colorMap[status], "text-white")}>{status}</Badge>;
 }
 
+const PROSPECTS_PER_PAGE = 10;
+
 export default function ProspectManagerPage() {
     const { user } = useAuth();
     const [prospects, setProspects] = React.useState<Prospect[]>([]);
@@ -118,6 +120,9 @@ export default function ProspectManagerPage() {
     const [isConvertModalOpen, setIsConvertModalOpen] = React.useState(false);
     const [selectedProspect, setSelectedProspect] = React.useState<Prospect | null>(null);
     const { toast } = useToast();
+
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const [currentPage, setCurrentPage] = React.useState(1);
 
     const form = useForm<ProspectFormData>({
         resolver: zodResolver(prospectSchema),
@@ -146,6 +151,25 @@ export default function ProspectManagerPage() {
 
         return () => unsubscribe();
     }, [user, toast]);
+    
+    const filteredProspects = React.useMemo(() => {
+        return prospects.filter(prospect => 
+            prospect.dealName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [prospects, searchTerm]);
+
+    const totalPages = Math.ceil(filteredProspects.length / PROSPECTS_PER_PAGE);
+
+    const paginatedProspects = React.useMemo(() => {
+        const startIndex = (currentPage - 1) * PROSPECTS_PER_PAGE;
+        const endIndex = startIndex + PROSPECTS_PER_PAGE;
+        return filteredProspects.slice(startIndex, endIndex);
+    }, [filteredProspects, currentPage]);
+    
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1); // Reset to first page on search
+    };
 
     const handleAddNew = () => {
         setSelectedProspect(null);
@@ -193,8 +217,6 @@ export default function ProspectManagerPage() {
     
     const confirmConvert = async () => {
         if (!selectedProspect || !db) return;
-        // This would ideally trigger a Cloud Function to create a new Property.
-        // For this example, we'll just update the status on the client.
         try {
             await updateDoc(doc(db, 'prospects', selectedProspect.id), { status: 'Converted' });
             toast({ title: "Success", description: `Prospect marked as 'Converted'. Note: A backend function would be needed to create a property.`});
@@ -253,7 +275,7 @@ export default function ProspectManagerPage() {
                     <div className="p-4 border-b">
                          <div className="relative w-full max-w-sm">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search by deal name..." className="pl-10" />
+                            <Input placeholder="Search by deal name..." className="pl-10" value={searchTerm} onChange={handleSearchChange} />
                         </div>
                     </div>
                     <Table>
@@ -269,10 +291,10 @@ export default function ProspectManagerPage() {
                         <TableBody>
                             {isLoading ? (
                                 <TableSkeleton />
-                            ) : prospects.length === 0 ? (
-                                <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">No prospects found. Add one to get started!</TableCell></TableRow>
+                            ) : paginatedProspects.length === 0 ? (
+                                <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">{searchTerm ? 'No prospects match your search.' : 'No prospects found. Add one to get started!'}</TableCell></TableRow>
                             ) : (
-                                prospects.map(prospect => (
+                                paginatedProspects.map(prospect => (
                                     <TableRow key={prospect.id}>
                                         <TableCell className="font-medium">{prospect.dealName}</TableCell>
                                         <TableCell>{prospect.source}</TableCell>
@@ -281,10 +303,10 @@ export default function ProspectManagerPage() {
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 {prospect.status !== 'Converted' && prospect.status !== 'Rejected' && (
-                                                    <Button variant="ghost" size="sm" onClick={() => handleConvert(prospect)}><CheckCircle className="h-4 w-4"/></Button>
+                                                    <Button variant="ghost" size="sm" onClick={() => handleConvert(prospect)} title="Convert to Property"><CheckCircle className="h-4 w-4"/></Button>
                                                 )}
-                                                <Button variant="ghost" size="sm" onClick={() => handleEdit(prospect)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(prospect)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleEdit(prospect)} title="Edit Prospect"><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(prospect)} className="text-destructive hover:text-destructive" title="Delete Prospect"><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -292,15 +314,20 @@ export default function ProspectManagerPage() {
                             )}
                         </TableBody>
                     </Table>
-                     <div className="p-4 border-t flex items-center justify-between">
+                     <div className="p-4 border-t flex items-center justify-between text-sm">
                         <div className="text-xs text-muted-foreground">
-                            Showing <strong>1-{prospects.length}</strong> of <strong>{prospects.length}</strong> prospects
+                            Page <strong>{currentPage}</strong> of <strong>{totalPages > 0 ? totalPages : 1}</strong>
                         </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" disabled><ChevronsLeft className="h-4 w-4" /> First</Button>
-                            <Button variant="outline" size="sm" disabled><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                            <Button variant="outline" size="sm" disabled>Next <ChevronRight className="h-4 w-4" /></Button>
-                            <Button variant="outline" size="sm" disabled>Last <ChevronsRight className="h-4 w-4" /></Button>
+                        <div className="flex items-center gap-2">
+                           <span className="text-xs text-muted-foreground">
+                            Showing <strong>{paginatedProspects.length > 0 ? (currentPage - 1) * PROSPECTS_PER_PAGE + 1 : 0}-{(currentPage - 1) * PROSPECTS_PER_PAGE + paginatedProspects.length}</strong> of <strong>{filteredProspects.length}</strong>
+                           </span>
+                           <div className="flex gap-1">
+                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronsLeft className="h-4 w-4" /></Button>
+                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}>Next <ChevronRight className="h-4 w-4" /></Button>
+                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || totalPages === 0}><ChevronsRight className="h-4 w-4" /></Button>
+                           </div>
                         </div>
                     </div>
                 </div>
@@ -321,7 +348,7 @@ export default function ProspectManagerPage() {
                             )} />
                              <FormField control={form.control} name="status" render={({ field }) => (
                                 <FormItem><FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         {['New', 'Under Review', 'Offer Made', 'Rejected', 'Converted'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -330,7 +357,7 @@ export default function ProspectManagerPage() {
                                 <FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                                <FormItem><FormLabel>Estimated Value</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Estimated Value (₹)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="dateAdded" render={({ field }) => (
                                 <FormItem className="flex flex-col"><FormLabel>Date Added</FormLabel>
