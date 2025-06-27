@@ -71,6 +71,7 @@ export default function PropertyDetailPage() {
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
         status: 'Owned',
+        isListedPublicly: false,
     }
   })
 

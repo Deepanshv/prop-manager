@@ -184,6 +184,8 @@ export default function PropertyManagerPage() {
       address: { street: '', city: '', state: '', zip: '' },
       purchasePrice: 0,
       isListedPublicly: false,
+      propertyType: undefined,
+      purchaseDate: undefined,
     })
     setIsModalOpen(true)
   }
