@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { Building, DollarSign, Hash, TrendingUp } from 'lucide-react'
+import { Building } from 'lucide-react'
 import Link from 'next/link'
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -152,28 +152,6 @@ export default function SoldPropertiesPage() {
     return () => unsubscribe()
   }, [user, toast])
 
-  const formatCurrencyKPI = (v: number) => {
-    const absV = Math.abs(v);
-    const sign = v < 0 ? '-' : '';
-    if (absV >= 1000000) {
-        return `${sign}$${(absV / 1000000).toFixed(2)}M`;
-    }
-    if (absV >= 1000) {
-        return `${sign}$${(absV / 1000).toFixed(1)}k`;
-    }
-    return v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  }
-
-  const totalSalesVolume = soldProperties.reduce((sum, prop) => sum + (prop.soldPrice || 0), 0)
-  const totalPurchaseValue = soldProperties.reduce((sum, prop) => sum + prop.purchasePrice, 0)
-  const totalProfit = totalSalesVolume - totalPurchaseValue
-
-  const kpis = [
-    { title: "Total Sales Volume", value: totalSalesVolume, icon: DollarSign, format: formatCurrencyKPI },
-    { title: "Total Profit", value: totalProfit, icon: TrendingUp, format: formatCurrencyKPI },
-    { title: "Properties Sold", value: soldProperties.length, icon: Hash, format: (v: number) => v.toLocaleString() },
-  ]
-
   return (
     <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -190,27 +168,6 @@ export default function SoldPropertiesPage() {
                 </SelectContent>
             </Select>
         </div>
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {kpis.map((kpi) => (
-          <Card key={kpi.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-              <kpi.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? <Skeleton className="h-8 w-24 mt-1" /> : (
-                <div className={cn(
-                  "text-2xl font-bold",
-                  kpi.title === "Total Profit" && (kpi.value >= 0 ? 'text-green-600' : 'text-red-600')
-                )}>
-                  {kpi.format(kpi.value)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       <div>
