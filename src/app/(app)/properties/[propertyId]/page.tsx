@@ -147,13 +147,27 @@ export default function PropertyDetailPage() {
   const handleFindOnMap = async () => {
     const city = form.getValues('address.city');
     const state = form.getValues('address.state');
-    if (!city || !state) {
-        toast({ title: 'City and State required', description: 'Please select a city and state before finding on map.', variant: 'destructive' });
+    const zip = form.getValues('address.zip');
+
+    let searchQuery: string | null = null;
+    let searchToastDescription: string | null = null;
+
+    if (zip && zip.length === 6) {
+        searchQuery = `${zip}, India`;
+        searchToastDescription = `Searching for zip code: ${zip}`;
+    } else if (city && state) {
+        searchQuery = `${city}, ${state}, India`;
+        searchToastDescription = `Searching for city: ${city}`;
+    } else {
+        toast({ title: 'Location data required', description: 'Please provide a Zip Code, or a City and State.', variant: 'destructive' });
         return;
     }
+    
     setIsGeocoding(true);
+    toast({ title: 'Locating...', description: searchToastDescription });
+
     try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}, ${encodeURIComponent(state)}, India&limit=1`);
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
         if (!response.ok) throw new Error('Geocoding failed');
         const data = await response.json();
         if (data && data.length > 0) {
@@ -164,7 +178,7 @@ export default function PropertyDetailPage() {
             form.setValue('address.longitude', newCenter[1], { shouldValidate: true });
             toast({ title: 'Location Found!', description: 'You can now drag the pin to fine-tune the location.' });
         } else {
-            toast({ title: 'Location not found', description: 'Could not find the specified location. Please check the city and state.', variant: 'destructive' });
+            toast({ title: 'Location not found', description: 'Could not find the specified location. Please check your details.', variant: 'destructive' });
         }
     } catch (error) {
         toast({ title: 'Error', description: 'Could not connect to the geocoding service.', variant: 'destructive' });
