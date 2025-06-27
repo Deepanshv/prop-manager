@@ -11,6 +11,7 @@ import {
   User,
 } from 'firebase/auth'
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import {
   Camera,
 } from 'lucide-react'
@@ -41,11 +42,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
-import { auth, storage } from '@/lib/firebase'
+import { auth, db, storage } from '@/lib/firebase'
 import { useAuth } from '../layout'
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.'),
+  primaryNumber: z.string().regex(/^\d{10}$/, { message: "Must be a 10-digit number."}).optional().or(z.literal('')),
+  secondaryNumber: z.string().regex(/^\d{10}$/, { message: "Must be a 10-digit number."}).optional().or(z.literal('')),
 })
 type ProfileFormData = z.infer<typeof profileFormSchema>
 
@@ -62,37 +65,77 @@ const passwordFormSchema = z
 type PasswordFormData = z.infer<typeof passwordFormSchema>
 
 export default function SettingsPage() {
-  // The user object is now guaranteed to be present by the layout
   const { user: authUser, handleLogout } = useAuth()
-  // We use a local state to reflect UI changes immediately, e.g., for displayName
   const [user, setUser] = React.useState<User>(authUser)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = React.useState('')
   const { toast } = useToast()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
-
-  React.useEffect(() => {
-    // Keep local user state in sync with the auth context user
-    setUser(authUser)
-  }, [authUser])
+  const [isProfileLoading, setIsProfileLoading] = React.useState(true);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
-    values: { displayName: user.displayName || '' },
+    defaultValues: {
+      displayName: '',
+      primaryNumber: '',
+      secondaryNumber: '',
+    },
   })
 
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   })
-
+  
+  React.useEffect(() => {
+    setUser(authUser)
+    if (authUser && db) {
+      setIsProfileLoading(true);
+      const fetchProfile = async () => {
+        try {
+          const userDocRef = doc(db, 'users', authUser.uid);
+          const docSnap = await getDoc(userDocRef);
+          let primaryNumber = '';
+          let secondaryNumber = '';
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            primaryNumber = data.primaryNumber || '';
+            secondaryNumber = data.secondaryNumber || '';
+          }
+          profileForm.reset({
+            displayName: authUser.displayName || '',
+            primaryNumber,
+            secondaryNumber,
+          });
+        } catch (error) {
+          toast({ title: 'Error', description: 'Could not fetch profile data.', variant: 'destructive' });
+           profileForm.reset({
+            displayName: authUser.displayName || '',
+            primaryNumber: '',
+            secondaryNumber: '',
+          });
+        } finally {
+          setIsProfileLoading(false);
+        }
+      };
+      fetchProfile();
+    }
+  }, [authUser, db, profileForm, toast])
 
   const handleProfileUpdate = async (data: ProfileFormData) => {
-    if (!auth.currentUser) return
+    if (!auth.currentUser || !db) return
     try {
       await updateProfile(auth.currentUser, { displayName: data.displayName })
-      // Manually update local user state to avoid waiting for onAuthStateChanged
       setUser(prevUser => ({ ...prevUser, displayName: data.displayName } as User))
+
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      await setDoc(userDocRef, { 
+        primaryNumber: data.primaryNumber,
+        secondaryNumber: data.secondaryNumber,
+        email: auth.currentUser.email,
+        displayName: data.displayName
+      }, { merge: true });
+
       toast({ title: 'Success', description: 'Profile updated successfully.' })
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' })
@@ -123,7 +166,6 @@ export default function SettingsPage() {
       await uploadBytes(storageRef, file)
       const photoURL = await getDownloadURL(storageRef)
       await updateProfile(auth.currentUser, { photoURL })
-      // Manually update user state to reflect new photoURL immediately
       setUser(prevUser => ({ ...prevUser, photoURL } as User))
       toast({ title: 'Success', description: 'Profile picture updated.' })
     } catch (error: any) {
@@ -136,7 +178,7 @@ export default function SettingsPage() {
     try {
       await deleteUser(auth.currentUser)
       toast({ title: 'Account Deleted', description: 'Your account has been permanently deleted.' })
-      handleLogout(); // Use the logout function from context to clean up and redirect
+      handleLogout();
     } catch (error: any) {
       toast({ title: 'Error', description: 'Failed to delete account. You may need to sign in again.', variant: 'destructive' })
     } finally {
@@ -157,12 +199,29 @@ export default function SettingsPage() {
                     <Skeleton className="h-4 w-48" />
                 </div>
             </div>
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-32" />
+            <div className="max-w-sm space-y-4 pt-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-32 mt-4" />
+            </div>
         </CardContent>
       </Card>
-      {/* ... other skeleton parts */}
+      <Card>
+        <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
+         <CardContent className="space-y-4 max-w-sm">
+             <Skeleton className="h-4 w-24" />
+             <Skeleton className="h-10 w-full" />
+             <Skeleton className="h-4 w-24" />
+             <Skeleton className="h-10 w-full" />
+             <Skeleton className="h-4 w-24" />
+             <Skeleton className="h-10 w-full" />
+             <Skeleton className="h-10 w-32 mt-4" />
+         </CardContent>
+      </Card>
     </div>
   )
 
@@ -178,13 +237,13 @@ export default function SettingsPage() {
             <Card>
             <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your display name and profile picture.</CardDescription>
+                <CardDescription>Update your display name and contact information.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex items-center gap-4">
                 <div className="relative">
                     <Avatar className="h-20 w-20">
-                    <AvatarImage src={user.photoURL || "https://placehold.co/80x80.png"} alt="User Avatar" data-ai-hint="user avatar" />
+                    <AvatarImage src={user.photoURL || "https://placehold.co/80x80.png"} alt="User Avatar" data-ai-hint="user avatar"/>
                     <AvatarFallback className="text-2xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-7 w-7" onClick={() => fileInputRef.current?.click()}>
@@ -192,13 +251,23 @@ export default function SettingsPage() {
                     </Button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleProfilePictureChange} />
                 </div>
-                <div className="grid gap-1">
-                    <p className="font-semibold text-lg">{user.displayName || 'User'}</p>
-                    <p className="text-muted-foreground">{user.email}</p>
                 </div>
-                </div>
+                {isProfileLoading ? (
+                  <div className="mt-6 space-y-4 max-w-sm">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ) : (
                 <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="mt-6 space-y-4 max-w-sm">
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <Input readOnly disabled value={user.email || 'No email associated'} />
+                    </FormItem>
                     <FormField
                     control={profileForm.control}
                     name="displayName"
@@ -210,11 +279,34 @@ export default function SettingsPage() {
                         </FormItem>
                     )}
                     />
+                    <FormField
+                    control={profileForm.control}
+                    name="primaryNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Primary Number</FormLabel>
+                        <FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                     <FormField
+                    control={profileForm.control}
+                    name="secondaryNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Secondary Number (Optional)</FormLabel>
+                        <FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
                     <Button type="submit" disabled={profileForm.formState.isSubmitting}>
                         {profileForm.formState.isSubmitting ? 'Saving...' : 'Update Profile'}
                     </Button>
                 </form>
                 </Form>
+                )}
             </CardContent>
             </Card>
             
