@@ -32,51 +32,13 @@ import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { indianStates, indianStatesAndCities } from '@/lib/indian-locations'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
   loading: () => <Skeleton className="h-96 w-full rounded-md" />,
 });
 
-const indianStatesAndCities = {
-  'Andaman and Nicobar Islands': ['Port Blair'],
-  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur'],
-  'Arunachal Pradesh': ['Itanagar'],
-  'Assam': ['Guwahati', 'Dispur'],
-  'Bihar': ['Patna', 'Gaya'],
-  'Chandigarh': ['Chandigarh'],
-  'Chhattisgarh': ['Raipur', 'Bhilai'],
-  'Dadra and Nagar Haveli and Daman and Diu': ['Daman', 'Silvassa'],
-  'Delhi': ['New Delhi', 'Delhi'],
-  'Goa': ['Panaji', 'Vasco da Gama'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
-  'Haryana': ['Faridabad', 'Gurugram', 'Panipat'],
-  'Himachal Pradesh': ['Shimla', 'Dharamshala'],
-  'Jammu and Kashmir': ['Srinagar', 'Jammu'],
-  'Jharkhand': ['Ranchi', 'Jamshedpur'],
-  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi-Dharwad'],
-  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode'],
-  'Ladakh': ['Leh', 'Kargil'],
-  'Lakshadweep': ['Kavaratti'],
-  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane'],
-  'Manipur': ['Imphal'],
-  'Meghalaya': ['Shillong'],
-  'Mizoram': ['Aizawl'],
-  'Nagaland': ['Kohima', 'Dimapur'],
-  'Odisha': ['Bhubaneswar', 'Cuttack'],
-  'Puducherry': ['Puducherry'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur'],
-  'Sikkim': ['Gangtok'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai'],
-  'Telangana': ['Hyderabad', 'Warangal'],
-  'Tripura': ['Agartala'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra'],
-  'Uttarakhand': ['Dehradun', 'Haridwar'],
-  'West Bengal': ['Kolkata', 'Asansol', 'Siliguri'],
-};
-const indianStates = Object.keys(indianStatesAndCities);
 const propertyTypes = ['Agricultural', 'Commercial', 'Residential', 'Tribal'];
 const landAreaUnits = ['Square Feet', 'Acre'];
 
@@ -216,7 +178,7 @@ export default function PropertyManagerPage() {
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       isListedPublicly: false,
-      address: { street: '', city: '', state: undefined, zip: '', landmark: '' },
+      address: { street: '', city: '', state: undefined, zip: '', landmark: '', latitude: 20.5937, longitude: 78.9629 },
       landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
       propertyType: undefined,
     },
@@ -260,7 +222,12 @@ export default function PropertyManagerPage() {
   }, [user, toast])
 
   const handleAddProperty = () => {
-    form.reset()
+    form.reset({
+      isListedPublicly: false,
+      address: { street: '', city: '', state: undefined, zip: '', landmark: '', latitude: 20.5937, longitude: 78.9629 },
+      landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
+      propertyType: undefined,
+    })
     setMapCenter([20.5937, 78.9629])
     setIsModalOpen(true)
   }
@@ -530,7 +497,7 @@ export default function PropertyManagerPage() {
                         <FormItem><FormLabel>Landbook Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" onChange={field.onChange} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                         <FormItem><FormLabel>Area Unit</FormLabel>
@@ -557,7 +524,7 @@ export default function PropertyManagerPage() {
                         </FormItem>
                     )}/>
                     <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                        <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" onChange={field.onChange} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                         <FormItem className="flex flex-col md:col-span-2"><FormLabel>Purchase Date</FormLabel>

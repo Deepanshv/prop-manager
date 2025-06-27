@@ -64,7 +64,7 @@ export const InteractiveMap = ({ center, onMarkerMove }: InteractiveMapProps) =>
     if (mapRef.current && markerRef.current) {
       const currentMapCenter = mapRef.current.getCenter()
       if (currentMapCenter.lat !== center[0] || currentMapCenter.lng !== center[1]) {
-        mapRef.current.flyTo(center)
+        mapRef.current.flyTo(center, 13)
         markerRef.current.setLatLng(center)
       }
     }

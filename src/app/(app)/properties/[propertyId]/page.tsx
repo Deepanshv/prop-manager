@@ -28,51 +28,13 @@ import { cn } from '@/lib/utils'
 import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
 import type { Property } from '../page'
+import { indianStates, indianStatesAndCities } from '@/lib/indian-locations'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
   loading: () => <Skeleton className="h-96 w-full rounded-md" />,
 });
 
-const indianStatesAndCities = {
-  'Andaman and Nicobar Islands': ['Port Blair'],
-  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur'],
-  'Arunachal Pradesh': ['Itanagar'],
-  'Assam': ['Guwahati', 'Dispur'],
-  'Bihar': ['Patna', 'Gaya'],
-  'Chandigarh': ['Chandigarh'],
-  'Chhattisgarh': ['Raipur', 'Bhilai'],
-  'Dadra and Nagar Haveli and Daman and Diu': ['Daman', 'Silvassa'],
-  'Delhi': ['New Delhi', 'Delhi'],
-  'Goa': ['Panaji', 'Vasco da Gama'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
-  'Haryana': ['Faridabad', 'Gurugram', 'Panipat'],
-  'Himachal Pradesh': ['Shimla', 'Dharamshala'],
-  'Jammu and Kashmir': ['Srinagar', 'Jammu'],
-  'Jharkhand': ['Ranchi', 'Jamshedpur'],
-  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi-Dharwad'],
-  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode'],
-  'Ladakh': ['Leh', 'Kargil'],
-  'Lakshadweep': ['Kavaratti'],
-  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane'],
-  'Manipur': ['Imphal'],
-  'Meghalaya': ['Shillong'],
-  'Mizoram': ['Aizawl'],
-  'Nagaland': ['Kohima', 'Dimapur'],
-  'Odisha': ['Bhubaneswar', 'Cuttack'],
-  'Puducherry': ['Puducherry'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur'],
-  'Sikkim': ['Gangtok'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai'],
-  'Telangana': ['Hyderabad', 'Warangal'],
-  'Tripura': ['Agartala'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra'],
-  'Uttarakhand': ['Dehradun', 'Haridwar'],
-  'West Bengal': ['Kolkata', 'Asansol', 'Siliguri'],
-};
-const indianStates = Object.keys(indianStatesAndCities);
 const propertyTypes = ['Agricultural', 'Commercial', 'Residential', 'Tribal'];
 const landAreaUnits = ['Square Feet', 'Acre'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
