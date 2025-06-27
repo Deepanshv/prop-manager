@@ -418,7 +418,7 @@ export default function PropertyManagerPage() {
                         <FormItem><FormLabel>Landbook Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                         <FormItem><FormLabel>Area Unit</FormLabel>
@@ -445,7 +445,7 @@ export default function PropertyManagerPage() {
                         </FormItem>
                     )}/>
                     <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                        <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                         <FormItem className="flex flex-col md:col-span-2"><FormLabel>Purchase Date</FormLabel>
@@ -570,5 +570,3 @@ export default function PropertyManagerPage() {
     </>
   )
 }
-
-    
