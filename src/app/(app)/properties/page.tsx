@@ -160,8 +160,19 @@ export default function PropertyManagerPage() {
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
-        isListedPublicly: false,
-    }
+      isListedPublicly: false,
+      address: {
+        street: '',
+        city: '',
+        zip: '',
+        landmark: '',
+        mapLocationLink: '',
+      },
+      landDetails: {
+        khasraNumber: '',
+        landbookNumber: '',
+      },
+    },
   })
 
   const soldForm = useForm<MarkAsSoldFormData>({
@@ -478,5 +489,3 @@ export default function PropertyManagerPage() {
     </>
   )
 }
-
-    
