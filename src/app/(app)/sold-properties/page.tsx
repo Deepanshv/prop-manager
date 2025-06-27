@@ -2,9 +2,9 @@
 'use client'
 
 import * as React from 'react'
-import { collection, deleteDoc, doc, onSnapshot, query, where } from 'firebase/firestore'
+import { collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { Building, MoreHorizontal, Trash, View } from 'lucide-react'
+import { Building, MoreHorizontal, Trash, Undo2, View } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -37,7 +37,7 @@ import { useAuth } from '../layout'
 import type { Property } from '../properties/page'
 
 
-function SoldPropertyCard({ property, onDelete }: { property: Property, onDelete: (property: Property) => void }) {
+function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Property, onDelete: (property: Property) => void, onMarkAsUnsold: (property: Property) => void }) {
     const router = useRouter();
     const formatCurrency = (amount?: number) => {
         if (typeof amount !== 'number') return 'N/A'
@@ -99,6 +99,9 @@ function SoldPropertyCard({ property, onDelete }: { property: Property, onDelete
                             <DropdownMenuItem onClick={() => router.push(`/properties/${property.id}`)}>
                                 <View className="mr-2 h-4 w-4" /> View Details
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onMarkAsUnsold(property)}>
+                                <Undo2 className="mr-2 h-4 w-4" /> Mark as Unsold
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => onDelete(property)} className="text-destructive focus:text-destructive">
                                 <Trash className="mr-2 h-4 w-4" /> Delete
@@ -155,6 +158,7 @@ export default function SoldPropertiesPage() {
   const [soldProperties, setSoldProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
+  const [isUnsoldAlertOpen, setIsUnsoldAlertOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
 
   React.useEffect(() => {
@@ -204,6 +208,11 @@ export default function SoldPropertiesPage() {
     setIsDeleteAlertOpen(true);
   };
 
+  const handleMarkAsUnsold = (property: Property) => {
+    setSelectedProperty(property);
+    setIsUnsoldAlertOpen(true);
+  };
+
   const confirmDelete = async () => {
     if (!selectedProperty || !db) return;
 
@@ -215,6 +224,26 @@ export default function SoldPropertiesPage() {
       toast({ title: 'Error', description: 'Failed to delete property.', variant: 'destructive' });
     } finally {
       setIsDeleteAlertOpen(false);
+      setSelectedProperty(null);
+    }
+  };
+
+  const confirmUnsold = async () => {
+    if (!selectedProperty || !db) return;
+
+    try {
+      const propDocRef = doc(db, 'properties', selectedProperty.id);
+      await updateDoc(propDocRef, {
+        status: 'Owned',
+        soldPrice: null,
+        soldDate: null,
+      });
+      toast({ title: 'Success', description: 'Property marked as unsold and moved to Properties.' });
+    } catch (error) {
+      console.error('Error updating document: ', error);
+      toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' });
+    } finally {
+      setIsUnsoldAlertOpen(false);
       setSelectedProperty(null);
     }
   };
@@ -243,7 +272,7 @@ export default function SoldPropertiesPage() {
             soldProperties.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {soldProperties.map((prop) => (
-                        <SoldPropertyCard key={prop.id} property={prop} onDelete={handleDeleteProperty} />
+                        <SoldPropertyCard key={prop.id} property={prop} onDelete={handleDeleteProperty} onMarkAsUnsold={handleMarkAsUnsold} />
                     ))}
                 </div>
             ) : (
@@ -268,8 +297,19 @@ export default function SoldPropertiesPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+
+    <AlertDialog open={isUnsoldAlertOpen} onOpenChange={setIsUnsoldAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>This action will mark the property as unsold and move it back to your active properties list.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedProperty(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmUnsold}>Yes, Mark as Unsold</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   )
 }
-
-    
