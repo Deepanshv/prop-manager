@@ -2,13 +2,19 @@
 'use client'
 
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.js';
-
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import type { Property } from '@/app/(app)/properties/page'
-import { LatLngExpression } from 'leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import type { Property } from '@/app/(app)/properties/page';
+import L, { LatLngExpression } from 'leaflet';
 import * as React from 'react';
+
+// Fix for default icon paths in Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
+
 
 interface PropertiesMapProps {
     properties: Property[];
@@ -22,29 +28,26 @@ function MapUpdater({ properties }: { properties: Property[] }) {
     React.useEffect(() => {
         const propertiesWithCoords = properties?.filter(p => p.latitude != null && p.longitude != null) || [];
         
-        // Only fly to the location on the first load with properties
         if (propertiesWithCoords.length > 0 && !didInitialFly) {
             const firstProp = propertiesWithCoords[0];
             const newCenter: LatLngExpression = [firstProp.latitude!, firstProp.longitude!];
-            
-            // Use flyTo for a smooth animated transition
             map.flyTo(newCenter, 4);
             setDidInitialFly(true);
+        } else if (propertiesWithCoords.length === 0 && didInitialFly) {
+             map.flyTo([30, 0], 2);
+             setDidInitialFly(false);
         }
     }, [properties, map, didInitialFly]);
 
-    return null; // This component does not render anything itself
+    return null;
 }
 
-export function PropertiesMap({ properties }: PropertiesMapProps) {
+const PropertiesMap = ({ properties }: PropertiesMapProps) => {
     const propertiesWithCoords = properties?.filter(p => p.latitude != null && p.longitude != null) || [];
-    
-    // Static initial values. MapUpdater will move the view if properties exist.
     const initialCenter: LatLngExpression = [30, 0];
     const initialZoom = 2;
 
     return (
-        // MapContainer props are now static, preventing re-initialization errors.
         <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={false} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}>
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -58,8 +61,9 @@ export function PropertiesMap({ properties }: PropertiesMapProps) {
                     </Popup>
                 </Marker>
             ))}
-            {/* This component handles all dynamic view updates */}
             <MapUpdater properties={properties} />
         </MapContainer>
     )
 }
+
+export default PropertiesMap;

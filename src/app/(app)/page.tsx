@@ -32,14 +32,6 @@ import type { Prospect } from './prospects/page'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-const PropertiesMap = dynamic(
-  () => import('@/components/properties-map').then((mod) => mod.PropertiesMap),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-full w-full rounded-none" />,
-  }
-)
-
 export default function DashboardPage() {
   const { user } = useAuth()
   const { toast } = useToast()
@@ -47,6 +39,14 @@ export default function DashboardPage() {
   const [prospects, setProspects] = React.useState<Prospect[]>([])
   const [recentActivity, setRecentActivity] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
+
+  const PropertiesMap = React.useMemo(() => dynamic(
+    () => import('@/components/properties-map'),
+    { 
+      loading: () => <Skeleton className="h-full w-full rounded-none" />,
+      ssr: false 
+    }
+  ), []);
 
   React.useEffect(() => {
     if (!user || !db) {
