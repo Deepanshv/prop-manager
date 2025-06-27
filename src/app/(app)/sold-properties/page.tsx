@@ -2,7 +2,7 @@
 'use client'
 
 import * as React from 'react'
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore'
+import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { format } from 'date-fns'
 import { Building } from 'lucide-react'
 import Link from 'next/link'
@@ -124,8 +124,7 @@ export default function SoldPropertiesPage() {
     const q = query(
       collection(db, 'properties'),
       where('ownerUid', '==', user.uid),
-      where('status', '==', 'Sold'),
-      orderBy('soldDate', 'desc')
+      where('status', '==', 'Sold')
     )
 
     const unsubscribe = onSnapshot(
@@ -135,6 +134,11 @@ export default function SoldPropertiesPage() {
         querySnapshot.forEach((doc) => {
           props.push({ id: doc.id, ...doc.data() } as Property)
         })
+        props.sort((a, b) => {
+            const dateA = a.soldDate ? a.soldDate.toDate().getTime() : 0;
+            const dateB = b.soldDate ? b.soldDate.toDate().getTime() : 0;
+            return dateB - dateA;
+        });
         setSoldProperties(props)
         setLoading(false)
       },

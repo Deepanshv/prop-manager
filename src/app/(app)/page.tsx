@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import { useAuth } from './layout'
 import { db } from '@/lib/firebase'
-import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore'
+import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
@@ -35,7 +35,6 @@ export default function DashboardPage() {
   const { toast } = useToast()
   const [properties, setProperties] = React.useState<Property[]>([])
   const [prospects, setProspects] = React.useState<Prospect[]>([])
-  const [recentActivity, setRecentActivity] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
@@ -46,8 +45,7 @@ export default function DashboardPage() {
 
     const propertyQuery = query(collection(db, 'properties'), where('ownerUid', '==', user.uid))
     const prospectQuery = query(collection(db, 'prospects'), where('ownerUid', '==', user.uid))
-    const activityQuery = query(collection(db, 'properties'), where('ownerUid', '==', user.uid), orderBy('purchaseDate', 'desc'), limit(5))
-
+    
     let isMounted = true;
     let initialLoads = 2; // for properties and prospects
 
@@ -61,7 +59,7 @@ export default function DashboardPage() {
     const unsubProperties = onSnapshot(propertyQuery, (snapshot) => {
       if (!isMounted) return;
       const props = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property))
-      setProperties(props)
+      setProperties(props.filter(p => p.status !== 'Sold'))
       handleInitialLoad();
     }, (error) => {
       console.error("Error fetching properties:", error)
@@ -79,25 +77,22 @@ export default function DashboardPage() {
       toast({ title: 'Error', description: 'Could not fetch prospects.', variant: 'destructive'})
       if (isMounted) handleInitialLoad();
     })
-    
-    const unsubActivity = onSnapshot(activityQuery, (snapshot) => {
-      if (!isMounted) return;
-      const activities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property))
-      setRecentActivity(activities)
-    }, (error) => {
-        console.error("Error fetching recent activity:", error)
-    })
 
     return () => {
       isMounted = false;
       unsubProperties()
       unsubProspects()
-      unsubActivity()
     }
   }, [user, toast])
 
   const portfolioValue = properties.reduce((sum, prop) => sum + (prop.purchasePrice || 0), 0)
   const activeProspects = prospects.filter(p => p.status === 'New' || p.status === 'Under Review' || p.status === 'Offer Made').length
+  
+  const recentActivity = React.useMemo(() => {
+    return [...properties]
+        .sort((a, b) => b.purchaseDate.toDate().getTime() - a.purchaseDate.toDate().getTime())
+        .slice(0, 5);
+  }, [properties]);
 
   const kpis = [
     { title: "Total Properties", value: properties.length, icon: Building2, format: (v: number) => v.toLocaleString() },
