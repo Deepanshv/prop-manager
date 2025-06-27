@@ -2,10 +2,9 @@
 'use client'
 
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import type { Property } from '@/app/(app)/properties/page';
-import L, { LatLngExpression } from 'leaflet';
+import L, { Map } from 'leaflet';
 import * as React from 'react';
+import type { Property } from '@/app/(app)/properties/page';
 
 // This is a common workaround for a known issue with Leaflet and bundlers like Webpack.
 // It ensures that the default marker icons can be found and displayed correctly.
@@ -16,67 +15,70 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-
 interface PropertiesMapProps {
     properties: Property[];
 }
 
-// This child component is the key to safely and dynamically updating the map's view.
-// It runs after the main <MapContainer> has been created and won't cause re-initialization.
-function MapUpdater({ properties }: { properties: Property[] }) {
-    const map = useMap(); // This hook gives us access to the map instance.
+const PropertiesMap = ({ properties }: PropertiesMapProps) => {
+    const mapContainerRef = React.useRef<HTMLDivElement>(null);
+    const mapInstanceRef = React.useRef<Map | null>(null);
+    const markersRef = React.useRef<L.Marker[]>([]);
 
     React.useEffect(() => {
-        // Filter for properties that have valid coordinates.
+        // Only initialize the map if the container ref exists and there is no map instance.
+        // This effect runs only once on component mount due to the empty dependency array.
+        if (mapContainerRef.current && !mapInstanceRef.current) {
+            mapInstanceRef.current = L.map(mapContainerRef.current, {
+                center: [30, 0],
+                zoom: 2,
+                scrollWheelZoom: false,
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }).addTo(mapInstanceRef.current);
+        }
+
+        // The cleanup function is crucial. It runs when the component unmounts.
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove(); // This destroys the map instance and clears its container.
+                mapInstanceRef.current = null;
+            }
+        };
+    }, []); // Empty dependency array ensures this runs only on mount and cleanup on unmount.
+
+    React.useEffect(() => {
+        // This effect handles updating markers and view when the properties data changes.
+        const map = mapInstanceRef.current;
+        if (!map) return; // Don't do anything if the map isn't initialized yet.
+
+        // Clear existing markers from the map and from our reference array.
+        markersRef.current.forEach(marker => marker.removeFrom(map));
+        markersRef.current = [];
+
         const propertiesWithCoords = properties?.filter(p => p.latitude != null && p.longitude != null) || [];
-        
+
         if (propertiesWithCoords.length > 0) {
-            // Create a bounding box that encompasses all property markers.
-            const bounds = new L.LatLngBounds(
-                propertiesWithCoords.map(p => [p.latitude!, p.longitude!])
-            );
-            
-            // Tell the map to smoothly fly to and fit these bounds.
+            propertiesWithCoords.forEach(property => {
+                const marker = L.marker([property.latitude!, property.longitude!])
+                    .addTo(map)
+                    .bindPopup(`<strong>${property.address.street}</strong><br/>${property.address.city}, ${property.address.state}`);
+                markersRef.current.push(marker); // Add new marker to our reference array.
+            });
+
+            const bounds = new L.LatLngBounds(propertiesWithCoords.map(p => [p.latitude!, p.longitude!]));
             if (bounds.isValid()) {
                 map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14 });
             }
         } else {
-            // If there are no properties, fly to a default world view.
+            // If no properties have coordinates, reset to the default view.
             map.flyTo([30, 0], 2);
         }
-    // This effect runs whenever the list of properties changes.
-    }, [properties, map]);
+    }, [properties]); // Re-run this effect whenever the properties prop changes.
 
-    // This component doesn't render anything itself.
-    return null;
-}
-
-const PropertiesMap = ({ properties }: PropertiesMapProps) => {
-    // These are static initial values. They are used only when the map is first created
-    // and will not be changed, preventing the re-initialization error.
-    const initialCenter: LatLngExpression = [30, 0];
-    const initialZoom = 2;
-    const propertiesWithCoords = properties?.filter(p => p.latitude != null && p.longitude != null) || [];
-
-    return (
-        <MapContainer center={initialCenter} zoom={initialZoom} scrollWheelZoom={false} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}>
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {/* Render a marker for each property with coordinates */}
-            {propertiesWithCoords.map(property => (
-                <Marker key={property.id} position={[property.latitude!, property.longitude!]}>
-                    <Popup>
-                       <strong>{property.address.street}</strong><br/>
-                       {property.address.city}, {property.address.state}
-                    </Popup>
-                </Marker>
-            ))}
-            {/* The MapUpdater handles all dynamic view changes */}
-            <MapUpdater properties={properties} />
-        </MapContainer>
-    )
-}
+    // The map container div. The ref points to this DOM element.
+    return <div ref={mapContainerRef} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }} />;
+};
 
 export default PropertiesMap;
