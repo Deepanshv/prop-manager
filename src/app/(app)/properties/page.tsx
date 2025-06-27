@@ -31,6 +31,12 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
+  ssr: false,
+  loading: () => <Skeleton className="h-96 w-full rounded-md" />,
+});
 
 const indianStatesAndCities = {
   'Andaman and Nicobar Islands': ['Port Blair'],
@@ -80,7 +86,6 @@ const addressSchema = z.object({
   state: z.string({ required_error: 'Please select a state.' }),
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
-  mapLocationLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
 });
@@ -99,7 +104,6 @@ const propertyFormSchema = z.object({
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
-  // Document fields
   registryDoc: z.instanceof(File, { message: "Registry document is required." }).refine(file => file.size > 0, "File is required."),
   landBookDoc: z.instanceof(File, { message: "Land book document is required." }).refine(file => file.size > 0, "File is required."),
   aadhaarDoc: z.instanceof(File, { message: "Aadhaar card document is required." }).refine(file => file.size > 0, "File is required."),
@@ -122,7 +126,6 @@ export interface Property {
     state: string
     zip: string
     landmark?: string
-    mapLocationLink?: string
     latitude?: number
     longitude?: number
   }
@@ -206,11 +209,14 @@ export default function PropertyManagerPage() {
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
+  const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
+  const [isGeocoding, setIsGeocoding] = React.useState(false);
+
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       isListedPublicly: false,
-      address: { street: '', city: '', state: undefined, zip: '', landmark: '', mapLocationLink: '', latitude: undefined, longitude: undefined },
+      address: { street: '', city: '', state: undefined, zip: '', landmark: '' },
       landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
       propertyType: undefined,
     },
@@ -255,6 +261,7 @@ export default function PropertyManagerPage() {
 
   const handleAddProperty = () => {
     form.reset()
+    setMapCenter([20.5937, 78.9629])
     setIsModalOpen(true)
   }
 
@@ -284,6 +291,41 @@ export default function PropertyManagerPage() {
     }
   }
 
+  const handleMarkerMove = (lat: number, lng: number) => {
+    form.setValue('address.latitude', lat, { shouldValidate: true });
+    form.setValue('address.longitude', lng, { shouldValidate: true });
+    setMapCenter([lat, lng]);
+  }
+
+  const handleFindOnMap = async () => {
+    const city = form.getValues('address.city');
+    const state = form.getValues('address.state');
+    if (!city || !state) {
+        toast({ title: 'City and State required', description: 'Please select a city and state before finding on map.', variant: 'destructive' });
+        return;
+    }
+    setIsGeocoding(true);
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}, ${encodeURIComponent(state)}, India&limit=1`);
+        if (!response.ok) throw new Error('Geocoding failed');
+        const data = await response.json();
+        if (data && data.length > 0) {
+            const { lat, lon } = data[0];
+            const newCenter: [number, number] = [parseFloat(lat), parseFloat(lon)];
+            setMapCenter(newCenter);
+            form.setValue('address.latitude', newCenter[0], { shouldValidate: true });
+            form.setValue('address.longitude', newCenter[1], { shouldValidate: true });
+            toast({ title: 'Location Found!', description: 'You can now drag the pin to fine-tune the location.' });
+        } else {
+            toast({ title: 'Location not found', description: 'Could not find the specified location. Please check the city and state.', variant: 'destructive' });
+        }
+    } catch (error) {
+        toast({ title: 'Error', description: 'Could not connect to the geocoding service.', variant: 'destructive' });
+    } finally {
+        setIsGeocoding(false);
+    }
+  }
+
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !db || !storage) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
@@ -302,7 +344,7 @@ export default function PropertyManagerPage() {
 
             uploadTask.on(
                 'state_changed',
-                null, // No progress updates needed for this implementation
+                null, 
                 (error) => { reject(error); },
                 async () => {
                     const fileDocRef = doc(db, 'properties', newPropertyId, 'files', file.name);
@@ -331,13 +373,11 @@ export default function PropertyManagerPage() {
         
         await Promise.all(filesToUpload.map(file => uploadFile(file, user)));
 
+        const { registryDoc, landBookDoc, aadhaarDoc, panDoc, ...propertyDetails } = data;
+
         const propertyData = {
-          address: data.address,
-          landDetails: data.landDetails,
-          propertyType: data.propertyType,
+          ...propertyDetails,
           purchaseDate: Timestamp.fromDate(data.purchaseDate),
-          purchasePrice: data.purchasePrice,
-          isListedPublicly: data.isListedPublicly,
           ownerUid: user.uid,
           status: 'Owned',
         };
@@ -430,7 +470,7 @@ export default function PropertyManagerPage() {
                           <Select 
                             onValueChange={(value) => {
                                 field.onChange(value);
-                                form.setValue('address.city', ''); // Reset city on state change
+                                form.setValue('address.city', '');
                             }} 
                             defaultValue={field.value}
                           >
@@ -446,7 +486,7 @@ export default function PropertyManagerPage() {
                           <Select onValueChange={field.onChange} value={field.value} disabled={!watchedState}>
                               <FormControl><SelectTrigger><SelectValue placeholder="Select a city" /></SelectTrigger></FormControl>
                               <SelectContent>
-                                  {watchedState && (indianStatesAndCities[watchedState as keyof typeof indianStatesAndCities] || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                  {(indianStatesAndCities[watchedState as keyof typeof indianStatesAndCities] || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                               </SelectContent>
                           </Select>
                           <FormMessage />
@@ -461,15 +501,22 @@ export default function PropertyManagerPage() {
                     <FormField control={form.control} name="address.landmark" render={({ field }) => (
                         <FormItem><FormLabel>Landmark (Optional)</FormLabel><FormControl><Input placeholder="e.g. Near a specific school" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
-                    <FormField control={form.control} name="address.mapLocationLink" render={({ field }) => (
-                        <FormItem className="md:col-span-2"><FormLabel>Map Location Link (Optional)</FormLabel><FormControl><Input placeholder="https://maps.google.com/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                    <FormField control={form.control} name="address.latitude" render={({ field }) => (
-                        <FormItem><FormLabel>Latitude (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g. 19.0760" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                    <FormField control={form.control} name="address.longitude" render={({ field }) => (
-                        <FormItem><FormLabel>Longitude (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g. 72.8777" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                    )}/>
+                     <div className="md:col-span-2">
+                        <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isGeocoding}>
+                            {isGeocoding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
+                            Find on Map
+                        </Button>
+                    </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-medium">Set Location on Map</h3>
+                <div className="border p-4 rounded-md space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                        Drag the pin to set the exact property location, or use 'Find on Map' to get started.
+                    </p>
+                    <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
                 </div>
               </div>
               
@@ -483,7 +530,7 @@ export default function PropertyManagerPage() {
                         <FormItem><FormLabel>Landbook Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" onChange={field.onChange} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                         <FormItem><FormLabel>Area Unit</FormLabel>
@@ -510,7 +557,7 @@ export default function PropertyManagerPage() {
                         </FormItem>
                     )}/>
                     <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                        <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" onChange={field.onChange} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                         <FormItem className="flex flex-col md:col-span-2"><FormLabel>Purchase Date</FormLabel>
@@ -539,31 +586,31 @@ export default function PropertyManagerPage() {
                <div className="space-y-2">
                 <h3 className="font-medium">Required Documents</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                   <FormField control={form.control} name="registryDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="registryDoc" render={({ field: { onChange, onBlur, name, ref } }) => (
                         <FormItem>
                             <FormLabel>Registry Document (Required)</FormLabel>
-                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="landBookDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="landBookDoc" render={({ field: { onChange, onBlur, name, ref } }) => (
                         <FormItem>
                             <FormLabel>Land Book Document (Required)</FormLabel>
-                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { onChange, onBlur, name, ref } }) => (
                         <FormItem>
                             <FormLabel>Aadhaar Card (Required)</FormLabel>
-                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
-                   <FormField control={form.control} name="panDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                   <FormField control={form.control} name="panDoc" render={({ field: { onChange, onBlur, name, ref } }) => (
                         <FormItem>
                             <FormLabel>PAN Card (Optional)</FormLabel>
-                            <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />

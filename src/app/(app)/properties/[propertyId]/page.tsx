@@ -4,8 +4,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { ArrowLeft, Calendar as CalendarIcon, FileQuestion, Loader2 } from 'lucide-react'
+import { ArrowLeft, Calendar as CalendarIcon, FileQuestion, Loader2, MapPin } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
@@ -27,6 +28,11 @@ import { cn } from '@/lib/utils'
 import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
 import type { Property } from '../page'
+
+const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
+  ssr: false,
+  loading: () => <Skeleton className="h-96 w-full rounded-md" />,
+});
 
 const indianStatesAndCities = {
   'Andaman and Nicobar Islands': ['Port Blair'],
@@ -77,7 +83,6 @@ const addressSchema = z.object({
   state: z.string({ required_error: 'Please select a state.' }),
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
-  mapLocationLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
 });
@@ -118,6 +123,9 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
   const { toast } = useToast()
+  
+  const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
+  const [isGeocoding, setIsGeocoding] = React.useState(false);
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
@@ -150,6 +158,9 @@ export default function PropertyDetailPage() {
             isListedPublicly: propData.isListedPublicly || false,
             status: propData.status || 'Owned',
           })
+          if (propData.address.latitude && propData.address.longitude) {
+            setMapCenter([propData.address.latitude, propData.address.longitude]);
+          }
         } else {
           toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
           router.push('/properties')
@@ -164,6 +175,41 @@ export default function PropertyDetailPage() {
 
     fetchProperty()
   }, [user, db, propertyId, router, toast, form])
+  
+  const handleMarkerMove = (lat: number, lng: number) => {
+    form.setValue('address.latitude', lat, { shouldValidate: true });
+    form.setValue('address.longitude', lng, { shouldValidate: true });
+    setMapCenter([lat, lng]);
+  }
+
+  const handleFindOnMap = async () => {
+    const city = form.getValues('address.city');
+    const state = form.getValues('address.state');
+    if (!city || !state) {
+        toast({ title: 'City and State required', description: 'Please select a city and state before finding on map.', variant: 'destructive' });
+        return;
+    }
+    setIsGeocoding(true);
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}, ${encodeURIComponent(state)}, India&limit=1`);
+        if (!response.ok) throw new Error('Geocoding failed');
+        const data = await response.json();
+        if (data && data.length > 0) {
+            const { lat, lon } = data[0];
+            const newCenter: [number, number] = [parseFloat(lat), parseFloat(lon)];
+            setMapCenter(newCenter);
+            form.setValue('address.latitude', newCenter[0], { shouldValidate: true });
+            form.setValue('address.longitude', newCenter[1], { shouldValidate: true });
+            toast({ title: 'Location Found!', description: 'You can now drag the pin to fine-tune the location.' });
+        } else {
+            toast({ title: 'Location not found', description: 'Could not find the specified location. Please check the city and state.', variant: 'destructive' });
+        }
+    } catch (error) {
+        toast({ title: 'Error', description: 'Could not connect to the geocoding service.', variant: 'destructive' });
+    } finally {
+        setIsGeocoding(false);
+    }
+  }
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !db || !propertyId) {
@@ -243,7 +289,6 @@ export default function PropertyDetailPage() {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     
-                    {/* Address Section */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Address Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
@@ -253,7 +298,7 @@ export default function PropertyDetailPage() {
                                 <Select 
                                   onValueChange={(value) => {
                                     field.onChange(value);
-                                    form.setValue('address.city', ''); // Reset city on state change
+                                    form.setValue('address.city', '');
                                   }} 
                                   value={field.value}
                                 >
@@ -271,7 +316,7 @@ export default function PropertyDetailPage() {
                                 <Select onValueChange={field.onChange} value={field.value} disabled={!watchedState}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a city" /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        {watchedState && (indianStatesAndCities[watchedState as keyof typeof indianStatesAndCities] || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                        {(indianStatesAndCities[watchedState as keyof typeof indianStatesAndCities] || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -286,19 +331,25 @@ export default function PropertyDetailPage() {
                             <FormField control={form.control} name="address.landmark" render={({ field }) => (
                                 <FormItem><FormLabel>Landmark</FormLabel><FormControl><Input placeholder="e.g. Near a specific school" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
-                            <FormField control={form.control} name="address.mapLocationLink" render={({ field }) => (
-                                <FormItem className="md:col-span-2"><FormLabel>Map Location Link</FormLabel><FormControl><Input placeholder="https://maps.google.com/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="address.latitude" render={({ field }) => (
-                                <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" placeholder="e.g. 19.0760" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="address.longitude" render={({ field }) => (
-                                <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" placeholder="e.g. 72.8777" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )}/>
+                            <div className="md:col-span-2">
+                                <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isGeocoding}>
+                                    {isGeocoding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
+                                    Find on Map
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Land Details Section */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Set Location on Map</h3>
+                        <div className="border p-4 rounded-md space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                                Drag the pin to set the exact property location, or use 'Find on Map' to get started.
+                            </p>
+                            <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
+                        </div>
+                    </div>
+
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Land Details</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
@@ -325,7 +376,6 @@ export default function PropertyDetailPage() {
                          </div>
                     </div>
 
-                    {/* Property & Financial Details Section */}
                     <div className="space-y-4">
                          <h3 className="text-lg font-medium">Property & Financial Details</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
@@ -360,7 +410,6 @@ export default function PropertyDetailPage() {
                          </div>
                     </div>
                     
-                    {/* Status Section */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Property Status</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
