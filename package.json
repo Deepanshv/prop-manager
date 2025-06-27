@@ -41,6 +41,7 @@
     "dotenv": "^16.5.0",
     "firebase": "^11.9.1",
     "genkit": "^1.8.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
@@ -54,6 +55,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.12",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

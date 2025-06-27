@@ -40,6 +40,8 @@ const addressSchema = z.object({
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
   mapLocationLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
 });
 
 const landDetailsSchema = z.object({
@@ -232,6 +234,12 @@ export default function PropertyDetailPage() {
                             )}/>
                             <FormField control={form.control} name="address.mapLocationLink" render={({ field }) => (
                                 <FormItem className="md:col-span-2"><FormLabel>Map Location Link</FormLabel><FormControl><Input placeholder="https://maps.google.com/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="address.latitude" render={({ field }) => (
+                                <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" placeholder="e.g. 19.0760" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="address.longitude" render={({ field }) => (
+                                <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" placeholder="e.g. 72.8777" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                         </div>
                     </div>

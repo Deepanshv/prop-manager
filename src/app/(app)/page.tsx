@@ -1,6 +1,7 @@
 
 'use client'
 import * as React from 'react'
+import dynamic from 'next/dynamic'
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -29,6 +30,11 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
+
+const PropertiesMap = dynamic(() => import('@/components/properties-map'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-full w-full" />,
+})
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -115,6 +121,10 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       </div>
+
+      <Card className="h-[400px]">
+        <PropertiesMap properties={properties} />
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {kpis.map((kpi) => (

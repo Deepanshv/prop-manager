@@ -43,6 +43,8 @@ const addressSchema = z.object({
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
   mapLocationLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
 });
 
 const landDetailsSchema = z.object({
@@ -83,6 +85,8 @@ export interface Property {
     zip: string
     landmark?: string
     mapLocationLink?: string
+    latitude?: number
+    longitude?: number
   }
   landDetails: {
     khasraNumber?: string
@@ -169,8 +173,8 @@ export default function PropertyManagerPage() {
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       isListedPublicly: false,
-      address: { street: '', city: '', zip: '', landmark: '', mapLocationLink: '' },
-      landDetails: { khasraNumber: '', landbookNumber: '' },
+      address: { street: '', city: '', zip: '', landmark: '', mapLocationLink: '', latitude: undefined, longitude: undefined },
+      landDetails: { khasraNumber: '', landbookNumber: '', area: undefined },
     },
   })
 
@@ -404,6 +408,12 @@ export default function PropertyManagerPage() {
                     )}/>
                     <FormField control={form.control} name="address.mapLocationLink" render={({ field }) => (
                         <FormItem className="md:col-span-2"><FormLabel>Map Location Link (Optional)</FormLabel><FormControl><Input placeholder="https://maps.google.com/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="address.latitude" render={({ field }) => (
+                        <FormItem><FormLabel>Latitude (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g. 19.0760" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="address.longitude" render={({ field }) => (
+                        <FormItem><FormLabel>Longitude (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g. 72.8777" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                 </div>
               </div>

@@ -30,7 +30,7 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
         if (mapContainerRef.current && !mapInstanceRef.current) {
             mapInstanceRef.current = L.map(mapContainerRef.current, {
                 center: [20.5937, 78.9629],
-                zoom: 4,
+                zoom: 5,
                 scrollWheelZoom: false,
             });
 
@@ -57,23 +57,23 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
         markersRef.current.forEach(marker => marker.removeFrom(map));
         markersRef.current = [];
 
-        const propertiesWithCoords = properties?.filter(p => p.latitude != null && p.longitude != null) || [];
+        const propertiesWithCoords = properties?.filter(p => p.address.latitude != null && p.address.longitude != null) || [];
 
         if (propertiesWithCoords.length > 0) {
             propertiesWithCoords.forEach(property => {
-                const marker = L.marker([property.latitude!, property.longitude!])
+                const marker = L.marker([property.address.latitude!, property.address.longitude!])
                     .addTo(map)
                     .bindPopup(`<strong>${property.address.street}</strong><br/>${property.address.city}, ${property.address.state}`);
                 markersRef.current.push(marker); // Add new marker to our reference array.
             });
 
-            const bounds = new L.LatLngBounds(propertiesWithCoords.map(p => [p.latitude!, p.longitude!]));
+            const bounds = new L.LatLngBounds(propertiesWithCoords.map(p => [p.address.latitude!, p.address.longitude!]));
             if (bounds.isValid()) {
                 map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14 });
             }
         } else {
             // If no properties have coordinates, reset to the default view.
-            map.flyTo([20.5937, 78.9629], 4);
+            map.flyTo([20.5937, 78.9629], 5);
         }
     }, [properties]); // Re-run this effect whenever the properties prop changes.
 
