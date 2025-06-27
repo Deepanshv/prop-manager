@@ -2,7 +2,9 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc, serverTimestamp } from 'firebase/firestore'
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import type { User } from 'firebase/auth'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin } from 'lucide-react'
 import * as React from 'react'
@@ -24,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { db } from '@/lib/firebase'
+import { db, storage } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
@@ -57,6 +59,11 @@ const propertyFormSchema = z.object({
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
+  // Document fields
+  registryDoc: z.instanceof(File, { message: "Registry document is required." }).refine(file => file.size > 0, "File is required."),
+  landBookDoc: z.instanceof(File, { message: "Land book document is required." }).refine(file => file.size > 0, "File is required."),
+  aadhaarDoc: z.instanceof(File, { message: "Aadhaar card document is required." }).refine(file => file.size > 0, "File is required."),
+  panDoc: z.instanceof(File).optional(),
 });
 type PropertyFormData = z.infer<typeof propertyFormSchema>
 
@@ -155,23 +162,15 @@ export default function PropertyManagerPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [isSoldModalOpen, setIsSoldModalOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
+  const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       isListedPublicly: false,
-      address: {
-        street: '',
-        city: '',
-        zip: '',
-        landmark: '',
-        mapLocationLink: '',
-      },
-      landDetails: {
-        khasraNumber: '',
-        landbookNumber: '',
-      },
+      address: { street: '', city: '', zip: '', landmark: '', mapLocationLink: '' },
+      landDetails: { khasraNumber: '', landbookNumber: '' },
     },
   })
 
@@ -242,25 +241,73 @@ export default function PropertyManagerPage() {
   }
 
   const onSubmit = async (data: PropertyFormData) => {
-    if (!user || !db) {
+    if (!user || !db || !storage) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
     }
+    setIsSaving(true);
+    
+    const newPropertyRef = doc(collection(db, 'properties'));
+    const newPropertyId = newPropertyRef.id;
 
-    const propertyData = {
-      ...data,
-      purchaseDate: Timestamp.fromDate(data.purchaseDate),
-      ownerUid: user.uid,
-      status: 'Owned', // Default status on creation
-    }
+    const uploadFile = (file: File, user: User) => {
+        return new Promise((resolve, reject) => {
+            const filePath = `users/${user.uid}/properties/${newPropertyId}/${file.name}`;
+            const fileRef = storageRef(storage, filePath);
+            const uploadTask = uploadBytesResumable(fileRef, file);
+
+            uploadTask.on(
+                'state_changed',
+                null, // No progress updates needed for this implementation
+                (error) => { reject(error); },
+                async () => {
+                    const fileDocRef = doc(db, 'properties', newPropertyId, 'files', file.name);
+                    try {
+                        await setDoc(fileDocRef, {
+                          fileName: file.name,
+                          storagePath: filePath,
+                          contentType: file.type,
+                          sizeBytes: file.size,
+                          uploadTimestamp: serverTimestamp(),
+                        });
+                        resolve(true);
+                    } catch (firestoreError) {
+                        reject(firestoreError);
+                    }
+                }
+            );
+        });
+    };
 
     try {
-      await addDoc(collection(db, 'properties'), propertyData)
-      toast({ title: 'Success', description: 'Property added successfully.' })
-      setIsModalOpen(false)
+        const filesToUpload: File[] = [data.registryDoc, data.landBookDoc, data.aadhaarDoc];
+        if (data.panDoc instanceof File && data.panDoc.size > 0) {
+            filesToUpload.push(data.panDoc);
+        }
+        
+        await Promise.all(filesToUpload.map(file => uploadFile(file, user)));
+
+        const propertyData = {
+          address: data.address,
+          landDetails: data.landDetails,
+          propertyType: data.propertyType,
+          purchaseDate: Timestamp.fromDate(data.purchaseDate),
+          purchasePrice: data.purchasePrice,
+          isListedPublicly: data.isListedPublicly,
+          ownerUid: user.uid,
+          status: 'Owned',
+        };
+        
+        await setDoc(newPropertyRef, propertyData);
+        
+        toast({ title: 'Success', description: 'Property and documents added successfully.' });
+        setIsModalOpen(false);
+
     } catch (error) {
-      console.error('Error writing document: ', error)
-      toast({ title: 'Error', description: 'Failed to save property.', variant: 'destructive' })
+        console.error('Error during property creation: ', error);
+        toast({ title: 'Error', description: 'Failed to save property or upload a document. Please try again.', variant: 'destructive' });
+    } finally {
+        setIsSaving(false);
     }
   }
 
@@ -285,7 +332,6 @@ export default function PropertyManagerPage() {
         toast({ title: 'Error', description: 'Failed to mark property as sold.', variant: 'destructive' });
     }
   };
-
 
   const PageSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -326,7 +372,7 @@ export default function PropertyManagerPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader><DialogTitle>Add New Property</DialogTitle>
-            <DialogDescription>Fill in the details to add a new property to your portfolio.</DialogDescription>
+            <DialogDescription>Fill in the details and upload required documents to add a new property.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 max-h-[80vh] overflow-y-auto pr-4">
@@ -354,10 +400,10 @@ export default function PropertyManagerPage() {
                         <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400050" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="address.landmark" render={({ field }) => (
-                        <FormItem><FormLabel>Landmark (Optional)</FormLabel><FormControl><Input placeholder="e.g. Near a specific school" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Landmark (Optional)</FormLabel><FormControl><Input placeholder="e.g. Near a specific school" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="address.mapLocationLink" render={({ field }) => (
-                        <FormItem className="md:col-span-2"><FormLabel>Map Location Link (Optional)</FormLabel><FormControl><Input placeholder="https://maps.google.com/..." {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem className="md:col-span-2"><FormLabel>Map Location Link (Optional)</FormLabel><FormControl><Input placeholder="https://maps.google.com/..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                 </div>
               </div>
@@ -366,10 +412,10 @@ export default function PropertyManagerPage() {
                  <h3 className="font-medium">Land Details</h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
                     <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
-                        <FormItem><FormLabel>Khasra Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 123/4" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Khasra Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 123/4" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
-                        <FormItem><FormLabel>Landbook Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Landbook Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="landDetails.area" render={({ field }) => (
                         <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} /></FormControl><FormMessage /></FormItem>
@@ -387,7 +433,7 @@ export default function PropertyManagerPage() {
               </div>
               
               <div className="space-y-2">
-                <h3 className="font-medium">Property & Financial Details</h3>
+                <h3 className="font-medium">Property &amp; Financial Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
                     <FormField control={form.control} name="propertyType" render={({ field }) => (
                         <FormItem><FormLabel>Property Type</FormLabel>
@@ -424,10 +470,45 @@ export default function PropertyManagerPage() {
                     )}/>
                 </div>
               </div>
+
+               <div className="space-y-2">
+                <h3 className="font-medium">Required Documents</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+                   <FormField control={form.control} name="registryDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                        <FormItem>
+                        <FormLabel>Registry Document (Required)</FormLabel>
+                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )} />
+                   <FormField control={form.control} name="landBookDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                        <FormItem>
+                        <FormLabel>Land Book Document (Required)</FormLabel>
+                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )} />
+                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                        <FormItem>
+                        <FormLabel>Aadhaar Card (Required)</FormLabel>
+                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )} />
+                   <FormField control={form.control} name="panDoc" render={({ field: { onChange, ...fieldProps } }) => (
+                        <FormItem>
+                        <FormLabel>PAN Card (Optional)</FormLabel>
+                        <FormControl><Input type="file" {...fieldProps} onChange={e => onChange(e.target.files?.[0])} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )} />
+                </div>
+              </div>
+
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Property
                 </Button>
               </DialogFooter>
@@ -441,9 +522,9 @@ export default function PropertyManagerPage() {
           <DialogHeader>
             <DialogTitle>Mark Property as Sold</DialogTitle>
             <DialogDescription>
-              Enter the final sale price and date for {'"'}
+              Enter the final sale price and date for &quot;
               {selectedProperty && `${selectedProperty.address.street}, ${selectedProperty.address.city}`}
-              {'"'}. This action will move the property to your Sales History.
+              &quot;. This action will move the property to your Sales History.
             </DialogDescription>
           </DialogHeader>
           <Form {...soldForm}>
@@ -489,3 +570,5 @@ export default function PropertyManagerPage() {
     </>
   )
 }
+
+    
