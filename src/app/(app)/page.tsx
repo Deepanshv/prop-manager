@@ -1,9 +1,7 @@
 
 'use client'
 import * as React from 'react'
-import dynamic from 'next/dynamic'
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -23,7 +21,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Building2,
   DollarSign,
-  Plus,
   Users,
 } from "lucide-react"
 import { useAuth } from './layout'
@@ -33,11 +30,8 @@ import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
 import Link from 'next/link'
-
-const PropertiesMap = dynamic(() => import('@/components/properties-map').then(mod => mod.PropertiesMap), {
-  ssr: false,
-  loading: () => <Skeleton className="h-full w-full" />,
-});
+import { Bar, BarChart, XAxis, YAxis } from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 
 interface RecentActivity extends Property {
     activityType: 'New Property' | 'Lease Signed' | 'New Prospect' | 'Tour Scheduled';
@@ -128,6 +122,25 @@ export default function DashboardPage() {
     return statuses[index % statuses.length]
   }
 
+  const propertiesByYear = React.useMemo(() => {
+    if (!properties || properties.length === 0) return []
+    const counts: { [key: string]: number } = {}
+    properties.forEach(p => {
+      const year = p.purchaseDate.toDate().getFullYear().toString()
+      counts[year] = (counts[year] || 0) + 1
+    })
+    return Object.entries(counts)
+        .map(([year, count]) => ({ year, properties: count }))
+        .sort((a, b) => parseInt(a.year) - parseInt(b.year))
+  }, [properties])
+
+  const chartConfig = {
+    properties: {
+      label: "Properties",
+      color: "hsl(var(--primary))",
+    },
+  } satisfies ChartConfig
+
   return (
     <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -152,11 +165,37 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Properties Overview</CardTitle>
-          <CardDescription>Your properties pinned on the map. Add latitude and longitude to a property to see it here.</CardDescription>
+          <CardTitle>Portfolio Growth</CardTitle>
+          <CardDescription>Number of properties acquired each year.</CardDescription>
         </CardHeader>
         <CardContent className="h-[450px] p-0">
-          <PropertiesMap properties={properties} />
+          {loading ? <Skeleton className="h-full w-full rounded-none" /> : (
+            propertiesByYear.length > 0 ? (
+                <div className="h-full w-full p-2 pl-4">
+                    <ChartContainer config={chartConfig} className="h-full w-full">
+                        <BarChart accessibilityLayer data={propertiesByYear}>
+                            <XAxis
+                                dataKey="year"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={8}
+                                tickFormatter={(value) => value.slice(0, 4)}
+                            />
+                            <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
+                            <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent indicator="dot" />}
+                            />
+                            <Bar dataKey="properties" fill="var(--color-properties)" radius={4} />
+                        </BarChart>
+                    </ChartContainer>
+                </div>
+            ) : (
+                <div className="flex h-full items-center justify-center text-center text-muted-foreground p-4">
+                    <p>Add properties with a purchase date to see your portfolio growth over time.</p>
+                </div>
+            )
+          )}
         </CardContent>
       </Card>
 
