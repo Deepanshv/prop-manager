@@ -4,7 +4,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { ArrowLeft, Calendar as CalendarIcon, FileQuestion, Loader2, MapPin } from 'lucide-react'
+import { ArrowLeft, Calendar as CalendarIcon, FileQuestion, Loader2, MapPin, LocateFixed } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
@@ -28,7 +28,6 @@ import { cn } from '@/lib/utils'
 import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
 import type { Property } from '../page'
-import { indianStates, indianStatesAndCities } from '@/lib/indian-locations'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
@@ -41,8 +40,8 @@ const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Area/Locality is required'),
-  city: z.string({ required_error: 'Please select a city.' }),
-  state: z.string({ required_error: 'Please select a state.' }),
+  city: z.string().min(1, 'City is required.'),
+  state: z.string().min(1, 'State is required.'),
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
@@ -87,7 +86,9 @@ export default function PropertyDetailPage() {
   const { toast } = useToast()
   
   const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
-  const [isGeocoding, setIsGeocoding] = React.useState(false);
+  const [isSearching, setIsSearching] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [suggestions, setSuggestions] = React.useState<any[]>([]);
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
@@ -96,9 +97,9 @@ export default function PropertyDetailPage() {
         isListedPublicly: false,
     }
   })
-
+  
   const watchedStatus = form.watch('status');
-  const watchedState = form.watch('address.state');
+  const watchedAddress = form.watch('address');
 
   React.useEffect(() => {
     if (!user || !db || !propertyId) {
@@ -120,9 +121,10 @@ export default function PropertyDetailPage() {
             isListedPublicly: propData.isListedPublicly || false,
             status: propData.status || 'Owned',
           })
-          if (propData.address.latitude && propData.address.longitude) {
+           if (propData.address.latitude && propData.address.longitude) {
             setMapCenter([propData.address.latitude, propData.address.longitude]);
           }
+          setSearchQuery(`${propData.address.street}, ${propData.address.city}`);
         } else {
           toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
           router.push('/properties')
@@ -137,54 +139,71 @@ export default function PropertyDetailPage() {
 
     fetchProperty()
   }, [user, db, propertyId, router, toast, form])
+
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+        if (searchQuery.length > 2) {
+            setIsSearching(true);
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&countrycodes=in`);
+                const data = await response.json();
+                setSuggestions(data);
+            } catch (error) {
+                toast({ title: "Search Error", description: "Could not connect to the address search service.", variant: "destructive" });
+            } finally {
+                setIsSearching(false);
+            }
+        } else {
+            setSuggestions([]);
+        }
+    }, 500); // Debounce search
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, toast]);
+
+  const handleSuggestionSelect = (suggestion: any) => {
+    const { address, lat, lon } = suggestion;
+    const newCenter: [number, number] = [parseFloat(lat), parseFloat(lon)];
+
+    form.setValue('address.street', address.road || address.suburb || address.neighbourhood || '');
+    form.setValue('address.city', address.city || address.town || address.village || '');
+    form.setValue('address.state', address.state || '');
+    form.setValue('address.zip', address.postcode || '');
+    form.setValue('address.latitude', newCenter[0], { shouldValidate: true });
+    form.setValue('address.longitude', newCenter[1], { shouldValidate: true });
+
+    setMapCenter(newCenter);
+    setSearchQuery(suggestion.display_name);
+    setSuggestions([]);
+  };
+
+  const handleGetCurrentLocation = () => {
+    if (navigator.geolocation) {
+        setIsSearching(true);
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const { latitude, longitude } = position.coords;
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`);
+                const data = await response.json();
+                if (data) {
+                    handleSuggestionSelect(data);
+                }
+            } catch (error) {
+                toast({ title: "Location Error", description: "Could not find address for your location.", variant: "destructive" });
+            } finally {
+                setIsSearching(false);
+            }
+        }, () => {
+            toast({ title: "Location Error", description: "Could not get your location. Please enable location services.", variant: "destructive" });
+            setIsSearching(false);
+        });
+    }
+  };
   
   const handleMarkerMove = (lat: number, lng: number) => {
     form.setValue('address.latitude', lat, { shouldValidate: true });
     form.setValue('address.longitude', lng, { shouldValidate: true });
     setMapCenter([lat, lng]);
-  }
-
-  const handleFindOnMap = async () => {
-    const city = form.getValues('address.city');
-    const state = form.getValues('address.state');
-    const zip = form.getValues('address.zip');
-
-    let searchQuery: string | null = null;
-    let searchToastDescription: string | null = null;
-
-    if (zip && zip.length === 6) {
-        searchQuery = `${zip}, India`;
-        searchToastDescription = `Searching for zip code: ${zip}`;
-    } else if (city && state) {
-        searchQuery = `${city}, ${state}, India`;
-        searchToastDescription = `Searching for city: ${city}`;
-    } else {
-        toast({ title: 'Location data required', description: 'Please provide a Zip Code, or a City and State.', variant: 'destructive' });
-        return;
-    }
-    
-    setIsGeocoding(true);
-    toast({ title: 'Locating...', description: searchToastDescription });
-
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
-        if (!response.ok) throw new Error('Geocoding failed');
-        const data = await response.json();
-        if (data && data.length > 0) {
-            const { lat, lon } = data[0];
-            const newCenter: [number, number] = [parseFloat(lat), parseFloat(lon)];
-            setMapCenter(newCenter);
-            form.setValue('address.latitude', newCenter[0], { shouldValidate: true });
-            form.setValue('address.longitude', newCenter[1], { shouldValidate: true });
-            toast({ title: 'Location Found!', description: 'You can now drag the pin to fine-tune the location.' });
-        } else {
-            toast({ title: 'Location not found', description: 'Could not find the specified location. Please check your details.', variant: 'destructive' });
-        }
-    } catch (error) {
-        toast({ title: 'Error', description: 'Could not connect to the geocoding service.', variant: 'destructive' });
-    } finally {
-        setIsGeocoding(false);
-    }
   }
 
   const onSubmit = async (data: PropertyFormData) => {
@@ -265,62 +284,62 @@ export default function PropertyDetailPage() {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     
-                    <div className="space-y-4">
+                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Address Details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                            <FormField control={form.control} name="address.state" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>State</FormLabel>
-                                <Select 
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    form.setValue('address.city', '');
-                                  }} 
-                                  value={field.value}
-                                >
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a state" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                    {indianStates.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}/>
-                            <FormField control={form.control} name="address.city" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>City</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!watchedState}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a city" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {(indianStatesAndCities[watchedState as keyof typeof indianStatesAndCities] || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}/>
-                            <FormField control={form.control} name="address.street" render={({ field }) => (
-                                <FormItem className="md:col-span-2"><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Bandra West" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="address.zip" render={({ field }) => (
-                                <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400050" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="address.landmark" render={({ field }) => (
-                                <FormItem><FormLabel>Landmark</FormLabel><FormControl><Input placeholder="e.g. Near a specific school" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <div className="md:col-span-2">
-                                <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isGeocoding}>
-                                    {isGeocoding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
-                                    Find on Map
-                                </Button>
+                        <div className="border p-4 rounded-md space-y-4">
+                            <div className="space-y-2 relative">
+                                <FormLabel>Smart Address Search</FormLabel>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        placeholder="Start typing an address..." 
+                                        className="pl-10 pr-10"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        autoComplete="off"
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleGetCurrentLocation} title="Use my current location">
+                                        {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                                {suggestions.length > 0 && (
+                                    <div className="absolute z-20 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                                        {suggestions.map((s) => (
+                                            <div 
+                                                key={s.place_id} 
+                                                onClick={() => handleSuggestionSelect(s)}
+                                                className="p-2 hover:bg-muted cursor-pointer text-sm"
+                                            >
+                                                {s.display_name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="address.street" render={({ field }) => (
+                                    <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="address.city" render={({ field }) => (
+                                    <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="address.state" render={({ field }) => (
+                                    <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="address.zip" render={({ field }) => (
+                                    <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
+                                )}/>
                             </div>
                         </div>
                     </div>
+
 
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Set Location on Map</h3>
                         <div className="border p-4 rounded-md space-y-2">
                             <p className="text-sm text-muted-foreground">
-                                Drag the pin to set the exact property location, or use 'Find on Map' to get started.
+                                Drag the pin to set the exact property location.
                             </p>
                             <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
                         </div>
