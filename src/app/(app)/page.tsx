@@ -61,25 +61,40 @@ export default function DashboardPage() {
     const prospectQuery = query(collection(db, 'prospects'), where('ownerUid', '==', user.uid))
     const activityQuery = query(collection(db, 'properties'), where('ownerUid', '==', user.uid), orderBy('purchaseDate', 'desc'), limit(5))
 
+    let isMounted = true;
+    let initialLoads = 2; // for properties and prospects
+
+    const handleInitialLoad = () => {
+        initialLoads--;
+        if (initialLoads <= 0 && isMounted) {
+            setLoading(false);
+        }
+    }
+
     const unsubProperties = onSnapshot(propertyQuery, (snapshot) => {
+      if (!isMounted) return;
       const props = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property))
       setProperties(props)
-      if(loading) setLoading(false)
+      handleInitialLoad();
     }, (error) => {
       console.error("Error fetching properties:", error)
       toast({ title: 'Error', description: 'Could not fetch properties.', variant: 'destructive'})
+      if (isMounted) handleInitialLoad();
     })
 
     const unsubProspects = onSnapshot(prospectQuery, (snapshot) => {
+      if (!isMounted) return;
       const pros = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Prospect))
       setProspects(pros)
-       if(loading) setLoading(false)
+      handleInitialLoad();
     }, (error) => {
       console.error("Error fetching prospects:", error)
       toast({ title: 'Error', description: 'Could not fetch prospects.', variant: 'destructive'})
+      if (isMounted) handleInitialLoad();
     })
     
     const unsubActivity = onSnapshot(activityQuery, (snapshot) => {
+      if (!isMounted) return;
       const activities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property))
       setRecentActivity(activities)
     }, (error) => {
@@ -87,11 +102,12 @@ export default function DashboardPage() {
     })
 
     return () => {
+      isMounted = false;
       unsubProperties()
       unsubProspects()
       unsubActivity()
     }
-  }, [user, toast, loading])
+  }, [user, toast])
 
   const portfolioValue = properties.reduce((sum, prop) => sum + (prop.purchasePrice || 0), 0)
   const activeProspects = prospects.filter(p => p.status === 'New' || p.status === 'Under Review' || p.status === 'Offer Made').length
