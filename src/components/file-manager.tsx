@@ -165,7 +165,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     setUploadProgress(0)
     setIsUploadDialogOpen(true)
 
-    const storagePath = `users/${user.uid}/${entityType}/${entityId}/${file.name}`
+    const storagePath = `users/${user.uid}/${entityType}/${entityId}/documents/${file.name}`
     const storageRef = ref(storage, storagePath)
     const uploadTask = uploadBytesResumable(storageRef, file)
 

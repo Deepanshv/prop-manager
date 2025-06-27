@@ -252,7 +252,7 @@ export default function PropertyManagerPage() {
 
     const uploadFile = (file: File, user: User) => {
         return new Promise((resolve, reject) => {
-            const filePath = `users/${user.uid}/properties/${newPropertyId}/${file.name}`;
+            const filePath = `users/${user.uid}/properties/${newPropertyId}/documents/${file.name}`;
             const fileRef = storageRef(storage, filePath);
             const uploadTask = uploadBytesResumable(fileRef, file);
 
