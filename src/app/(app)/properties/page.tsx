@@ -16,8 +16,10 @@ import {
 import { format } from 'date-fns'
 import {
   Calendar as CalendarIcon,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
+  Loader2,
   MoreHorizontal,
   Plus,
   Trash,
@@ -56,7 +58,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -95,6 +97,13 @@ const propertyFormSchema = z.object({
 
 type PropertyFormData = z.infer<typeof propertyFormSchema>
 
+const markAsSoldSchema = z.object({
+    soldPrice: z.coerce.number().min(1, 'Sold price is required.'),
+    soldDate: z.date({ required_error: 'A sold date is required.' }),
+});
+type MarkAsSoldFormData = z.infer<typeof markAsSoldSchema>;
+
+
 export interface Property {
   id: string
   ownerUid: string
@@ -120,6 +129,7 @@ export default function PropertyManagerPage() {
   const [loading, setLoading] = React.useState(true)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
+  const [isSoldModalOpen, setIsSoldModalOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
   const { toast } = useToast()
 
@@ -129,6 +139,10 @@ export default function PropertyManagerPage() {
         isListedPublicly: false,
     }
   })
+
+  const soldForm = useForm<MarkAsSoldFormData>({
+    resolver: zodResolver(markAsSoldSchema),
+  });
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -175,6 +189,12 @@ export default function PropertyManagerPage() {
     setSelectedProperty(property)
     setIsDeleteAlertOpen(true)
   }
+  
+  const handleMarkAsSold = (property: Property) => {
+    setSelectedProperty(property);
+    soldForm.reset({ soldPrice: property.purchasePrice, soldDate: new Date() });
+    setIsSoldModalOpen(true);
+  };
 
   const confirmDelete = async () => {
     if (!selectedProperty || !db) return
@@ -213,6 +233,29 @@ export default function PropertyManagerPage() {
       toast({ title: 'Error', description: 'Failed to save property.', variant: 'destructive' })
     }
   }
+
+  const onSoldSubmit = async (data: MarkAsSoldFormData) => {
+    if (!selectedProperty || !db || !user) {
+        toast({ title: 'Error', description: 'Cannot update property.', variant: 'destructive' });
+        return;
+    }
+
+    try {
+        const propDocRef = doc(db, 'properties', selectedProperty.id);
+        await updateDoc(propDocRef, {
+            status: 'Sold',
+            soldPrice: data.soldPrice,
+            soldDate: Timestamp.fromDate(data.soldDate),
+        });
+        toast({ title: 'Success', description: 'Property marked as sold and moved to Sales History.' });
+        setIsSoldModalOpen(false);
+        setSelectedProperty(null);
+    } catch (error) {
+        console.error('Error updating document: ', error);
+        toast({ title: 'Error', description: 'Failed to mark property as sold.', variant: 'destructive' });
+    }
+  };
+
 
   const TableSkeleton = () => (
     <>
@@ -290,6 +333,9 @@ export default function PropertyManagerPage() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => router.push(`/properties/${prop.id}`)}>
                             <View className="mr-2 h-4 w-4" /> View/Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleMarkAsSold(prop)}>
+                            <CheckCircle className="mr-2 h-4 w-4" /> Mark as Sold
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleDeleteProperty(prop)} className="text-destructive focus:text-destructive">
@@ -452,7 +498,68 @@ export default function PropertyManagerPage() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit">Save Property</Button>
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Property
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isSoldModalOpen} onOpenChange={setIsSoldModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Property as Sold</DialogTitle>
+            <DialogDescription>
+              Enter the final sale price and date for {'"'}
+              {selectedProperty && `${selectedProperty.address.street}, ${selectedProperty.address.city}`}
+              {'"'}. This action will move the property to your Sales History.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...soldForm}>
+            <form onSubmit={soldForm.handleSubmit(onSoldSubmit)} className="space-y-4 pt-4">
+                <FormField
+                    control={soldForm.control}
+                    name="soldPrice"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Final Sale Price</FormLabel>
+                        <FormControl><Input type="number" placeholder="350000" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={soldForm.control}
+                    name="soldDate"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Sale Date</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsSoldModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={soldForm.formState.isSubmitting}>
+                    {soldForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm Sale
+                </Button>
               </DialogFooter>
             </form>
           </Form>
