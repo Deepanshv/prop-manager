@@ -42,7 +42,7 @@ function PropertyCard({ property }: { property: Property }) {
                 </div>
             </CardHeader>
             <CardContent className="p-4">
-                <CardTitle className="text-lg">{`$${property.purchasePrice.toLocaleString()}`}</CardTitle>
+                <CardTitle className="text-lg">{`₹${property.purchasePrice.toLocaleString('en-IN')}`}</CardTitle>
                 <CardDescription className="mt-1">{`${property.address.street}, ${property.address.city}, ${property.address.state}`}</CardDescription>
             </CardContent>
             <CardFooter className="p-4 pt-0">

@@ -296,7 +296,7 @@ export default function SettingsPage() {
           <Input 
             value={deleteConfirmation}
             onChange={(e) => setDeleteConfirmation(e.target.value)}
-            placeholder={user.email || "your.email@example.com"}
+            placeholder={user.email || "your.email@example.in"}
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

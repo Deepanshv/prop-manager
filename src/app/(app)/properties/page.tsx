@@ -327,7 +327,7 @@ export default function PropertyManagerPage() {
                     <TableCell>{prop.propertyType}</TableCell>
                     <TableCell>{format(prop.purchaseDate.toDate(), 'PPP')}</TableCell>
                     <TableCell>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(prop.purchasePrice)}
+                      {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(prop.purchasePrice)}
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={prop.status} />
@@ -396,7 +396,7 @@ export default function PropertyManagerPage() {
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
                       <FormLabel>Street Address</FormLabel>
-                      <FormControl><Input placeholder="123 Main St" {...field} /></FormControl>
+                      <FormControl><Input placeholder="123, MG Road" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -407,7 +407,7 @@ export default function PropertyManagerPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>City</FormLabel>
-                      <FormControl><Input placeholder="Anytown" {...field} /></FormControl>
+                      <FormControl><Input placeholder="Mumbai" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -418,7 +418,7 @@ export default function PropertyManagerPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>State</FormLabel>
-                      <FormControl><Input placeholder="CA" {...field} /></FormControl>
+                      <FormControl><Input placeholder="MH" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -429,7 +429,7 @@ export default function PropertyManagerPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Zip Code</FormLabel>
-                      <FormControl><Input placeholder="12345" {...field} /></FormControl>
+                      <FormControl><Input placeholder="400001" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -457,8 +457,8 @@ export default function PropertyManagerPage() {
                   name="purchasePrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Purchase Price</FormLabel>
-                      <FormControl><Input type="number" placeholder="250000" {...field} /></FormControl>
+                      <FormLabel>Purchase Price (₹)</FormLabel>
+                      <FormControl><Input type="number" placeholder="5000000" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -469,7 +469,7 @@ export default function PropertyManagerPage() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Latitude</FormLabel>
-                        <FormControl><Input type="number" step="any" placeholder="34.0522" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormControl><Input type="number" step="any" placeholder="19.0760" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -480,7 +480,7 @@ export default function PropertyManagerPage() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Longitude</FormLabel>
-                        <FormControl><Input type="number" step="any" placeholder="-118.2437" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormControl><Input type="number" step="any" placeholder="72.8777" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -558,8 +558,8 @@ export default function PropertyManagerPage() {
                     name="soldPrice"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Final Sale Price</FormLabel>
-                        <FormControl><Input type="number" placeholder="350000" {...field} /></FormControl>
+                        <FormLabel>Final Sale Price (₹)</FormLabel>
+                        <FormControl><Input type="number" placeholder="6500000" {...field} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}

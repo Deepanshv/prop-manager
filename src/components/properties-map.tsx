@@ -29,8 +29,8 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
         // This effect runs only once on component mount due to the empty dependency array.
         if (mapContainerRef.current && !mapInstanceRef.current) {
             mapInstanceRef.current = L.map(mapContainerRef.current, {
-                center: [30, 0],
-                zoom: 2,
+                center: [20.5937, 78.9629],
+                zoom: 4,
                 scrollWheelZoom: false,
             });
 
@@ -73,7 +73,7 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
             }
         } else {
             // If no properties have coordinates, reset to the default view.
-            map.flyTo([30, 0], 2);
+            map.flyTo([20.5937, 78.9629], 4);
         }
     }, [properties]); // Re-run this effect whenever the properties prop changes.
 

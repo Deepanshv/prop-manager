@@ -20,7 +20,7 @@ import type { Property } from '../properties/page'
 function SoldPropertyCard({ property }: { property: Property }) {
     const formatCurrency = (amount?: number) => {
         if (typeof amount !== 'number') return 'N/A'
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
     }
     const profitLoss = (property.soldPrice || 0) - property.purchasePrice
     
