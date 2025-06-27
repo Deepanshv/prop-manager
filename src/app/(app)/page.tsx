@@ -29,8 +29,6 @@ import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/f
 import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
-import Link from 'next/link'
-import dynamic from 'next/dynamic'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -39,14 +37,6 @@ export default function DashboardPage() {
   const [prospects, setProspects] = React.useState<Prospect[]>([])
   const [recentActivity, setRecentActivity] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
-
-  const PropertiesMap = React.useMemo(() => dynamic(
-    () => import('@/components/properties-map'),
-    { 
-      loading: () => <Skeleton className="h-full w-full rounded-none" />,
-      ssr: false 
-    }
-  ), []);
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -146,19 +136,6 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Portfolio Map</CardTitle>
-          <CardDescription>
-            Your properties pinned on a map. Add coordinates to see them.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="h-[450px] p-0">
-          <PropertiesMap properties={properties} />
-        </CardContent>
-      </Card>
-
 
       <Card>
         <CardHeader>

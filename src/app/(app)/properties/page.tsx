@@ -2,101 +2,62 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  query,
-  Timestamp,
-  updateDoc,
-  where,
-} from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where } from 'firebase/firestore'
 import { format } from 'date-fns'
-import {
-  Calendar as CalendarIcon,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  MoreHorizontal,
-  Plus,
-  Trash,
-  View,
-} from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-const propertyTypes = ['Single Family', 'Multi-Family', 'Condo', 'Townhouse', 'Land', 'Other']
+const indianStates = [ 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry' ];
+const propertyTypes = ['Agricultural', 'Commercial', 'Residential', 'Tribal'];
+const landAreaUnits = ['Square Feet', 'Acre'];
 
 const addressSchema = z.object({
-  street: z.string().min(1, 'Street is required'),
+  street: z.string().min(1, 'Area/Locality is required'),
   city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
-  zip: z.string().min(5, 'A 5-digit zip code is required.'),
-})
+  state: z.string({ required_error: 'Please select a state.' }),
+  zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
+  landmark: z.string().optional(),
+  mapLocationLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+});
+
+const landDetailsSchema = z.object({
+    khasraNumber: z.string().optional(),
+    landbookNumber: z.string().optional(),
+    area: z.coerce.number().min(1, "Land area must be greater than 0."),
+    areaUnit: z.string({ required_error: "Please select a unit." }),
+});
 
 const propertyFormSchema = z.object({
   address: addressSchema,
+  landDetails: landDetailsSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
-  latitude: z.coerce.number().optional(),
-  longitude: z.coerce.number().optional(),
-})
-
+});
 type PropertyFormData = z.infer<typeof propertyFormSchema>
 
 const markAsSoldSchema = z.object({
@@ -104,7 +65,6 @@ const markAsSoldSchema = z.object({
     soldDate: z.date({ required_error: 'A sold date is required.' }),
 });
 type MarkAsSoldFormData = z.infer<typeof markAsSoldSchema>;
-
 
 export interface Property {
   id: string
@@ -114,16 +74,74 @@ export interface Property {
     city: string
     state: string
     zip: string
+    landmark?: string
+    mapLocationLink?: string
   }
-  propertyType: string
+  landDetails: {
+    khasraNumber?: string
+    landbookNumber?: string
+    area: number
+    areaUnit: 'Square Feet' | 'Acre'
+  }
+  propertyType: 'Agricultural' | 'Commercial' | 'Residential' | 'Tribal'
   purchaseDate: Timestamp
   purchasePrice: number
   isListedPublicly?: boolean
   status?: 'Owned' | 'For Sale' | 'Sold'
   soldPrice?: number
   soldDate?: Timestamp
-  latitude?: number
-  longitude?: number
+}
+
+const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void }) => {
+    const router = useRouter();
+
+    return (
+        <Card className="flex flex-col">
+             <CardHeader>
+                <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">{property.address.street}</CardTitle>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => router.push(`/properties/${property.id}`)}>
+                            <View className="mr-2 h-4 w-4" /> View/Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onMarkAsSold(property)}>
+                            <CheckCircle className="mr-2 h-4 w-4" /> Mark as Sold
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onDelete(property)} className="text-destructive focus:text-destructive">
+                            <Trash className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                </div>
+                <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {property.address.city}, {property.address.state}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-2">
+                <div className="text-sm flex items-center gap-2 text-muted-foreground">
+                    <Building className="h-4 w-4" />
+                    <span>{property.propertyType}</span>
+                </div>
+                 <div className="text-sm text-muted-foreground">
+                    Purchased on {format(property.purchaseDate.toDate(), 'PPP')}
+                 </div>
+            </CardContent>
+            <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm">
+                <div>
+                    <p className="text-muted-foreground">Purchase Price</p>
+                    <p className="font-semibold text-base">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(property.purchasePrice)}</p>
+                </div>
+                 <Badge variant={property.status === 'For Sale' ? 'outline' : 'secondary'}>{property.status || 'Owned'}</Badge>
+            </CardFooter>
+        </Card>
+    )
 }
 
 export default function PropertyManagerPage() {
@@ -167,16 +185,12 @@ export default function PropertyManagerPage() {
             props.push(propertyData)
           }
         })
-        setProperties(props)
+        setProperties(props.sort((a, b) => b.purchaseDate.toDate().getTime() - a.purchaseDate.toDate().getTime()))
         setLoading(false)
       },
       (error) => {
         console.error('Error fetching properties: ', error)
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch properties.',
-          variant: 'destructive',
-        })
+        toast({ title: 'Error', description: 'Failed to fetch properties.', variant: 'destructive' })
         setLoading(false)
       }
     )
@@ -184,15 +198,7 @@ export default function PropertyManagerPage() {
   }, [user, toast])
 
   const handleAddProperty = () => {
-    form.reset({
-      address: { street: '', city: '', state: '', zip: '' },
-      purchasePrice: 0,
-      isListedPublicly: false,
-      propertyType: undefined,
-      purchaseDate: undefined,
-      latitude: undefined,
-      longitude: undefined,
-    })
+    form.reset()
     setIsModalOpen(true)
   }
 
@@ -268,27 +274,15 @@ export default function PropertyManagerPage() {
   };
 
 
-  const TableSkeleton = () => (
-    <>
-      {[...Array(5)].map((_, i) => (
-        <TableRow key={i}>
-          <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
-        </TableRow>
+  const PageSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(3)].map((_, i) => (
+        <Card key={i}><CardHeader><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></CardHeader>
+        <CardContent><div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></div></CardContent>
+        <CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>
       ))}
-    </>
+    </div>
   )
-  
-  const StatusBadge = ({ status }: { status?: Property['status']}) => {
-    const s = status || 'Owned';
-    const variant: "secondary" | "default" | "outline" = s === 'Sold' ? 'default' : s === 'For Sale' ? 'outline' : 'secondary';
-    return <Badge variant={variant}>{s}</Badge>
-  }
-
 
   return (
     <>
@@ -300,234 +294,122 @@ export default function PropertyManagerPage() {
           </Button>
         </div>
 
-        <div className="border shadow-sm rounded-lg">
-          <div className="p-4 border-b">
-            <Input placeholder="Search by address..." className="max-w-sm" />
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Property Address</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Purchase Date</TableHead>
-                <TableHead>Purchase Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableSkeleton />
-              ) : properties.length > 0 ? (
-                properties.map((prop) => (
-                  <TableRow key={prop.id}>
-                    <TableCell className="font-medium">
-                      {`${prop.address.street}, ${prop.address.city}, ${prop.address.state} ${prop.address.zip}`}
-                    </TableCell>
-                    <TableCell>{prop.propertyType}</TableCell>
-                    <TableCell>{format(prop.purchaseDate.toDate(), 'PPP')}</TableCell>
-                    <TableCell>
-                      {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(prop.purchasePrice)}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={prop.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => router.push(`/properties/${prop.id}`)}>
-                            <View className="mr-2 h-4 w-4" /> View/Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleMarkAsSold(prop)}>
-                            <CheckCircle className="mr-2 h-4 w-4" /> Mark as Sold
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleDeleteProperty(prop)} className="text-destructive focus:text-destructive">
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    {db ? 'No properties found. Add one to get started!' : 'Firebase not configured. Please add credentials to your environment file.'}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          <div className="p-4 border-t flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                  Showing <strong>1-{properties.length}</strong> of <strong>{properties.length}</strong> properties
-              </div>
-              <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                  <Button variant="outline" size="sm" disabled>Next <ChevronRight className="h-4 w-4" /></Button>
-              </div>
-          </div>
-        </div>
+        {loading ? <PageSkeleton /> : properties.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {properties.map((prop) => (
+                    <PropertyCard key={prop.id} property={prop} onDelete={handleDeleteProperty} onMarkAsSold={handleMarkAsSold} />
+                ))}
+            </div>
+        ) : (
+             <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                <h2 className="text-xl font-semibold text-muted-foreground">No Properties Found</h2>
+                <p className="mt-2 text-muted-foreground">
+                    {db ? 'Add a new property to get started!' : 'Firebase not configured. Please check your environment.'}
+                </p>
+            </div>
+        )}
       </main>
 
-      {/* Add Property Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add New Property</DialogTitle>
-            <DialogDescription>
-              Fill in the form to add a new property to your portfolio.
-            </DialogDescription>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader><DialogTitle>Add New Property</DialogTitle>
+            <DialogDescription>Fill in the details to add a new property to your portfolio.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="address.street"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Street Address</FormLabel>
-                      <FormControl><Input placeholder="123, MG Road" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl><Input placeholder="Mumbai" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.state"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State</FormLabel>
-                      <FormControl><Input placeholder="MH" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address.zip"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Zip Code</FormLabel>
-                      <FormControl><Input placeholder="400001" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="propertyType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Property Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          {propertyTypes.map((type) => (
-                            <SelectItem key={type} value={type}>{type}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="purchasePrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Purchase Price (₹)</FormLabel>
-                      <FormControl><Input type="number" placeholder="5000000" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="latitude"
-                    render={({ field }) => (
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 max-h-[80vh] overflow-y-auto pr-4">
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">Address Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+                    <FormField control={form.control} name="address.state" render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Latitude</FormLabel>
-                        <FormControl><Input type="number" step="any" placeholder="19.0760" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormLabel>State</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a state" /></SelectTrigger></FormControl>
+                            <SelectContent>{indianStates.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                        </Select>
                         <FormMessage />
                         </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="longitude"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Longitude</FormLabel>
-                        <FormControl><Input type="number" step="any" placeholder="72.8777" {...field} value={field.value ?? ''} /></FormControl>
+                    )}/>
+                    <FormField control={form.control} name="address.city" render={({ field }) => (
+                        <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="address.street" render={({ field }) => (
+                        <FormItem className="md:col-span-2"><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Bandra West" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="address.zip" render={({ field }) => (
+                        <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400050" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="address.landmark" render={({ field }) => (
+                        <FormItem><FormLabel>Landmark (Optional)</FormLabel><FormControl><Input placeholder="e.g. Near a specific school" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="address.mapLocationLink" render={({ field }) => (
+                        <FormItem className="md:col-span-2"><FormLabel>Map Location Link (Optional)</FormLabel><FormControl><Input placeholder="https://maps.google.com/..." {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                 <h3 className="font-medium">Land Details</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+                    <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
+                        <FormItem><FormLabel>Khasra Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 123/4" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
+                        <FormItem><FormLabel>Landbook Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="landDetails.area" render={({ field }) => (
+                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
+                        <FormItem><FormLabel>Area Unit</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
+                            <SelectContent>{landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
+                        </Select>
                         <FormMessage />
                         </FormItem>
-                    )}
-                />
-                <FormField
-                  control={form.control}
-                  name="purchaseDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col md:col-span-2">
-                      <FormLabel>Purchase Date</FormLabel>
-                        <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
+                    )}/>
+                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">Property & Financial Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+                    <FormField control={form.control} name="propertyType" render={({ field }) => (
+                        <FormItem><FormLabel>Property Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                            <SelectContent>{propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={form.control} name="purchasePrice" render={({ field }) => (
+                        <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="purchaseDate" render={({ field }) => (
+                        <FormItem className="flex flex-col md:col-span-2"><FormLabel>Purchase Date</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl>
                             <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="isListedPublicly"
-                    render={({ field }) => (
+                        </FormControl></PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
                         <FormItem className="md:col-span-2 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                         <div className="space-y-0.5">
                             <FormLabel>List Publicly</FormLabel>
-                            <FormDescription>
-                            Make this property visible on the public listings page.
-                            </FormDescription>
+                            <FormDescription>Make this property visible on the public listings page.</FormDescription>
                         </div>
-                        <FormControl>
-                            <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            />
-                        </FormControl>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>
-                    )}
-                    />
+                    )}/>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
@@ -553,40 +435,21 @@ export default function PropertyManagerPage() {
           </DialogHeader>
           <Form {...soldForm}>
             <form onSubmit={soldForm.handleSubmit(onSoldSubmit)} className="space-y-4 pt-4">
-                <FormField
-                    control={soldForm.control}
-                    name="soldPrice"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Final Sale Price (₹)</FormLabel>
-                        <FormControl><Input type="number" placeholder="6500000" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={soldForm.control}
-                    name="soldDate"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Sale Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <FormField control={soldForm.control} name="soldPrice" render={({ field }) => (
+                    <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={soldForm.control} name="soldDate" render={({ field }) => (
+                    <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
+                    <Popover><PopoverTrigger asChild><FormControl>
+                        <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </FormControl></PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                    <FormMessage />
+                    </FormItem>
+                )}/>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsSoldModalOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={soldForm.formState.isSubmitting}>
@@ -599,14 +462,10 @@ export default function PropertyManagerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Alert */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the property from your portfolio.
-            </AlertDialogDescription>
+          <AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. This will permanently delete the property from your portfolio.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSelectedProperty(null)}>Cancel</AlertDialogCancel>
