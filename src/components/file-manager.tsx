@@ -98,8 +98,8 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
   
   const [selectedDocTypeId, setSelectedDocTypeId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [viewingFileUrl, setViewingFileUrl] = React.useState<string | null>(null);
-  const [isIframeLoading, setIsIframeLoading] = React.useState(true);
+  const [viewingFile, setViewingFile] = React.useState<FileMetadata | null>(null);
+  const [isViewerLoading, setIsViewerLoading] = React.useState(true);
 
 
   React.useEffect(() => {
@@ -197,8 +197,8 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
   }
 
   const handleViewClick = (file: FileMetadata) => {
-    setIsIframeLoading(true);
-    setViewingFileUrl(file.url);
+    setIsViewerLoading(true);
+    setViewingFile(file);
   }
 
   const handleUploadClick = (docTypeId: string) => {
@@ -281,24 +281,33 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         </CardContent>
       </Card>
 
-      <Dialog open={!!viewingFileUrl} onOpenChange={(open) => { if (!open) { setViewingFileUrl(null); setIsIframeLoading(true); }}}>
+      <Dialog open={!!viewingFile} onOpenChange={(open) => { if (!open) { setViewingFile(null); setIsViewerLoading(true); }}}>
         <DialogContent className="w-[90vw] h-[90vh] max-w-[90vw] flex flex-col p-0 gap-0">
             <DialogHeader className="p-4 border-b flex-shrink-0">
                 <DialogTitle>Document Viewer</DialogTitle>
             </DialogHeader>
             <div className="flex-1 w-full bg-muted/20 relative">
-                {isIframeLoading && (
+                {isViewerLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/50">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                 )}
-                {viewingFileUrl && (
-                    <iframe 
-                        src={viewingFileUrl} 
-                        className={cn("w-full h-full border-0 transition-opacity duration-300", isIframeLoading && "opacity-0")} 
-                        title="Document Viewer"
-                        onLoad={() => setIsIframeLoading(false)}
+                {viewingFile && (
+                  viewingFile.contentType.startsWith('image/') ? (
+                    <img 
+                        src={viewingFile.url} 
+                        alt={viewingFile.documentType}
+                        className={cn("w-full h-full object-contain transition-opacity duration-300", isViewerLoading && "opacity-0")} 
+                        onLoad={() => setIsViewerLoading(false)}
                     />
+                  ) : (
+                    <iframe 
+                        src={viewingFile.url} 
+                        className={cn("w-full h-full border-0 transition-opacity duration-300", isViewerLoading && "opacity-0")} 
+                        title="Document Viewer"
+                        onLoad={() => setIsViewerLoading(false)}
+                    />
+                  )
                 )}
             </div>
         </DialogContent>
