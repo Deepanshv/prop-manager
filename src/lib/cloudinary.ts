@@ -2,7 +2,7 @@
 'use server';
 
 const CLOUD_NAME = 'dud5wzuya';
-const UPLOAD_PRESET = 'property_manager_unsigned';
+const UPLOAD_PRESET = 'property_manager_uploads';
 
 export async function uploadToCloudinary(formData: FormData): Promise<string | null> {
   const file = formData.get('file') as File | null;
