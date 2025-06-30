@@ -13,9 +13,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
-import { db } from '@/lib/firebase'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { db } from '@/lib/firebase'
 import {
   collection,
   deleteDoc,
@@ -30,9 +31,11 @@ import {
   CheckCircle,
   Circle,
   Loader2,
+  RefreshCw,
   Trash2,
   Upload,
   View,
+  X,
 } from 'lucide-react'
 import * as React from 'react'
 import { Skeleton } from './ui/skeleton'
@@ -95,6 +98,8 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
   
   const [selectedDocTypeId, setSelectedDocTypeId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [viewingFileUrl, setViewingFileUrl] = React.useState<string | null>(null);
+
 
   React.useEffect(() => {
     if (!db || !entityId) {
@@ -137,6 +142,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     setIsUploading(true);
     
     const docTypeName = requiredDocs.find(d => d.id === docTypeId)?.name || 'Untitled Document';
+    const isUpdating = files.some(f => f.id === docTypeId);
 
     try {
         const secureUrl = await uploadToCloudinary(file);
@@ -151,9 +157,9 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
               contentType: file.type,
               sizeBytes: file.size,
               uploadTimestamp: serverTimestamp(),
-            });
+            }, { merge: true });
             
-            toast({ title: 'Success', description: `${docTypeName} uploaded successfully.` })
+            toast({ title: 'Success', description: `${docTypeName} ${isUpdating ? 'updated' : 'uploaded'} successfully.` })
         } else {
             throw new Error('Upload to Cloudinary failed. Check console for details.');
         }
@@ -179,7 +185,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
 
     try {
       await deleteDoc(fileDocRef)
-      toast({ title: 'Success', description: 'File record deleted successfully.' })
+      toast({ title: 'Success', description: `The file record for "${fileToDelete.documentType}" has been deleted.` })
     } catch (error) {
       console.error('Delete error:', error)
       toast({ title: 'Delete Failed', description: 'Could not delete the file record.', variant: 'destructive' })
@@ -190,7 +196,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
   }
 
   const handleViewClick = (file: FileMetadata) => {
-    window.open(file.url, '_blank')
+    setViewingFileUrl(file.url)
   }
 
   const handleUploadClick = (docTypeId: string) => {
@@ -248,6 +254,10 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
                       {file ? (
                         <div className="flex items-center gap-2">
                            <Button variant="outline" size="sm" onClick={() => handleViewClick(file)}><View className="h-4 w-4 mr-2" />View</Button>
+                           <Button variant="outline" size="sm" onClick={() => handleUploadClick(docType.id)} disabled={isUploading}>
+                                {isUploadingThisDoc ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4 mr-2" />}
+                                {isUploadingThisDoc ? 'Updating...' : 'Update'}
+                           </Button>
                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(file)}><Trash2 className="h-4 w-4 mr-2" />Delete</Button>
                         </div>
                       ) : (
@@ -269,14 +279,32 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         </CardContent>
       </Card>
 
-      {/* Delete Alert Dialog */}
+      <Dialog open={!!viewingFileUrl} onOpenChange={(open) => !open && setViewingFileUrl(null)}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-4 sm:p-6">
+            <DialogHeader className="flex-shrink-0">
+                <DialogTitle>Document Viewer</DialogTitle>
+                <DialogClose asChild>
+                    <Button variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full">
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Close</span>
+                    </Button>
+                </DialogClose>
+            </DialogHeader>
+            <div className="flex-1 h-full w-full mt-2 -m-2">
+                {viewingFileUrl && (
+                    <iframe src={viewingFileUrl} className="w-full h-full border-0" title="Document Viewer" />
+                )}
+            </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the file record for {'"'}
-              {fileToDelete?.fileName}{'"'}. This does not delete the file from Cloudinary.
+              {fileToDelete?.documentType}{'"'}. This does not delete the file from Cloudinary.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
