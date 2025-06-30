@@ -2,7 +2,7 @@
 'use client'
 
 import { collection, onSnapshot, query, where } from 'firebase/firestore'
-import { Building2 } from 'lucide-react'
+import { Building2, Copy } from 'lucide-react'
 import * as React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -19,6 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { db } from '@/lib/firebase'
 import type { Property } from '@/app/(app)/properties/page'
+import { useToast } from '@/hooks/use-toast'
 
 function PropertyCard({ property }: { property: Property }) {
   const placeholderImage = `https://placehold.co/600x400.png`
@@ -67,9 +68,16 @@ const PageSkeleton = () => (
   </div>
 )
 
-export default function PublicListingsPage() {
+export default function InternalListingsPage() {
   const [properties, setProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [publicUrl, setPublicUrl] = React.useState('');
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    // This effect runs on the client-side, where window is available
+    setPublicUrl(`${window.location.origin}/public-listings`);
+  }, []);
 
   React.useEffect(() => {
     if (!db) {
@@ -98,13 +106,26 @@ export default function PublicListingsPage() {
     return () => unsubscribe()
   }, [])
 
+  const copyPublicLink = () => {
+    if (publicUrl) {
+      navigator.clipboard.writeText(publicUrl);
+      toast({
+        title: 'Link Copied!',
+        description: 'The public listings page URL has been copied to your clipboard.',
+      });
+    }
+  };
+
   return (
     <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex-grow">
             <h1 className="text-3xl font-bold tracking-tight">Public Listings</h1>
-            <p className="text-muted-foreground">Properties marked as "List Publicly" are shown here.</p>
+            <p className="text-muted-foreground">This is your internal view of properties marked as "List Publicly".</p>
         </div>
+         <Button onClick={copyPublicLink} disabled={!publicUrl}>
+            <Copy className="mr-2 h-4 w-4" /> Copy Shareable Link
+        </Button>
       </div>
 
       {loading ? (
@@ -117,7 +138,8 @@ export default function PublicListingsPage() {
         </div>
       ) : (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <h2 className="text-xl font-semibold text-muted-foreground">No Public Listings</h2>
+           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h2 className="mt-4 text-xl font-semibold text-muted-foreground">No Public Listings</h2>
           <p className="mt-2 text-muted-foreground">
             To see properties here, go to a property's details page and enable the "List Publicly" switch.
           </p>
