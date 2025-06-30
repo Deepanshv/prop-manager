@@ -48,7 +48,7 @@ export async function uploadToCloudinary(file: File): Promise<{ success: boolean
         if (errorData && errorData.error && errorData.error.message) {
             errorMessage = errorData.error.message;
             // Provide a more helpful message for the most common configuration error.
-            if (errorMessage.includes('Upload preset not found')) {
+            if (errorMessage.includes('Upload preset') && errorMessage.includes('not found')) {
                 errorMessage = 'Upload preset "property_manager_unsigned" not found. Please follow the setup instructions in the code comments of lib/cloudinary.ts to create it in your Cloudinary dashboard.';
             }
         } else {

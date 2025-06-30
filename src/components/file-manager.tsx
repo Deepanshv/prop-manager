@@ -141,6 +141,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
       return
     }
     setIsUploading(true);
+    setSelectedDocTypeId(docTypeId);
     
     const docTypeName = requiredDocs.find(d => d.id === docTypeId)?.name || 'Untitled Document';
     const isUpdating = files.some(f => f.id === docTypeId);
