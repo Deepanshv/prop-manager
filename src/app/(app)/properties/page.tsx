@@ -348,11 +348,30 @@ export default function PropertyManagerPage() {
     }
   }
 
-  const handleMarkerMove = (lat: number, lng: number) => {
+  const handleMarkerMove = React.useCallback(async (lat: number, lng: number) => {
     form.setValue('address.latitude', lat, { shouldValidate: true });
     form.setValue('address.longitude', lng, { shouldValidate: true });
     setMapCenter([lat, lng]);
-  }
+
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
+        const data = await response.json();
+        if (data && data.address) {
+            const { address } = data;
+            form.setValue('address.street', address.road || address.suburb || address.neighbourhood || '', { shouldValidate: true });
+            form.setValue('address.city', address.city || address.town || address.village || '', { shouldValidate: true });
+            form.setValue('address.state', address.state || '', { shouldValidate: true });
+            form.setValue('address.zip', address.postcode || '', { shouldValidate: true });
+            setSearchQuery(data.display_name);
+            toast({ title: "Address Updated", description: "Address fields have been updated based on pin location." });
+        } else {
+             toast({ title: "Location Error", description: "Could not find address details for this location.", variant: "destructive" });
+        }
+    } catch (error) {
+        toast({ title: "Connection Error", description: "Could not connect to the address service.", variant: "destructive" });
+    }
+  }, [form, toast, setSearchQuery]);
+
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !db || !storage) {
@@ -723,5 +742,3 @@ export default function PropertyManagerPage() {
     </>
   )
 }
-
-    
