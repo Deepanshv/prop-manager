@@ -165,14 +165,14 @@ export default function SettingsPage() {
     const uploadToast = toast({ title: 'Uploading...', description: 'Your new profile picture is being uploaded.' });
     
     try {
-      const secureUrl = await uploadToCloudinary(file);
+      const result = await uploadToCloudinary(file);
 
-      if (secureUrl) {
-        await updateProfile(auth.currentUser, { photoURL: secureUrl });
-        setUser(prevUser => ({ ...prevUser, photoURL: secureUrl } as User));
+      if (result.success && result.url) {
+        await updateProfile(auth.currentUser, { photoURL: result.url });
+        setUser(prevUser => ({ ...prevUser, photoURL: result.url } as User));
         uploadToast.update({id: uploadToast.id, title: 'Success', description: 'Profile picture updated.' });
       } else {
-        throw new Error('Upload to Cloudinary failed. Check console for details.');
+        throw new Error(result.message || 'Upload failed. Check console for details.');
       }
     } catch (error: any) {
       uploadToast.update({ id: uploadToast.id, title: 'Error', description: error.message || 'Failed to upload profile picture.', variant: 'destructive' });
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                          <div className="flex flex-col sm:flex-row items-start gap-6">
                             <div className="relative flex-shrink-0">
                                 <Avatar className="h-28 w-28 border-2 border-primary/50 p-1">
-                                    <AvatarImage src={user.photoURL || "https://placehold.co/112x112.png"} alt="User Avatar" data-ai-hint="user avatar"/>
+                                    <AvatarImage src={user.photoURL || "https://placehold.co/112x112.png"} alt="User Avatar" data-ai-hint="user avatar" className="object-cover"/>
                                     <AvatarFallback className="text-4xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
                                 </Avatar>
                                 <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-9 w-9" onClick={() => fileInputRef.current?.click()}>
