@@ -1,15 +1,29 @@
 
 'use client';
 
-// NOTE: This implementation requires a one-time setup in the Cloudinary dashboard:
-// 1. Go to Settings > Upload.
-// 2. Under Upload presets, click "Add upload preset".
-// 3. Name the preset "property_manager_unsigned".
-// 4. Change the "Signing Mode" to "Unsigned".
-// 5. Click "Save".
+// ====================================================================================
+// !! IMPORTANT !! CLOUDINARY SETUP INSTRUCTIONS
+// ====================================================================================
+// The "preset not found" error means this setup is not complete or is incorrect.
+// Please follow these steps exactly in your Cloudinary dashboard:
+//
+// 1. Log in to your Cloudinary account.
+// 2. Go to "Settings" (the gear icon in the top right).
+// 3. Click on the "Upload" tab.
+// 4. Scroll down to the "Upload presets" section and click "Add upload preset".
+//
+// 5. On the "Add upload preset" page:
+//    a. For "Upload preset name", enter EXACTLY: property_manager_unsigned
+//       (It must be all lowercase and spelled correctly).
+//    b. For "Signing Mode", change it from "Signed" to "Unsigned". This is critical.
+//
+// 6. Click the "Save" button at the top right of the page.
+//
+// After saving, your application should be able to upload files without errors.
+// ====================================================================================
 
-const CLOUD_NAME = 'dud5wzuya';
-const UPLOAD_PRESET = 'property_manager_unsigned'; // Must be an UN-signed preset
+const CLOUD_NAME = 'dud5wzuya'; // Your Cloudinary cloud name.
+const UPLOAD_PRESET = 'property_manager_unsigned'; // Must match the UNSIGNED preset you created.
 
 export async function uploadToCloudinary(file: File): Promise<{ success: boolean; url?: string; message?: string }> {
   const formData = new FormData();
