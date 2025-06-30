@@ -35,6 +35,7 @@ import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import type { Property } from '../properties/page'
+import { Badge } from '@/components/ui/badge'
 
 
 function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Property, onDelete: (property: Property) => void, onMarkAsUnsold: (property: Property) => void }) {
@@ -73,14 +74,20 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
                 </CardContent>
             </Link>
             <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
-                 <div>
-                    <p className="text-muted-foreground">Profit / Loss</p>
-                    <p className={cn(
-                        "font-bold text-base",
-                        profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
-                    )}>
-                        {profitLoss >= 0 ? '+' : ''}{formatCurrency(profitLoss)}
-                    </p>
+                 <div className="flex items-center gap-4">
+                     <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge variant="outline">Sold</Badge>
+                     </div>
+                    <div>
+                        <p className="text-muted-foreground">Profit / Loss</p>
+                        <p className={cn(
+                            "font-bold text-base",
+                            profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                        )}>
+                            {profitLoss >= 0 ? '+' : ''}{formatCurrency(profitLoss)}
+                        </p>
+                    </div>
                  </div>
                 <div className="flex items-center gap-2">
                      <div className="text-right">
