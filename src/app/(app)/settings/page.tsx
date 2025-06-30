@@ -241,7 +241,7 @@ export default function SettingsPage() {
                          <div className="flex flex-col sm:flex-row items-start gap-6">
                             <div className="relative flex-shrink-0">
                                 <Avatar className="h-32 w-32 border-2 border-primary/50 p-1">
-                                    <AvatarImage src={avatarUrl || "https://placehold.co/128x128.png"} alt="User Avatar" data-ai-hint="user avatar" className="object-cover"/>
+                                    <AvatarImage src={avatarUrl || "https://placehold.co/128x128.png"} alt="User Avatar" data-ai-hint="user avatar" />
                                     <AvatarFallback className="text-5xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
                                 </Avatar>
                                 <Button size="icon" className="absolute bottom-1 right-1 rounded-full h-9 w-9" onClick={() => fileInputRef.current?.click()}>
@@ -376,7 +376,7 @@ export default function SettingsPage() {
           <Input 
             value={deleteConfirmation}
             onChange={(e) => setDeleteConfirmation(e.target.value)}
-            placeholder={user.email || "your.email@example.in"}
+            placeholder={user.email || "your.email@example.com"}
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
