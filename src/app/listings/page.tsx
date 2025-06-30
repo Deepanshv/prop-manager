@@ -7,7 +7,7 @@ import {
   query,
   where,
 } from 'firebase/firestore'
-import { Building2 } from 'lucide-react'
+import { Building2, Copy, CheckCircle } from 'lucide-react'
 import * as React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -24,6 +24,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { db } from '@/lib/firebase'
 import type { Property } from '@/app/(app)/properties/page'
+import { useToast } from '@/hooks/use-toast'
 
 function PropertyCard({ property }: { property: Property }) {
     // A simple placeholder image generator
@@ -75,6 +76,8 @@ const PageSkeleton = () => (
 export default function PublicListingsPage() {
     const [properties, setProperties] = React.useState<Property[]>([])
     const [loading, setLoading] = React.useState(true)
+    const [isCopied, setIsCopied] = React.useState(false)
+    const { toast } = useToast()
 
     React.useEffect(() => {
         if (!db) {
@@ -102,6 +105,27 @@ export default function PublicListingsPage() {
 
         return () => unsubscribe()
     }, [])
+    
+    const handleCopyUrl = () => {
+        navigator.clipboard.writeText(window.location.href).then(
+            () => {
+                setIsCopied(true);
+                toast({
+                    title: "URL Copied!",
+                    description: "The public listing link has been copied to your clipboard.",
+                });
+                setTimeout(() => setIsCopied(false), 2500); // Revert back after 2.5 seconds
+            },
+            (err) => {
+                toast({
+                    title: "Error",
+                    description: "Failed to copy the URL.",
+                    variant: "destructive",
+                });
+                console.error("Could not copy URL: ", err);
+            }
+        );
+    };
 
     return (
         <div className="min-h-screen bg-background">
@@ -124,6 +148,19 @@ export default function PublicListingsPage() {
                     <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
                         Browse our curated selection of investment properties available for purchase.
                     </p>
+                    <div className="mt-8 flex justify-center">
+                         <Button onClick={handleCopyUrl} variant="outline" size="lg">
+                            {isCopied ? (
+                                <>
+                                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="mr-2 h-4 w-4" /> Copy Shareable Link
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
 
                 {loading ? <PageSkeleton /> : (
