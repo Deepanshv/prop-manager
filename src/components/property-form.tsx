@@ -97,6 +97,18 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     defaultValues: mode === 'add' ? {
         status: 'Owned',
         isListedPublicly: false,
+        name: '',
+        address: {
+            street: '',
+            city: '',
+            state: '',
+            zip: '',
+            landmark: '',
+        },
+        landDetails: {
+            khasraNumber: '',
+            landbookNumber: '',
+        }
     } : undefined
   })
   
@@ -318,7 +330,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     <FormItem><FormLabel>Landbook Number</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                    <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                     <FormItem><FormLabel>Area Unit</FormLabel>
@@ -349,7 +361,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     </FormItem>
                 )}/>
                 <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                    <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
@@ -386,7 +398,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     {watchedStatus === 'Sold' && (
                     <>
                         <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                            <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name="soldDate" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Sold Date</FormLabel>

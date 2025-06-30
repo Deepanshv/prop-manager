@@ -364,7 +364,7 @@ export default function ProspectManagerPage() {
                                 <FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                                <FormItem><FormLabel>Estimated Value (₹)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Estimated Value (₹)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="dateAdded" render={({ field }) => (
                                 <FormItem className="flex flex-col"><FormLabel>Date Added</FormLabel>

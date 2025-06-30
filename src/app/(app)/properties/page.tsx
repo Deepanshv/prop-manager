@@ -313,7 +313,7 @@ export default function PropertyManagerPage() {
           <Form {...soldForm}>
             <form onSubmit={soldForm.handleSubmit(onSoldSubmit)} className="space-y-4 pt-4">
                 <FormField control={soldForm.control} name="soldPrice" render={({ field }) => (
-                    <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={soldForm.control} name="soldDate" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
