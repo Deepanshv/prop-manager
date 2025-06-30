@@ -63,7 +63,6 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { Skeleton } from './ui/skeleton'
-import { useAuth } from '../app/(app)/layout'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
 interface FileManagerProps {
@@ -100,7 +99,6 @@ const formatBytes = (bytes: number, decimals = 2) => {
 }
 
 export function FileManager({ entityType, entityId }: FileManagerProps) {
-  const { user } = useAuth()
   const [files, setFiles] = React.useState<FileMetadata[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false)
@@ -152,8 +150,8 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
   }
 
   const handleUpload = async (file: File) => {
-    if (!user || !db) {
-      toast({ title: 'Error', description: 'Cannot upload file.', variant: 'destructive' })
+    if (!db) {
+      toast({ title: 'Error', description: 'Database not available.', variant: 'destructive' })
       return
     }
     setUploadingFile(file)
@@ -170,33 +168,36 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         });
     }, 200);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    const result = await uploadToCloudinary(formData);
-    clearInterval(progressInterval);
-    
-    if (result.success && result.url && db) {
-        const fileDocRef = doc(collection(db, entityType, entityId, 'files'));
-
-        await setDoc(fileDocRef, {
-          id: fileDocRef.id,
-          fileName: file.name,
-          url: result.url,
-          contentType: file.type,
-          sizeBytes: file.size,
-          uploadTimestamp: serverTimestamp(),
-        });
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const result = await uploadToCloudinary(formData);
+        clearInterval(progressInterval);
         
-        setUploadProgress(100);
-        toast({ title: 'Success', description: 'File uploaded successfully.' })
-        
-        setTimeout(() => {
-            setUploadingFile(null)
-            setIsUploadDialogOpen(false)
-        }, 500);
-
-    } else {
-        toast({ title: 'Upload Failed', description: result.message || 'Could not upload the file.', variant: 'destructive' })
+        if (result.success && result.url) {
+            const fileDocRef = doc(collection(db, entityType, entityId, 'files'));
+            await setDoc(fileDocRef, {
+              id: fileDocRef.id,
+              fileName: file.name,
+              url: result.url,
+              contentType: file.type,
+              sizeBytes: file.size,
+              uploadTimestamp: serverTimestamp(),
+            });
+            
+            setUploadProgress(100);
+            toast({ title: 'Success', description: 'File uploaded successfully.' })
+            
+            setTimeout(() => {
+                setUploadingFile(null)
+                setIsUploadDialogOpen(false)
+            }, 500);
+        } else {
+            throw new Error(result.message || 'Could not upload the file.');
+        }
+    } catch(error: any) {
+        clearInterval(progressInterval);
+        toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' })
         setUploadingFile(null)
         setIsUploadDialogOpen(false)
     }
@@ -212,7 +213,8 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         toast({ title: 'Error', description: 'Could not delete file record.', variant: 'destructive' })
         return
     }
-
+    // In a production app, you would also want a Cloud Function to delete the file from Cloudinary.
+    // For this implementation, we only delete the Firestore record.
     const fileDocRef = doc(db, entityType, entityId, 'files', fileToDelete.id)
 
     try {
@@ -350,8 +352,8 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the file {'"'}
-              {fileToDelete?.fileName}{'"'} from our records.
+              This action cannot be undone. This will permanently delete the file record for {'"'}
+              {fileToDelete?.fileName}{'"'}. This does not delete the file from Cloudinary.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

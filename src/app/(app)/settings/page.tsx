@@ -13,6 +13,7 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import {
   Camera,
+  Loader2,
 } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
@@ -170,12 +171,12 @@ export default function SettingsPage() {
       if (result.success && result.url) {
         await updateProfile(auth.currentUser, { photoURL: result.url });
         setUser(prevUser => ({ ...prevUser, photoURL: result.url } as User));
-        uploadToast.update({ title: 'Success', description: 'Profile picture updated.' });
+        uploadToast.update({id: uploadToast.id, title: 'Success', description: 'Profile picture updated.' });
       } else {
         throw new Error(result.message || 'Upload to Cloudinary failed.');
       }
     } catch (error: any) {
-      uploadToast.update({ title: 'Error', description: error.message || 'Failed to upload profile picture.', variant: 'destructive' });
+      uploadToast.update({ id: uploadToast.id, title: 'Error', description: error.message || 'Failed to upload profile picture.', variant: 'destructive' });
     }
   }
 
@@ -308,7 +309,8 @@ export default function SettingsPage() {
                     )}
                     />
                     <Button type="submit" disabled={profileForm.formState.isSubmitting}>
-                        {profileForm.formState.isSubmitting ? 'Saving...' : 'Update Profile'}
+                        {profileForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                         Update Profile
                     </Button>
                 </form>
                 </Form>
@@ -358,7 +360,8 @@ export default function SettingsPage() {
                     )}
                     />
                     <Button type="submit" disabled={passwordForm.formState.isSubmitting}>
-                        {passwordForm.formState.isSubmitting ? 'Changing...' : 'Change Password'}
+                        {passwordForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Change Password
                     </Button>
                 </form>
                 </Form>

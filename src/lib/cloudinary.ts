@@ -1,8 +1,15 @@
 
 'use server';
 
+// NOTE: This implementation requires a one-time setup in the Cloudinary dashboard:
+// 1. Go to Settings > Upload.
+// 2. Under Upload presets, click "Add upload preset".
+// 3. Name the preset "property_manager_unsigned".
+// 4. Change the "Signing Mode" to "Unsigned".
+// 5. Click "Save".
+
 const CLOUD_NAME = 'dud5wzuya';
-const UPLOAD_PRESET = 'property_manager_uploads';
+const UPLOAD_PRESET = 'property_manager_unsigned';
 
 interface CloudinaryUploadResult {
     success: boolean;
@@ -18,8 +25,8 @@ export async function uploadToCloudinary(formData: FormData): Promise<Cloudinary
     return { success: false, message };
   }
 
-  // Append the upload preset directly to the incoming FormData object.
-  // Do not create a new FormData object as it breaks the file stream.
+  // Use the incoming FormData directly, and append the upload preset.
+  // Creating a new FormData on the server breaks the file stream from the client.
   formData.append('upload_preset', UPLOAD_PRESET);
 
   const fileType = file.type.split('/')[0];
@@ -30,7 +37,7 @@ export async function uploadToCloudinary(formData: FormData): Promise<Cloudinary
   try {
     const response = await fetch(url, {
       method: 'POST',
-      body: formData, // Use the original formData from the client
+      body: formData,
     });
     
     const data = await response.json();

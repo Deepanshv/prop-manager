@@ -68,6 +68,7 @@ import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
+import { useRouter } from 'next/navigation'
 
 const prospectSchema = z.object({
   dealName: z.string().min(3, { message: "Deal name must be at least 3 characters." }),
@@ -112,6 +113,7 @@ const PROSPECTS_PER_PAGE = 10;
 
 export default function ProspectManagerPage() {
     const { user } = useAuth();
+    const router = useRouter();
     const [prospects, setProspects] = React.useState<Prospect[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -199,6 +201,9 @@ export default function ProspectManagerPage() {
     
     const handleConvert = (prospect: Prospect) => {
         setSelectedProspect(prospect);
+        // This is a placeholder. A real implementation would involve a backend Cloud Function
+        // to atomically create a new property and update the prospect.
+        toast({ title: 'Convert to Property', description: 'This would typically trigger a backend process. For now, we will mark it as "Converted".' });
         setIsConvertModalOpen(true);
     }
 
@@ -219,7 +224,9 @@ export default function ProspectManagerPage() {
         if (!selectedProspect || !db) return;
         try {
             await updateDoc(doc(db, 'prospects', selectedProspect.id), { status: 'Converted' });
-            toast({ title: "Success", description: `Prospect marked as 'Converted'. Note: A backend function would be needed to create a property.`});
+            toast({ title: "Success", description: `Prospect marked as 'Converted'. You can now create a new property from this deal.`});
+            // In a full implementation, you might redirect to a pre-filled new property form.
+            // router.push(`/properties/new?fromProspect=${selectedProspect.id}`);
         } catch (error) {
             toast({ title: "Error", description: "Failed to convert prospect.", variant: 'destructive' });
         } finally {
@@ -325,7 +332,7 @@ export default function ProspectManagerPage() {
                            <div className="flex gap-1">
                              <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronsLeft className="h-4 w-4" /></Button>
                              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}>Next <ChevronRight className="h-4 w-4" /></Button>
+                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}><ChevronRight className="h-4 w-4" /></Button>
                              <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || totalPages === 0}><ChevronsRight className="h-4 w-4" /></Button>
                            </div>
                         </div>
@@ -357,7 +364,7 @@ export default function ProspectManagerPage() {
                                 <FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                                <FormItem><FormLabel>Estimated Value (₹)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Estimated Value (₹)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="dateAdded" render={({ field }) => (
                                 <FormItem className="flex flex-col"><FormLabel>Date Added</FormLabel>
@@ -398,7 +405,7 @@ export default function ProspectManagerPage() {
             </AlertDialog>
             <AlertDialog open={isConvertModalOpen} onOpenChange={setIsConvertModalOpen}>
                  <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Convert Prospect to Property?</AlertDialogTitle><AlertDialogDescription>This will mark "{selectedProspect?.dealName}" as 'Converted' and it can be managed from the Properties page.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><AlertDialogTitle>Convert Prospect to Property?</AlertDialogTitle><AlertDialogDescription>This will mark "{selectedProspect?.dealName}" as 'Converted'. In a production application, this would trigger a secure backend process to create a new property record.</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setSelectedProspect(null)}>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmConvert}>Yes, Convert</AlertDialogAction>

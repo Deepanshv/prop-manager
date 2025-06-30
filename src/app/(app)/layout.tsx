@@ -13,12 +13,12 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  SidebarInset,
 } from '@/components/ui/sidebar'
 import { auth } from '@/lib/firebase'
 import { useToast } from '@/hooks/use-toast'
@@ -56,8 +56,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!auth) {
-        // If firebase is not configured, we can't check auth state.
-        // Redirect to login where the user will be notified.
         router.replace('/login');
         return;
     }
@@ -95,7 +93,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    // The onAuthStateChanged should handle the redirect, but this is a fallback.
+    // onAuthStateChanged handles the redirect, this is a fallback.
     return null;
   }
 

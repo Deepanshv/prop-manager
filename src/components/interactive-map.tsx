@@ -30,7 +30,6 @@ export const InteractiveMap = ({ center, onMarkerMove }: InteractiveMapProps) =>
 
   // Initialize map and marker
   React.useEffect(() => {
-    // This effect runs only once on mount
     if (mapContainerRef.current && !mapRef.current) {
       const map = L.map(mapContainerRef.current).setView(center, 13)
       mapRef.current = map
@@ -42,32 +41,32 @@ export const InteractiveMap = ({ center, onMarkerMove }: InteractiveMapProps) =>
       const marker = L.marker(center, { draggable: true }).addTo(map)
       markerRef.current = marker
 
-      marker.on('dragend', () => {
+      const handleInteraction = (latlng: L.LatLng) => {
         if (markerRef.current) {
-          const { lat, lng } = markerRef.current.getLatLng()
-          onMarkerMoveRef.current(lat, lng)
+          const { lat, lng } = latlng;
+          markerRef.current.setLatLng(latlng);
+          onMarkerMoveRef.current(lat, lng);
         }
+      }
+
+      marker.on('dragend', (e) => {
+        handleInteraction(e.target.getLatLng());
       })
       
       map.on('click', (e) => {
-        if (markerRef.current) {
-          const { lat, lng } = e.latlng;
-          markerRef.current.setLatLng(e.latlng);
-          onMarkerMoveRef.current(lat, lng);
-        }
+        handleInteraction(e.latlng);
       });
     }
 
-    // Cleanup function
     return () => {
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
       }
     }
-  }, []) // Empty array means it will only run on mount and unmount
+  }, []) // Empty dependency array ensures it runs only once.
 
-  // Handle updates to center prop
+  // Handle updates to center prop from outside (e.g., search)
   React.useEffect(() => {
     if (mapRef.current && markerRef.current) {
       const currentMapCenter = mapRef.current.getCenter()

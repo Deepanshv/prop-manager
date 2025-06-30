@@ -2,8 +2,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc, serverTimestamp } from 'firebase/firestore'
-import type { User } from 'firebase/auth'
+import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin, LocateFixed, Search } from 'lucide-react'
 import * as React from 'react'
@@ -31,7 +30,6 @@ import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { uploadToCloudinary } from '@/lib/cloudinary'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
@@ -66,10 +64,6 @@ const propertyFormSchema = z.object({
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
-  registryDoc: z.instanceof(File).optional(),
-  landBookDoc: z.instanceof(File).optional(),
-  aadhaarDoc: z.instanceof(File).optional(),
-  panDoc: z.instanceof(File).optional(),
 });
 type PropertyFormData = z.infer<typeof propertyFormSchema>
 
@@ -384,42 +378,10 @@ export default function PropertyManagerPage() {
     }
     setIsSaving(true);
     
-    const newPropertyRef = doc(collection(db, 'properties'));
-    const newPropertyId = newPropertyRef.id;
-
     try {
-        const filesToUpload: File[] = [
-            data.registryDoc,
-            data.landBookDoc,
-            data.aadhaarDoc,
-            data.panDoc
-        ].filter((file): file is File => file instanceof File && file.size > 0);
-        
-        if (filesToUpload.length > 0) {
-            await Promise.all(filesToUpload.map(async (file) => {
-                const formData = new FormData();
-                formData.append('file', file);
-                const result = await uploadToCloudinary(formData);
-                if (result.success && result.url) {
-                    const fileDocRef = doc(collection(db, 'properties', newPropertyId, 'files'));
-                    await setDoc(fileDocRef, {
-                      id: fileDocRef.id,
-                      fileName: file.name,
-                      url: result.url,
-                      contentType: file.type,
-                      sizeBytes: file.size,
-                      uploadTimestamp: serverTimestamp(),
-                    });
-                } else {
-                    throw new Error(result.message || `Failed to upload ${file.name}`);
-                }
-            }));
-        }
-
-        const { registryDoc, landBookDoc, aadhaarDoc, panDoc, ...propertyDetails } = data;
-
+        const newPropertyRef = doc(collection(db, 'properties'));
         const propertyData = {
-          ...propertyDetails,
+          ...data,
           purchaseDate: Timestamp.fromDate(data.purchaseDate),
           ownerUid: user.uid,
           status: 'Owned',
@@ -427,7 +389,7 @@ export default function PropertyManagerPage() {
         
         await setDoc(newPropertyRef, propertyData);
         
-        toast({ title: 'Success', description: 'Property and documents added successfully.' });
+        toast({ title: 'Success', description: 'Property added successfully. You can add documents in the edit screen.' });
         setIsModalOpen(false);
 
     } catch (error: any) {
@@ -580,7 +542,7 @@ export default function PropertyManagerPage() {
                 <h3 className="font-medium">Set Location on Map (Optional)</h3>
                 <div className="border p-4 rounded-md space-y-2">
                     <p className="text-sm text-muted-foreground">
-                        Drag the pin to set the exact property location.
+                        Drag the pin or click on the map to set the exact property location.
                     </p>
                     <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
                 </div>
@@ -649,40 +611,6 @@ export default function PropertyManagerPage() {
                 </div>
               </div>
 
-               <div className="space-y-2">
-                <h3 className="font-medium">Documents (Optional)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                   <FormField control={form.control} name="registryDoc" render={({ field: { onBlur, name, ref } }) => (
-                        <FormItem>
-                            <FormLabel>Registry Document</FormLabel>
-                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={(e) => { e.target.files && form.setValue('registryDoc', e.target.files[0])}} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                   <FormField control={form.control} name="landBookDoc" render={({ field: { onBlur, name, ref } }) => (
-                        <FormItem>
-                            <FormLabel>Land Book Document</FormLabel>
-                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={(e) => { e.target.files && form.setValue('landBookDoc', e.target.files[0])}} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                   <FormField control={form.control} name="aadhaarDoc" render={({ field: { onBlur, name, ref } }) => (
-                        <FormItem>
-                            <FormLabel>Aadhaar Card</FormLabel>
-                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={(e) => { e.target.files && form.setValue('aadhaarDoc', e.target.files[0])}} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                   <FormField control={form.control} name="panDoc" render={({ field: { onBlur, name, ref } }) => (
-                        <FormItem>
-                            <FormLabel>PAN Card (Optional)</FormLabel>
-                            <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={(e) => { e.target.files && form.setValue('panDoc', e.target.files[0])}} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
-              </div>
-
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={isSaving}>
@@ -708,7 +636,7 @@ export default function PropertyManagerPage() {
           <Form {...soldForm}>
             <form onSubmit={soldForm.handleSubmit(onSoldSubmit)} className="space-y-4 pt-4">
                 <FormField control={soldForm.control} name="soldPrice" render={({ field }) => (
-                    <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={soldForm.control} name="soldDate" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>

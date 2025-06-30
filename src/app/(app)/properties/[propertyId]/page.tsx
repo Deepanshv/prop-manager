@@ -407,7 +407,7 @@ export default function PropertyDetailPage() {
                         <h3 className="text-lg font-medium">Set Location on Map</h3>
                         <div className="border p-4 rounded-md space-y-2">
                             <p className="text-sm text-muted-foreground">
-                                Drag the pin to set the exact property location.
+                                Drag the pin or click on the map to set the exact property location.
                             </p>
                             <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
                         </div>
@@ -490,7 +490,7 @@ export default function PropertyDetailPage() {
                             {watchedStatus === 'Sold' && (
                             <>
                                 <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                                    <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="soldDate" render={({ field }) => (
                                     <FormItem className="flex flex-col"><FormLabel>Sold Date</FormLabel>
@@ -537,7 +537,7 @@ export default function PropertyDetailPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><FileQuestion className="text-muted-foreground" /> Recommended Documents</CardTitle>
                         <CardDescription>
-                           For a complete record, please upload the following documents using the file manager below.
+                           For a complete record, you can upload documents using the file manager below.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

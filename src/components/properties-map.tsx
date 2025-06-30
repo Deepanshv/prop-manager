@@ -6,8 +6,7 @@ import L, { Map } from 'leaflet';
 import * as React from 'react';
 import type { Property } from '@/app/(app)/properties/page';
 
-// This is a common workaround for a known issue with Leaflet and bundlers like Webpack.
-// It ensures that the default marker icons can be found and displayed correctly.
+// Leaflet icon workaround
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -25,11 +24,10 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
     const markersRef = React.useRef<L.Marker[]>([]);
 
     React.useEffect(() => {
-        // Only initialize the map if the container ref exists and there is no map instance.
-        // This effect runs only once on component mount due to the empty dependency array.
+        // Initialize map only once
         if (mapContainerRef.current && !mapInstanceRef.current) {
             mapInstanceRef.current = L.map(mapContainerRef.current, {
-                center: [20.5937, 78.9629],
+                center: [20.5937, 78.9629], // Default center of India
                 zoom: 5,
                 scrollWheelZoom: false,
             });
@@ -39,21 +37,20 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
             }).addTo(mapInstanceRef.current);
         }
 
-        // The cleanup function is crucial. It runs when the component unmounts.
+        // Cleanup on unmount
         return () => {
             if (mapInstanceRef.current) {
-                mapInstanceRef.current.remove(); // This destroys the map instance and clears its container.
+                mapInstanceRef.current.remove();
                 mapInstanceRef.current = null;
             }
         };
-    }, []); // Empty dependency array ensures this runs only on mount and cleanup on unmount.
+    }, []);
 
     React.useEffect(() => {
-        // This effect handles updating markers and view when the properties data changes.
         const map = mapInstanceRef.current;
-        if (!map) return; // Don't do anything if the map isn't initialized yet.
+        if (!map) return;
 
-        // Clear existing markers from the map and from our reference array.
+        // Clear existing markers
         markersRef.current.forEach(marker => marker.removeFrom(map));
         markersRef.current = [];
 
@@ -63,8 +60,8 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
             propertiesWithCoords.forEach(property => {
                 const marker = L.marker([property.address.latitude!, property.address.longitude!])
                     .addTo(map)
-                    .bindPopup(`<strong>${property.address.street}</strong><br/>${property.address.city}, ${property.address.state}`);
-                markersRef.current.push(marker); // Add new marker to our reference array.
+                    .bindPopup(`<strong>${property.name}</strong><br/>${property.address.street}, ${property.address.city}`);
+                markersRef.current.push(marker);
             });
 
             const bounds = new L.LatLngBounds(propertiesWithCoords.map(p => [p.address.latitude!, p.address.longitude!]));
@@ -72,12 +69,11 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
                 map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14 });
             }
         } else {
-            // If no properties have coordinates, reset to the default view.
+            // Reset to default view if no properties have coordinates
             map.flyTo([20.5937, 78.9629], 5);
         }
-    }, [properties]); // Re-run this effect whenever the properties prop changes.
+    }, [properties]);
 
-    // The map container div. The ref points to this DOM element.
     return <div ref={mapContainerRef} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }} />;
 };
 
