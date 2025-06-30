@@ -159,8 +159,8 @@ export default function DashboardPage() {
                   <TableRow key={activity.id}>
                     <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>
-                      <Badge variant={"secondary"}>
-                        New Property
+                      <Badge variant={activity.status === 'For Sale' ? 'outline' : 'secondary'}>
+                        {activity.status || 'Owned'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
