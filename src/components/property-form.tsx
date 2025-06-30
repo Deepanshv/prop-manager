@@ -54,6 +54,7 @@ const basePropertyFormSchema = z.object({
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
+  listingPrice: z.coerce.number().optional(),
 });
 
 export const editPropertyFormSchema = basePropertyFormSchema.extend({
@@ -68,7 +69,16 @@ export const editPropertyFormSchema = basePropertyFormSchema.extend({
 }, {
     message: "Sold Price and Sold Date are required when status is 'Sold'.",
     path: ["status"],
+}).refine(data => {
+    if (data.isListedPublicly) {
+        return data.listingPrice && data.listingPrice > 0;
+    }
+    return true;
+}, {
+    message: "A listing price is required when a property is listed publicly.",
+    path: ["listingPrice"],
 });
+
 
 export type PropertyFormData = z.infer<typeof editPropertyFormSchema>
 
@@ -125,6 +135,8 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
   }, [initialData, form]);
 
   const watchedStatus = form.watch('status');
+  const watchedIsListedPublicly = form.watch('isListedPublicly');
+
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
@@ -235,6 +247,17 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
         toast({ title: "Connection Error", description: "Could not connect to the address service.", variant: "destructive" });
     }
   }, [form, toast]);
+  
+  const listingPriceField = (
+      <FormField control={form.control} name="listingPrice" render={({ field }) => (
+          <FormItem>
+              <FormLabel>Listing Price (₹)</FormLabel>
+              <FormControl><Input type="number" placeholder="7500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
+              <FormDescription>The asking price for the property on public listings.</FormDescription>
+              <FormMessage />
+          </FormItem>
+      )}/>
+  );
 
   return (
     <Form {...form}>
@@ -382,63 +405,77 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
         
         {mode === 'edit' && (
             <div className="space-y-4">
-                <h3 className="text-lg font-medium">Property Status</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                    <FormField control={form.control} name="status" render={({ field }) => (
-                        <FormItem><FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {propertyStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}/>
-                    {watchedStatus === 'Sold' && (
-                    <>
-                        <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                            <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name="soldDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Sold Date</FormLabel>
-                            <Popover><PopoverTrigger asChild><FormControl>
-                                <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                                    {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl></PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                            </PopoverContent></Popover>
-                            <FormMessage />
-                            </FormItem>
-                        )}/>
-                    </>
+                <h3 className="text-lg font-medium">Property Status & Listing</h3>
+                <div className="border p-4 rounded-md space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="status" render={({ field }) => (
+                          <FormItem><FormLabel>Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                  {propertyStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}/>
+                      {watchedStatus === 'Sold' && (
+                      <>
+                          <FormField control={form.control} name="soldPrice" render={({ field }) => (
+                              <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <FormField control={form.control} name="soldDate" render={({ field }) => (
+                              <FormItem className="flex flex-col"><FormLabel>Sold Date</FormLabel>
+                              <Popover><PopoverTrigger asChild><FormControl>
+                                  <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                      {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                              </FormControl></PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                              </PopoverContent></Popover>
+                              <FormMessage />
+                              </FormItem>
+                          )}/>
+                      </>
+                      )}
+                    </div>
+
+                    {watchedStatus !== 'Sold' && (
+                      <div className="space-y-4">
+                           <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                              <div className="space-y-0.5">
+                                  <FormLabel>List Publicly</FormLabel>
+                                  <FormDescription>Make this property visible on the public listings page.</FormDescription>
+                              </div>
+                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                              </FormItem>
+                          )}/>
+                          {watchedIsListedPublicly && <div className="p-1">{listingPriceField}</div>}
+                      </div>
                     )}
-                     <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
-                        <FormItem className="md:col-span-2 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
-                        <div className="space-y-0.5">
-                            <FormLabel>List Publicly</FormLabel>
-                            <FormDescription>Make this property visible on the public listings page.</FormDescription>
-                        </div>
-                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        </FormItem>
-                    )}/>
                 </div>
             </div>
         )}
         
         {mode === 'add' && (
-           <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                <div className="space-y-0.5">
-                    <FormLabel>List Publicly</FormLabel>
-                    <FormDescription>Make this property visible on the public listings page.</FormDescription>
-                </div>
-                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                </FormItem>
-            )}/>
+          <div className="space-y-4">
+             <h3 className="text-lg font-medium">Public Listing</h3>
+              <div className="border p-4 rounded-md space-y-6">
+                <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                          <FormLabel>List Publicly</FormLabel>
+                          <FormDescription>Make this property visible on the public listings page upon creation.</FormDescription>
+                      </div>
+                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                  )}/>
+                {watchedIsListedPublicly && <div className="p-1">{listingPriceField}</div>}
+              </div>
+           </div>
         )}
 
 

@@ -78,6 +78,7 @@ export default function PropertyDetailPage() {
       purchaseDate: Timestamp.fromDate(data.purchaseDate),
       soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
       soldPrice: data.soldPrice ?? null,
+      listingPrice: data.listingPrice ?? null,
       address: {
         ...data.address,
         landmark: data.address.landmark ?? null,
@@ -91,9 +92,16 @@ export default function PropertyDetailPage() {
       },
     };
     
-    if (data.status !== 'Sold') {
+    if (data.status === 'Sold') {
+        propertyData.isListedPublicly = false;
+        propertyData.listingPrice = null;
+    } else {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
+    }
+
+    if (!data.isListedPublicly) {
+        propertyData.listingPrice = null;
     }
 
     try {

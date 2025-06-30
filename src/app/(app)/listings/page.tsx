@@ -21,6 +21,8 @@ import type { Property } from '@/app/(app)/properties/page'
 import { useToast } from '@/hooks/use-toast'
 
 function PropertyCard({ property }: { property: Property }) {
+    if (!property.listingPrice) return null;
+
     return (
     <Card className="overflow-hidden flex flex-col h-full">
       <CardHeader>
@@ -35,13 +37,19 @@ function PropertyCard({ property }: { property: Property }) {
         </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
-        <div>
-            <p className="text-sm text-muted-foreground">Price</p>
-            <p className="text-2xl font-bold">{`₹${property.purchasePrice.toLocaleString('en-IN')}`}</p>
+         <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <p className="text-muted-foreground">Type</p>
+                <p className="font-medium">{property.propertyType}</p>
+            </div>
+            <div>
+                <p className="text-muted-foreground">Size</p>
+                <p className="font-medium">{`${property.landDetails.area} ${property.landDetails.areaUnit}`}</p>
+            </div>
         </div>
         <div>
-            <p className="text-sm text-muted-foreground">Property Type</p>
-            <p className="font-medium">{property.propertyType}</p>
+            <p className="text-sm text-muted-foreground">Listing Price</p>
+            <p className="text-2xl font-bold">{`₹${property.listingPrice.toLocaleString('en-IN')}`}</p>
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 mt-auto">
@@ -67,13 +75,19 @@ const PageSkeleton = () => (
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
-                <div className="space-y-1">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-7 w-32" />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <Skeleton className="h-4 w-12" />
+                        <Skeleton className="h-5 w-20" />
+                    </div>
+                    <div className="space-y-1">
+                        <Skeleton className="h-4 w-10" />
+                        <Skeleton className="h-5 w-24" />
+                    </div>
                 </div>
-                 <div className="space-y-1">
+                <div className="space-y-1">
                     <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-5 w-28" />
+                    <Skeleton className="h-7 w-32" />
                 </div>
             </CardContent>
             <CardFooter className="p-4 pt-0 mt-auto">

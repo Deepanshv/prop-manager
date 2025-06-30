@@ -58,6 +58,7 @@ export interface Property {
   propertyType: 'Agricultural' | 'Commercial' | 'Residential' | 'Tribal'
   purchaseDate: Timestamp
   purchasePrice: number
+  listingPrice?: number
   isListedPublicly?: boolean
   status?: 'Owned' | 'For Sale' | 'Sold'
   soldPrice?: number
@@ -211,6 +212,7 @@ export default function PropertyManagerPage() {
           status: 'Owned' as const,
           soldPrice: null,
           soldDate: null,
+          listingPrice: data.isListedPublicly ? (data.listingPrice ?? null) : null,
           address: {
             ...data.address,
             landmark: data.address.landmark ?? null,
