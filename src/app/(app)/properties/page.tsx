@@ -6,7 +6,7 @@ import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, wh
 import { ref as storageRef, uploadBytesResumable } from 'firebase/storage'
 import type { User } from 'firebase/auth'
 import { format } from 'date-fns'
-import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin, LocateFixed } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin, LocateFixed, Search } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -174,6 +174,7 @@ export default function PropertyManagerPage() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
+  const [isFindingOnMap, setIsFindingOnMap] = React.useState(false);
 
 
   const form = useForm<PropertyFormData>({
@@ -280,6 +281,33 @@ export default function PropertyManagerPage() {
         });
     }
   };
+
+  const handleFindOnMap = async () => {
+    const address = form.getValues('address');
+    const manualQuery = [address.street, address.city, address.state, address.zip].filter(Boolean).join(', ');
+
+    if (!manualQuery) {
+        toast({ title: "Address needed", description: "Please enter an address or pincode to find on the map.", variant: "destructive" });
+        return;
+    }
+    
+    setIsFindingOnMap(true);
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(manualQuery)}&format=json&addressdetails=1&countrycodes=in&limit=1`);
+        const data = await response.json();
+        if (data && data.length > 0) {
+            handleSuggestionSelect(data[0]);
+            toast({ title: "Location Found", description: "The map has been updated to the new location." });
+        } else {
+            toast({ title: "Not Found", description: "Could not find a location for the provided address.", variant: "destructive" });
+        }
+    } catch (error) {
+        toast({ title: "Search Error", description: "Could not connect to the address search service.", variant: "destructive" });
+    } finally {
+        setIsFindingOnMap(false);
+    }
+  };
+
 
   const handleAddProperty = () => {
     form.reset({
@@ -465,15 +493,16 @@ export default function PropertyManagerPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 max-h-[80vh] overflow-y-auto pr-4">
               
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <h3 className="font-medium">Address Details</h3>
                 <div className="border p-4 rounded-md space-y-4">
                   <div className="space-y-2 relative">
                       <FormLabel>Smart Address Search</FormLabel>
-                      <div className="relative">
+                      <FormDescription>Start here for the fastest results. You can manually correct the fields below if needed.</FormDescription>
+                      <div className="relative mt-2">
                           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input 
-                              placeholder="Start typing an address..." 
+                              placeholder="Start typing an address or pincode..." 
                               className="pl-10 pr-10"
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
@@ -498,19 +527,25 @@ export default function PropertyManagerPage() {
                       )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="address.street" render={({ field }) => (
-                          <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
-                      )}/>
-                      <FormField control={form.control} name="address.city" render={({ field }) => (
-                          <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
-                      )}/>
-                      <FormField control={form.control} name="address.state" render={({ field }) => (
-                          <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
-                      )}/>
-                      <FormField control={form.control} name="address.zip" render={({ field }) => (
-                          <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="Auto-populated" {...field} readOnly /></FormControl><FormMessage /></FormItem>
-                      )}/>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="address.street" render={({ field }) => (
+                            <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={form.control} name="address.city" render={({ field }) => (
+                            <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={form.control} name="address.state" render={({ field }) => (
+                            <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={form.control} name="address.zip" render={({ field }) => (
+                            <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    </div>
+                    <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isFindingOnMap} className="w-full md:w-auto">
+                        {isFindingOnMap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                        Find on Map with Manual Address
+                    </Button>
                   </div>
                 </div>
               </div>
