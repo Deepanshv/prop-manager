@@ -407,7 +407,7 @@ export default function PropertyDetailPage() {
                         <h3 className="text-lg font-medium">Set Location on Map</h3>
                         <div className="border p-4 rounded-md space-y-2">
                             <p className="text-sm text-muted-foreground">
-                                Drag the pin to set the exact property location.
+                                Drag the pin or click on the map to set the exact property location.
                             </p>
                             <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
                         </div>
@@ -423,7 +423,7 @@ export default function PropertyDetailPage() {
                                 <FormItem><FormLabel>Landbook Number</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                                 <FormItem><FormLabel>Area Unit</FormLabel>
@@ -454,7 +454,7 @@ export default function PropertyDetailPage() {
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                                <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                                 <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
@@ -490,7 +490,7 @@ export default function PropertyDetailPage() {
                             {watchedStatus === 'Sold' && (
                             <>
                                 <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                                    <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="soldDate" render={({ field }) => (
                                     <FormItem className="flex flex-col"><FormLabel>Sold Date</FormLabel>
@@ -532,23 +532,7 @@ export default function PropertyDetailPage() {
             </Card>
         </TabsContent>
         <TabsContent value="files">
-            <div className="mt-4 space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><FileQuestion className="text-muted-foreground" /> Recommended Documents</CardTitle>
-                        <CardDescription>
-                           For a complete record, please upload the following documents using the file manager below.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                            <li>Registry Document</li>
-                            <li>Land Book (Bhu Pustika) Document</li>
-                            <li>Owner's Aadhaar Card</li>
-                            <li>Owner's PAN Card</li>
-                        </ul>
-                    </CardContent>
-                </Card>
+            <div className="mt-4">
                 <FileManager entityType="properties" entityId={property.id} />
             </div>
         </TabsContent>

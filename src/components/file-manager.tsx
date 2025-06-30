@@ -12,26 +12,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Progress } from '@/components/ui/progress'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 import {
   collection,
   deleteDoc,
@@ -43,27 +27,15 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import {
-  File as FileIcon,
-  FileArchive,
-  FileAudio,
-  FileImage,
-  FileText,
-  FileVideo,
-  MoreVertical,
+  CheckCircle,
+  Circle,
+  Loader2,
   Trash2,
   Upload,
   View,
 } from 'lucide-react'
 import * as React from 'react'
-import { format } from 'date-fns'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu'
 import { Skeleton } from './ui/skeleton'
-import { uploadToCloudinary } from '@/lib/cloudinary'
 
 interface FileManagerProps {
   entityType: 'properties' | 'prospects'
@@ -72,6 +44,7 @@ interface FileManagerProps {
 
 interface FileMetadata {
   id: string
+  documentType: string
   fileName: string
   url: string
   contentType: string
@@ -79,15 +52,12 @@ interface FileMetadata {
   uploadTimestamp: Timestamp
 }
 
-const getFileIcon = (contentType: string) => {
-  if (contentType.startsWith('image/')) return <FileImage className="h-5 w-5" />
-  if (contentType.startsWith('video/')) return <FileVideo className="h-5 w-5" />
-  if (contentType.startsWith('audio/')) return <FileAudio className="h-5 w-5" />
-  if (contentType.startsWith('text/')) return <FileText className="h-5 w-5" />
-  if (contentType.includes('zip') || contentType.includes('archive'))
-    return <FileArchive className="h-5 w-5" />
-  return <FileIcon className="h-5 w-5" />
-}
+const requiredDocs = [
+  { id: 'registry-document', name: 'Registry Document' },
+  { id: 'land-book', name: 'Land Book (Bhu Pustika) Document' },
+  { id: 'owner-aadhaar-card', name: 'Owner\'s Aadhaar Card' },
+  { id: 'owner-pan-card', name: 'Owner\'s PAN Card' },
+];
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes'
@@ -98,15 +68,33 @@ const formatBytes = (bytes: number, decimals = 2) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
 }
 
+const DocumentSkeleton = () => (
+    <div className="space-y-2 rounded-md border">
+        {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center justify-between p-3 border-b last:border-b-0 animate-pulse">
+                <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div className="space-y-1">
+                        <Skeleton className="h-4 w-48" />
+                    </div>
+                </div>
+                <Skeleton className="h-9 w-24 rounded-md" />
+            </div>
+        ))}
+    </div>
+);
+
+
 export function FileManager({ entityType, entityId }: FileManagerProps) {
   const [files, setFiles] = React.useState<FileMetadata[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false)
+  const [isUploading, setIsUploading] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
   const [fileToDelete, setFileToDelete] = React.useState<FileMetadata | null>(null)
-  const [uploadingFile, setUploadingFile] = React.useState<File | null>(null)
-  const [uploadProgress, setUploadProgress] = React.useState(0)
   const { toast } = useToast()
+  
+  const [selectedDocTypeId, setSelectedDocTypeId] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (!db || !entityId) {
@@ -141,41 +129,23 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     return () => unsubscribe()
   }, [entityType, entityId, toast])
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0]
-      handleUpload(file)
-      event.target.value = ''
-    }
-  }
-
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, docTypeId: string) => {
     if (!db) {
       toast({ title: 'Error', description: 'Database not available.', variant: 'destructive' })
       return
     }
-    setUploadingFile(file)
-    setUploadProgress(0)
-    setIsUploadDialogOpen(true)
-
-    const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-            if (prev >= 95) {
-                clearInterval(progressInterval);
-                return 95;
-            }
-            return prev + 5;
-        });
-    }, 200);
+    setIsUploading(true);
+    
+    const docTypeName = requiredDocs.find(d => d.id === docTypeId)?.name || 'Untitled Document';
 
     try {
         const secureUrl = await uploadToCloudinary(file);
-        clearInterval(progressInterval);
         
         if (secureUrl) {
-            const fileDocRef = doc(collection(db, entityType, entityId, 'files'));
+            const fileDocRef = doc(db, entityType, entityId, 'files', docTypeId);
             await setDoc(fileDocRef, {
-              id: fileDocRef.id,
+              id: docTypeId,
+              documentType: docTypeName,
               fileName: file.name,
               url: secureUrl,
               contentType: file.type,
@@ -183,21 +153,15 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
               uploadTimestamp: serverTimestamp(),
             });
             
-            setUploadProgress(100);
-            toast({ title: 'Success', description: 'File uploaded successfully.' })
-            
-            setTimeout(() => {
-                setUploadingFile(null)
-                setIsUploadDialogOpen(false)
-            }, 500);
+            toast({ title: 'Success', description: `${docTypeName} uploaded successfully.` })
         } else {
-            throw new Error('Could not upload the file. Check console for details.');
+            throw new Error('Upload to Cloudinary failed. Check console for details.');
         }
     } catch(error: any) {
-        clearInterval(progressInterval);
         toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' })
-        setUploadingFile(null)
-        setIsUploadDialogOpen(false)
+    } finally {
+      setIsUploading(false);
+      setSelectedDocTypeId(null);
     }
   }
 
@@ -211,8 +175,6 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         toast({ title: 'Error', description: 'Could not delete file record.', variant: 'destructive' })
         return
     }
-    // In a production app, you would also want a Cloud Function to delete the file from Cloudinary.
-    // For this implementation, we only delete the Firestore record.
     const fileDocRef = doc(db, entityType, entityId, 'files', fileToDelete.id)
 
     try {
@@ -231,119 +193,82 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     window.open(file.url, '_blank')
   }
 
-  const TableSkeleton = () => (
-    <>
-      {[...Array(3)].map((_, i) => (
-        <TableRow key={i}>
-          <TableCell className='flex items-center gap-2'>
-            <Skeleton className="h-5 w-5" /> <Skeleton className="h-4 w-32" />
-          </TableCell>
-          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
-        </TableRow>
-      ))}
-    </>
-  )
+  const handleUploadClick = (docTypeId: string) => {
+    if (isUploading) return;
+    setSelectedDocTypeId(docTypeId);
+    fileInputRef.current?.click();
+  };
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && selectedDocTypeId) {
+        handleUpload(file, selectedDocTypeId);
+        event.target.value = '';
+    }
+  };
+  
+  const filesMap = React.useMemo(() => 
+    new Map(files.map(file => [file.id, file])),
+    [files]
+  );
 
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Associated Files</CardTitle>
-            <Button onClick={() => fileInputRef.current?.click()}>
-              <Upload className="mr-2 h-4 w-4" /> Upload File
-            </Button>
-            <Input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              onChange={handleFileChange} 
-            />
-          </div>
+          <CardTitle>Document Manager</CardTitle>
+          <CardDescription>Upload and manage required documents for this property. Each document type can only be uploaded once.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>File Name</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Date Uploaded</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableSkeleton />
-              ) : files.length > 0 ? (
-                files.map((file) => (
-                  <TableRow key={file.id}>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      {getFileIcon(file.contentType)}
-                      {file.fileName}
-                    </TableCell>
-                    <TableCell>{formatBytes(file.sizeBytes)}</TableCell>
-                    <TableCell>
-                      {file.uploadTimestamp
-                        ? format(file.uploadTimestamp.toDate(), 'PPP')
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewClick(file)}>
-                            <View className="mr-2 h-4 w-4" /> View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteClick(file)} className="text-destructive focus:text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
-                    No files have been uploaded yet.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <CardContent className="space-y-4">
+          <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" />
+          {loading ? (
+            <DocumentSkeleton />
+          ) : (
+            <div className="space-y-2 rounded-md border">
+              {requiredDocs.map((docType) => {
+                const file = filesMap.get(docType.id);
+                const isUploadingThisDoc = isUploading && selectedDocTypeId === docType.id;
+
+                return (
+                  <div key={docType.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      {file ? (
+                         <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      ) : (
+                         <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      )}
+                      <div className="flex-grow overflow-hidden">
+                        <p className="font-medium">{docType.name}</p>
+                        {file && (
+                          <p className="text-sm text-muted-foreground truncate max-w-xs">{file.fileName} - {formatBytes(file.sizeBytes)}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {file ? (
+                        <div className="flex items-center gap-2">
+                           <Button variant="outline" size="sm" onClick={() => handleViewClick(file)}><View className="h-4 w-4 mr-2" />View</Button>
+                           <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(file)}><Trash2 className="h-4 w-4 mr-2" />Delete</Button>
+                        </div>
+                      ) : (
+                        <Button variant="secondary" size="sm" onClick={() => handleUploadClick(docType.id)} disabled={isUploading}>
+                          {isUploadingThisDoc ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                          ) : (
+                            <Upload className="mr-2 h-4 w-4"/>
+                          )}
+                          {isUploadingThisDoc ? "Uploading..." : "Upload"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Upload Dialog */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Uploading File</DialogTitle>
-          </DialogHeader>
-          {uploadingFile && (
-            <div className='space-y-2'>
-                <p className='text-sm text-muted-foreground'>Uploading: {uploadingFile.name}</p>
-                <Progress value={uploadProgress} />
-                <p className='text-xs text-center'>{Math.round(uploadProgress)}%</p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
       {/* Delete Alert Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
