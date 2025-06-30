@@ -72,12 +72,23 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
-    const propertyData: Partial<Property> & {ownerUid: string} = {
+    const propertyData = {
       ...data,
       ownerUid: user.uid,
       purchaseDate: Timestamp.fromDate(data.purchaseDate),
       soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
       soldPrice: data.soldPrice ?? null,
+      address: {
+        ...data.address,
+        landmark: data.address.landmark ?? null,
+        latitude: data.address.latitude ?? null,
+        longitude: data.address.longitude ?? null,
+      },
+      landDetails: {
+        ...data.landDetails,
+        khasraNumber: data.landDetails.khasraNumber ?? null,
+        landbookNumber: data.landDetails.landbookNumber ?? null,
+      },
     };
     
     if (data.status !== 'Sold') {
@@ -87,9 +98,7 @@ export default function PropertyDetailPage() {
 
     try {
       const propDocRef = doc(db, 'properties', propertyId as string)
-      await updateDoc(propDocRef, {
-        ...propertyData
-      })
+      await updateDoc(propDocRef, propertyData)
       toast({ title: 'Success', description: 'Property updated successfully.' })
        if (propertyData.status === 'Sold') {
             router.push('/sold-properties')

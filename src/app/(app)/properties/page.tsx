@@ -208,7 +208,20 @@ export default function PropertyManagerPage() {
           ...data,
           purchaseDate: Timestamp.fromDate(data.purchaseDate),
           ownerUid: user.uid,
-          status: 'Owned',
+          status: 'Owned' as const,
+          soldPrice: null,
+          soldDate: null,
+          address: {
+            ...data.address,
+            landmark: data.address.landmark ?? null,
+            latitude: data.address.latitude ?? null,
+            longitude: data.address.longitude ?? null,
+          },
+          landDetails: {
+            ...data.landDetails,
+            khasraNumber: data.landDetails.khasraNumber ?? null,
+            landbookNumber: data.landDetails.landbookNumber ?? null,
+          },
         };
         
         await setDoc(newPropertyRef, propertyData);
