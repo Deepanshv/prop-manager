@@ -4,14 +4,14 @@
 // NOTE: This implementation requires a one-time setup in the Cloudinary dashboard:
 // 1. Go to Settings > Upload.
 // 2. Under Upload presets, click "Add upload preset".
-// 3. Name the preset "property_manager_uploads".
+// 3. Name the preset "property_manager_unsigned".
 // 4. Change the "Signing Mode" to "Unsigned".
 // 5. Click "Save".
 
 const CLOUD_NAME = 'dud5wzuya';
-const UPLOAD_PRESET = 'property_manager_uploads'; // Must match exactly
+const UPLOAD_PRESET = 'property_manager_unsigned'; // Must be an UN-signed preset
 
-export async function uploadToCloudinary(file: File): Promise<string | null> {
+export async function uploadToCloudinary(file: File): Promise<{ success: boolean; url?: string; message?: string }> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
@@ -33,11 +33,11 @@ export async function uploadToCloudinary(file: File): Promise<string | null> {
     }
 
     const data = await response.json();
-    return data.secure_url;
+    return { success: true, url: data.secure_url };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error during upload function:', error);
-    // Returning null indicates failure, the caller should handle it.
-    return null;
+    // Returning structured error
+    return { success: false, message: error.message || "An unknown error occurred during upload." };
   }
 }

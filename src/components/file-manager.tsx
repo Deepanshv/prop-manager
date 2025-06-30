@@ -146,15 +146,15 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     const isUpdating = files.some(f => f.id === docTypeId);
 
     try {
-        const secureUrl = await uploadToCloudinary(file);
+        const result = await uploadToCloudinary(file);
         
-        if (secureUrl) {
+        if (result.success && result.url) {
             const fileDocRef = doc(db, entityType, entityId, 'files', docTypeId);
             await setDoc(fileDocRef, {
               id: docTypeId,
               documentType: docTypeName,
               fileName: file.name,
-              url: secureUrl,
+              url: result.url,
               contentType: file.type,
               sizeBytes: file.size,
               uploadTimestamp: serverTimestamp(),
@@ -162,7 +162,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
             
             toast({ title: 'Success', description: `${docTypeName} ${isUpdating ? 'updated' : 'uploaded'} successfully.` })
         } else {
-            throw new Error('Upload to Cloudinary failed. Check console for details.');
+            throw new Error(result.message || 'Upload to Cloudinary failed. Check console for details.');
         }
     } catch(error: any) {
         toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' })
