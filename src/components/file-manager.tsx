@@ -169,17 +169,15 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     }, 200);
 
     try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const result = await uploadToCloudinary(formData);
+        const secureUrl = await uploadToCloudinary(file);
         clearInterval(progressInterval);
         
-        if (result.success && result.url) {
+        if (secureUrl) {
             const fileDocRef = doc(collection(db, entityType, entityId, 'files'));
             await setDoc(fileDocRef, {
               id: fileDocRef.id,
               fileName: file.name,
-              url: result.url,
+              url: secureUrl,
               contentType: file.type,
               sizeBytes: file.size,
               uploadTimestamp: serverTimestamp(),
@@ -193,7 +191,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
                 setIsUploadDialogOpen(false)
             }, 500);
         } else {
-            throw new Error(result.message || 'Could not upload the file.');
+            throw new Error('Could not upload the file. Check console for details.');
         }
     } catch(error: any) {
         clearInterval(progressInterval);

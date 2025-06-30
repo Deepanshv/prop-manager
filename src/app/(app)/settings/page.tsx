@@ -164,16 +164,14 @@ export default function SettingsPage() {
     const uploadToast = toast({ title: 'Uploading...', description: 'Your new profile picture is being uploaded.' });
     
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const result = await uploadToCloudinary(formData);
+      const secureUrl = await uploadToCloudinary(file);
 
-      if (result.success && result.url) {
-        await updateProfile(auth.currentUser, { photoURL: result.url });
-        setUser(prevUser => ({ ...prevUser, photoURL: result.url } as User));
+      if (secureUrl) {
+        await updateProfile(auth.currentUser, { photoURL: secureUrl });
+        setUser(prevUser => ({ ...prevUser, photoURL: secureUrl } as User));
         uploadToast.update({id: uploadToast.id, title: 'Success', description: 'Profile picture updated.' });
       } else {
-        throw new Error(result.message || 'Upload to Cloudinary failed.');
+        throw new Error('Upload to Cloudinary failed. Check console for details.');
       }
     } catch (error: any) {
       uploadToast.update({ id: uploadToast.id, title: 'Error', description: error.message || 'Failed to upload profile picture.', variant: 'destructive' });
