@@ -143,7 +143,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
         if (searchQuery.length > 2) {
             setIsSearching(true);
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&countrycodes=in`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&countrycodes=in&limit=5`);
                 const data = await response.json();
                 setSuggestions(data);
             } catch (error) {
