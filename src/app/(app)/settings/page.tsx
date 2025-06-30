@@ -8,7 +8,6 @@ import {
   updatePassword,
   updateProfile,
   deleteUser,
-  User,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import {
@@ -67,8 +66,7 @@ const passwordFormSchema = z
 type PasswordFormData = z.infer<typeof passwordFormSchema>
 
 export default function SettingsPage() {
-  const { user: authUser, handleLogout } = useAuth()
-  const [user, setUser] = React.useState<User>(authUser)
+  const { user, handleLogout } = useAuth()
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = React.useState('')
   const { toast } = useToast()
@@ -90,12 +88,11 @@ export default function SettingsPage() {
   })
   
   React.useEffect(() => {
-    setUser(authUser)
-    if (authUser && db) {
+    if (user && db) {
       setIsProfileLoading(true);
       const fetchProfile = async () => {
         try {
-          const userDocRef = doc(db, 'users', authUser.uid);
+          const userDocRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(userDocRef);
           let primaryNumber = '';
           let secondaryNumber = '';
@@ -105,14 +102,14 @@ export default function SettingsPage() {
             secondaryNumber = data.secondaryNumber || '';
           }
           profileForm.reset({
-            displayName: authUser.displayName || '',
+            displayName: user.displayName || '',
             primaryNumber,
             secondaryNumber,
           });
         } catch (error) {
           toast({ title: 'Error', description: 'Could not fetch profile data.', variant: 'destructive' });
            profileForm.reset({
-            displayName: authUser.displayName || '',
+            displayName: user.displayName || '',
             primaryNumber: '',
             secondaryNumber: '',
           });
@@ -122,13 +119,12 @@ export default function SettingsPage() {
       };
       fetchProfile();
     }
-  }, [authUser, db, profileForm, toast])
+  }, [user, db, profileForm, toast])
 
   const handleProfileUpdate = async (data: ProfileFormData) => {
     if (!auth.currentUser || !db) return
     try {
       await updateProfile(auth.currentUser, { displayName: data.displayName })
-      setUser(prevUser => ({ ...prevUser, displayName: data.displayName } as User))
 
       const userDocRef = doc(db, 'users', auth.currentUser.uid);
       await setDoc(userDocRef, { 
@@ -145,7 +141,7 @@ export default function SettingsPage() {
   }
 
   const handlePasswordUpdate = async (data: PasswordFormData) => {
-    if (!user.email) return
+    if (!user || !user.email) return
 
     try {
       const credential = EmailAuthProvider.credential(user.email, data.currentPassword)
@@ -169,7 +165,6 @@ export default function SettingsPage() {
 
       if (result.success && result.url) {
         await updateProfile(auth.currentUser, { photoURL: result.url });
-        setUser(prevUser => ({ ...prevUser, photoURL: result.url } as User));
         uploadToast.update({id: uploadToast.id, title: 'Success', description: 'Profile picture updated.' });
       } else {
         throw new Error(result.message || 'Upload failed. Check console for details.');
