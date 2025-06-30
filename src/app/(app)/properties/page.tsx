@@ -397,7 +397,9 @@ export default function PropertyManagerPage() {
         
         if (filesToUpload.length > 0) {
             await Promise.all(filesToUpload.map(async (file) => {
-                const url = await uploadToCloudinary(file);
+                const formData = new FormData();
+                formData.append('file', file);
+                const url = await uploadToCloudinary(formData);
                 if (url) {
                     const fileDocRef = doc(db, 'properties', newPropertyId, 'files', file.name);
                     await setDoc(fileDocRef, {

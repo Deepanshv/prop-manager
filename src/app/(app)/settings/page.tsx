@@ -163,7 +163,9 @@ export default function SettingsPage() {
     const uploadToast = toast({ title: 'Uploading...', description: 'Your new profile picture is being uploaded.' });
     
     try {
-      const photoURL = await uploadToCloudinary(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      const photoURL = await uploadToCloudinary(formData);
 
       if (photoURL) {
         await updateProfile(auth.currentUser, { photoURL });

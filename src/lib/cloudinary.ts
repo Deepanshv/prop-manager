@@ -4,10 +4,14 @@
 const CLOUD_NAME = 'dud5wzuya';
 const UPLOAD_PRESET = 'property_manager_unsigned';
 
-export async function uploadToCloudinary(file: File): Promise<string | null> {
-  const formData = new FormData();
-  formData.append('file', file);
+export async function uploadToCloudinary(formData: FormData): Promise<string | null> {
   formData.append('upload_preset', UPLOAD_PRESET);
+
+  const file = formData.get('file') as File;
+  if (!file) {
+    console.error('Cloudinary upload error: No file found in FormData.');
+    return null;
+  }
 
   const fileType = file.type.split('/')[0];
   const resourceType = fileType === 'image' ? 'image' : 'raw';

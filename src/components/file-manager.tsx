@@ -172,7 +172,9 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         });
     }, 200);
 
-    const uploadedUrl = await uploadToCloudinary(file);
+    const formData = new FormData();
+    formData.append('file', file);
+    const uploadedUrl = await uploadToCloudinary(formData);
     clearInterval(progressInterval);
     
     if (uploadedUrl && db) {
