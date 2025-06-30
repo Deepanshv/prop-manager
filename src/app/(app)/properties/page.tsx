@@ -401,7 +401,6 @@ export default function PropertyManagerPage() {
                 formData.append('file', file);
                 const url = await uploadToCloudinary(formData);
                 if (url) {
-                    // Use a new doc ref for each file to get an auto-generated ID
                     const fileDocRef = doc(collection(db, 'properties', newPropertyId, 'files'));
                     await setDoc(fileDocRef, {
                       fileName: file.name,
