@@ -84,28 +84,34 @@ interface PropertyFormProps {
 export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText, mode, children }: PropertyFormProps) {
   const { toast } = useToast()
   
-  const [mapCenter, setMapCenter] = React.useState<[number, number]>(
-    initialData?.address?.latitude && initialData?.address?.longitude
-      ? [initialData.address.latitude, initialData.address.longitude]
-      : [20.5937, 78.9629]
-  );
-  const [searchQuery, setSearchQuery] = React.useState(
-      initialData?.address ? `${initialData.address.street}, ${initialData.address.city}` : ''
-  );
-
+  const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [isSearching, setIsSearching] = React.useState(false);
   const [isFindingOnMap, setIsFindingOnMap] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(mode === 'edit' ? editPropertyFormSchema : basePropertyFormSchema),
-    defaultValues: {
-        ...initialData,
-        status: initialData?.status || 'Owned',
-        isListedPublicly: initialData?.isListedPublicly || false,
-    }
+    // In edit mode, we'll use form.reset() in useEffect to populate the form
+    // In add mode, we can set some defaults.
+    defaultValues: mode === 'add' ? {
+        status: 'Owned',
+        isListedPublicly: false,
+    } : undefined
   })
   
+  React.useEffect(() => {
+    if (initialData) {
+      form.reset(initialData);
+      if (initialData.address) {
+        if (initialData.address.latitude && initialData.address.longitude) {
+            setMapCenter([initialData.address.latitude, initialData.address.longitude]);
+        }
+        setSearchQuery([initialData.address.street, initialData.address.city].filter(Boolean).join(', '));
+      }
+    }
+  }, [initialData, form]);
+
   const watchedStatus = form.watch('status');
 
   React.useEffect(() => {
