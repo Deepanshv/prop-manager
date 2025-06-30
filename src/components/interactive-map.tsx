@@ -48,6 +48,14 @@ export const InteractiveMap = ({ center, onMarkerMove }: InteractiveMapProps) =>
           onMarkerMoveRef.current(lat, lng)
         }
       })
+      
+      map.on('click', (e) => {
+        if (markerRef.current) {
+          const { lat, lng } = e.latlng;
+          markerRef.current.setLatLng(e.latlng);
+          onMarkerMoveRef.current(lat, lng);
+        }
+      });
     }
 
     // Cleanup function
