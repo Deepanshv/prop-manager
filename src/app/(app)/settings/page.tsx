@@ -72,6 +72,7 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [isProfileLoading, setIsProfileLoading] = React.useState(true);
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -90,6 +91,7 @@ export default function SettingsPage() {
   React.useEffect(() => {
     if (user && db) {
       setIsProfileLoading(true);
+      setAvatarUrl(user.photoURL);
       const fetchProfile = async () => {
         try {
           const userDocRef = doc(db, 'users', user.uid);
@@ -165,6 +167,7 @@ export default function SettingsPage() {
 
       if (result.success && result.url) {
         await updateProfile(auth.currentUser, { photoURL: result.url });
+        setAvatarUrl(result.url); // Immediately update UI
         uploadToast.update({id: uploadToast.id, title: 'Success', description: 'Profile picture updated.' });
       } else {
         throw new Error(result.message || 'Upload failed. Check console for details.');
@@ -238,7 +241,7 @@ export default function SettingsPage() {
                          <div className="flex flex-col sm:flex-row items-start gap-6">
                             <div className="relative flex-shrink-0">
                                 <Avatar className="h-28 w-28 border-2 border-primary/50 p-1">
-                                    <AvatarImage src={user.photoURL || "https://placehold.co/112x112.png"} alt="User Avatar" data-ai-hint="user avatar" className="object-cover"/>
+                                    <AvatarImage src={avatarUrl || "https://placehold.co/112x112.png"} alt="User Avatar" data-ai-hint="user avatar" className="object-cover"/>
                                     <AvatarFallback className="text-4xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
                                 </Avatar>
                                 <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-9 w-9" onClick={() => fileInputRef.current?.click()}>
