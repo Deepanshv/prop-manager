@@ -225,7 +225,7 @@ export default function SettingsPage() {
                        {isProfileLoading ? (
                             <div className="flex flex-col sm:flex-row items-start gap-6">
                                 <div className="relative flex-shrink-0">
-                                    <Skeleton className="h-28 w-28 rounded-full" />
+                                    <Skeleton className="h-32 w-32 rounded-full" />
                                 </div>
                                 <div className="flex-grow w-full space-y-4">
                                     <Skeleton className="h-10 w-full" />
@@ -240,11 +240,11 @@ export default function SettingsPage() {
                        ) : (
                          <div className="flex flex-col sm:flex-row items-start gap-6">
                             <div className="relative flex-shrink-0">
-                                <Avatar className="h-28 w-28 border-2 border-primary/50 p-1">
-                                    <AvatarImage src={avatarUrl || "https://placehold.co/112x112.png"} alt="User Avatar" data-ai-hint="user avatar" className="object-cover"/>
-                                    <AvatarFallback className="text-4xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
+                                <Avatar className="h-32 w-32 border-2 border-primary/50 p-1">
+                                    <AvatarImage src={avatarUrl || "https://placehold.co/128x128.png"} alt="User Avatar" data-ai-hint="user avatar" className="object-cover"/>
+                                    <AvatarFallback className="text-5xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
                                 </Avatar>
-                                <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-9 w-9" onClick={() => fileInputRef.current?.click()}>
+                                <Button size="icon" className="absolute bottom-1 right-1 rounded-full h-9 w-9" onClick={() => fileInputRef.current?.click()}>
                                     <Camera className="h-5 w-5" />
                                     <span className="sr-only">Change profile picture</span>
                                 </Button>
