@@ -399,18 +399,19 @@ export default function PropertyManagerPage() {
             await Promise.all(filesToUpload.map(async (file) => {
                 const formData = new FormData();
                 formData.append('file', file);
-                const url = await uploadToCloudinary(formData);
-                if (url) {
+                const result = await uploadToCloudinary(formData);
+                if (result.success && result.url) {
                     const fileDocRef = doc(collection(db, 'properties', newPropertyId, 'files'));
                     await setDoc(fileDocRef, {
+                      id: fileDocRef.id,
                       fileName: file.name,
-                      url: url,
+                      url: result.url,
                       contentType: file.type,
                       sizeBytes: file.size,
                       uploadTimestamp: serverTimestamp(),
                     });
                 } else {
-                    throw new Error(`Failed to upload ${file.name}`);
+                    throw new Error(result.message || `Failed to upload ${file.name}`);
                 }
             }));
         }
@@ -429,9 +430,9 @@ export default function PropertyManagerPage() {
         toast({ title: 'Success', description: 'Property and documents added successfully.' });
         setIsModalOpen(false);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error during property creation: ', error);
-        toast({ title: 'Error', description: 'Failed to save property or upload a document. Please try again.', variant: 'destructive' });
+        toast({ title: 'Error', description: error.message || 'Failed to save property. Please try again.', variant: 'destructive' });
     } finally {
         setIsSaving(false);
     }

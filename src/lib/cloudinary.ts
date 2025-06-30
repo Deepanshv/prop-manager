@@ -4,15 +4,20 @@
 const CLOUD_NAME = 'dud5wzuya';
 const UPLOAD_PRESET = 'property_manager_uploads';
 
-export async function uploadToCloudinary(formData: FormData): Promise<string | null> {
+interface CloudinaryUploadResult {
+    success: boolean;
+    url?: string;
+    message: string;
+}
+
+export async function uploadToCloudinary(formData: FormData): Promise<CloudinaryUploadResult> {
   const file = formData.get('file') as File | null;
   if (!file) {
-    console.error('Cloudinary upload error: No file found in FormData.');
-    return null;
+    const message = 'Cloudinary upload error: No file found in FormData.';
+    console.error(message);
+    return { success: false, message };
   }
 
-  // Create a new FormData object for the server-side request.
-  // This is safer than mutating the formData object received from the client.
   const serverFormData = new FormData();
   serverFormData.append('file', file);
   serverFormData.append('upload_preset', UPLOAD_PRESET);
@@ -27,19 +32,25 @@ export async function uploadToCloudinary(formData: FormData): Promise<string | n
       method: 'POST',
       body: serverFormData,
     });
+    
+    const data = await response.json();
 
     if (!response.ok) {
-      // Gracefully handle non-JSON error responses from Cloudinary.
-      // A common cause for this is an incorrect upload preset name.
-      const errorText = await response.text();
-      console.error(`Cloudinary upload failed with status ${response.status}:`, errorText);
-      return null;
+      const message = data.error?.message || 'Cloudinary upload failed. Please check server logs.';
+      console.error(`Cloudinary upload failed with status ${response.status}:`, message);
+      return { success: false, message };
     }
 
-    const data = await response.json();
-    return data.secure_url;
+    if (!data.secure_url) {
+      const message = 'Cloudinary upload succeeded but did not return a secure URL.';
+      console.error(message, data);
+      return { success: false, message };
+    }
+
+    return { success: true, url: data.secure_url, message: 'File uploaded successfully.' };
   } catch (error) {
-    console.error('An unexpected error occurred during the Cloudinary upload:', error);
-    return null;
+    const message = 'An unexpected error occurred during the Cloudinary upload.';
+    console.error(message, error);
+    return { success: false, message };
   }
 }

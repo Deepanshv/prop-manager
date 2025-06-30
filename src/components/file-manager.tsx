@@ -147,7 +147,6 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0]
       handleUpload(file)
-      // Reset the input value to allow uploading the same file again
       event.target.value = ''
     }
   }
@@ -161,7 +160,6 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     setUploadProgress(0)
     setIsUploadDialogOpen(true)
 
-    // Simulate progress as Cloudinary doesn't provide it for direct uploads
     const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
             if (prev >= 95) {
@@ -174,16 +172,16 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
 
     const formData = new FormData();
     formData.append('file', file);
-    const uploadedUrl = await uploadToCloudinary(formData);
+    const result = await uploadToCloudinary(formData);
     clearInterval(progressInterval);
     
-    if (uploadedUrl && db) {
-        // Create a new doc with an auto-generated ID
+    if (result.success && result.url && db) {
         const fileDocRef = doc(collection(db, entityType, entityId, 'files'));
 
         await setDoc(fileDocRef, {
+          id: fileDocRef.id,
           fileName: file.name,
-          url: uploadedUrl,
+          url: result.url,
           contentType: file.type,
           sizeBytes: file.size,
           uploadTimestamp: serverTimestamp(),
@@ -198,7 +196,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         }, 500);
 
     } else {
-        toast({ title: 'Upload Failed', description: 'Could not upload the file to Cloudinary.', variant: 'destructive' })
+        toast({ title: 'Upload Failed', description: result.message || 'Could not upload the file.', variant: 'destructive' })
         setUploadingFile(null)
         setIsUploadDialogOpen(false)
     }

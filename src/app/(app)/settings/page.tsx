@@ -165,17 +165,17 @@ export default function SettingsPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const photoURL = await uploadToCloudinary(formData);
+      const result = await uploadToCloudinary(formData);
 
-      if (photoURL) {
-        await updateProfile(auth.currentUser, { photoURL });
-        setUser(prevUser => ({ ...prevUser, photoURL } as User));
+      if (result.success && result.url) {
+        await updateProfile(auth.currentUser, { photoURL: result.url });
+        setUser(prevUser => ({ ...prevUser, photoURL: result.url } as User));
         uploadToast.update({ title: 'Success', description: 'Profile picture updated.' });
       } else {
-        throw new Error('Upload to Cloudinary failed.');
+        throw new Error(result.message || 'Upload to Cloudinary failed.');
       }
     } catch (error: any) {
-      uploadToast.update({ title: 'Error', description: 'Failed to upload profile picture.', variant: 'destructive' });
+      uploadToast.update({ title: 'Error', description: error.message || 'Failed to upload profile picture.', variant: 'destructive' });
     }
   }
 
