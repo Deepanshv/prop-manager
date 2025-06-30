@@ -47,8 +47,8 @@ const addressSchema = z.object({
   state: z.string().min(1, 'State is required.'),
   zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
   landmark: z.string().optional(),
-  latitude: z.coerce.number().min(-90).max(90),
-  longitude: z.coerce.number().min(-180).max(180),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
 });
 
 const landDetailsSchema = z.object({
@@ -65,9 +65,9 @@ const propertyFormSchema = z.object({
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
   isListedPublicly: z.boolean().default(false),
-  registryDoc: z.instanceof(File, { message: "Registry document is required." }).refine(file => file.size > 0, "File is required."),
-  landBookDoc: z.instanceof(File, { message: "Land book document is required." }).refine(file => file.size > 0, "File is required."),
-  aadhaarDoc: z.instanceof(File, { message: "Aadhaar card document is required." }).refine(file => file.size > 0, "File is required."),
+  registryDoc: z.instanceof(File).optional(),
+  landBookDoc: z.instanceof(File).optional(),
+  aadhaarDoc: z.instanceof(File).optional(),
   panDoc: z.instanceof(File).optional(),
 });
 type PropertyFormData = z.infer<typeof propertyFormSchema>
@@ -180,7 +180,7 @@ export default function PropertyManagerPage() {
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       isListedPublicly: false,
-      address: { street: '', city: '', state: '', zip: '', landmark: '', latitude: 20.5937, longitude: 78.9629 },
+      address: { street: '', city: '', state: '', zip: '', landmark: ''},
       landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
       propertyType: undefined,
     },
@@ -284,7 +284,7 @@ export default function PropertyManagerPage() {
   const handleAddProperty = () => {
     form.reset({
       isListedPublicly: false,
-      address: { street: '', city: '', state: '', zip: '', landmark: '', latitude: 20.5937, longitude: 78.9629 },
+      address: { street: '', city: '', state: '', zip: '', landmark: '' },
       landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
       propertyType: undefined,
     })
@@ -366,12 +366,16 @@ export default function PropertyManagerPage() {
     };
 
     try {
-        const filesToUpload: File[] = [data.registryDoc, data.landBookDoc, data.aadhaarDoc];
-        if (data.panDoc instanceof File && data.panDoc.size > 0) {
-            filesToUpload.push(data.panDoc);
-        }
+        const filesToUpload: File[] = [
+            data.registryDoc,
+            data.landBookDoc,
+            data.aadhaarDoc,
+            data.panDoc
+        ].filter((file): file is File => file instanceof File && file.size > 0);
         
-        await Promise.all(filesToUpload.map(file => uploadFile(file, user)));
+        if (filesToUpload.length > 0) {
+            await Promise.all(filesToUpload.map(file => uploadFile(file, user)));
+        }
 
         const { registryDoc, landBookDoc, aadhaarDoc, panDoc, ...propertyDetails } = data;
 
@@ -456,7 +460,7 @@ export default function PropertyManagerPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader><DialogTitle>Add New Property</DialogTitle>
-            <DialogDescription>Fill in the details and upload required documents to add a new property.</DialogDescription>
+            <DialogDescription>Fill in the details to add a new property. Documents and precise location can be added later.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 max-h-[80vh] overflow-y-auto pr-4">
@@ -513,7 +517,7 @@ export default function PropertyManagerPage() {
 
 
               <div className="space-y-2">
-                <h3 className="font-medium">Set Location on Map</h3>
+                <h3 className="font-medium">Set Location on Map (Optional)</h3>
                 <div className="border p-4 rounded-md space-y-2">
                     <p className="text-sm text-muted-foreground">
                         Drag the pin to set the exact property location.
@@ -586,25 +590,25 @@ export default function PropertyManagerPage() {
               </div>
 
                <div className="space-y-2">
-                <h3 className="font-medium">Required Documents</h3>
+                <h3 className="font-medium">Documents (Optional)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
                    <FormField control={form.control} name="registryDoc" render={({ field: { onBlur, name, ref } }) => (
                         <FormItem>
-                            <FormLabel>Registry Document (Required)</FormLabel>
+                            <FormLabel>Registry Document</FormLabel>
                             <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={(e) => { e.target.files && form.setValue('registryDoc', e.target.files[0])}} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
                    <FormField control={form.control} name="landBookDoc" render={({ field: { onBlur, name, ref } }) => (
                         <FormItem>
-                            <FormLabel>Land Book Document (Required)</FormLabel>
+                            <FormLabel>Land Book Document</FormLabel>
                             <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={(e) => { e.target.files && form.setValue('landBookDoc', e.target.files[0])}} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
                    <FormField control={form.control} name="aadhaarDoc" render={({ field: { onBlur, name, ref } }) => (
                         <FormItem>
-                            <FormLabel>Aadhaar Card (Required)</FormLabel>
+                            <FormLabel>Aadhaar Card</FormLabel>
                             <FormControl><Input type="file" onBlur={onBlur} name={name} ref={ref} onChange={(e) => { e.target.files && form.setValue('aadhaarDoc', e.target.files[0])}} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -684,3 +688,5 @@ export default function PropertyManagerPage() {
     </>
   )
 }
+
+    
