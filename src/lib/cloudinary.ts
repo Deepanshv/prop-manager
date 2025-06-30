@@ -18,9 +18,9 @@ export async function uploadToCloudinary(formData: FormData): Promise<Cloudinary
     return { success: false, message };
   }
 
-  const serverFormData = new FormData();
-  serverFormData.append('file', file);
-  serverFormData.append('upload_preset', UPLOAD_PRESET);
+  // Append the upload preset directly to the incoming FormData object.
+  // Do not create a new FormData object as it breaks the file stream.
+  formData.append('upload_preset', UPLOAD_PRESET);
 
   const fileType = file.type.split('/')[0];
   const resourceType = fileType === 'image' ? 'image' : 'raw';
@@ -30,7 +30,7 @@ export async function uploadToCloudinary(formData: FormData): Promise<Cloudinary
   try {
     const response = await fetch(url, {
       method: 'POST',
-      body: serverFormData,
+      body: formData, // Use the original formData from the client
     });
     
     const data = await response.json();
