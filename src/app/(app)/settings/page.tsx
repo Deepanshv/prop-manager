@@ -198,7 +198,7 @@ export default function SettingsPage() {
         <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
         <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-                <Skeleton className="h-20 w-20 rounded-full" />
+                <Skeleton className="h-24 w-24 rounded-full" />
                 <div className="space-y-2">
                     <Skeleton className="h-6 w-32" />
                     <Skeleton className="h-4 w-48" />
@@ -247,12 +247,12 @@ export default function SettingsPage() {
             <CardContent>
                 <div className="flex items-center gap-4">
                 <div className="relative">
-                    <Avatar className="h-20 w-20">
-                    <AvatarImage src={user.photoURL || "https://placehold.co/80x80.png"} alt="User Avatar" data-ai-hint="user avatar"/>
-                    <AvatarFallback className="text-2xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
+                    <Avatar className="h-24 w-24">
+                    <AvatarImage src={user.photoURL || "https://placehold.co/96x96.png"} alt="User Avatar" data-ai-hint="user avatar"/>
+                    <AvatarFallback className="text-3xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
-                    <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-7 w-7" onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="h-4 w-4" />
+                    <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-8 w-8" onClick={() => fileInputRef.current?.click()}>
+                        <Camera className="h-5 w-5" />
                     </Button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleProfilePictureChange} />
                 </div>
@@ -412,3 +412,5 @@ export default function SettingsPage() {
     </>
   )
 }
+
+    
