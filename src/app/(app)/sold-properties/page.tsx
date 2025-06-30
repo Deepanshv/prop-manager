@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { Building, MoreHorizontal, Trash, Undo2, View } from 'lucide-react'
+import { Building, MapPin, MoreHorizontal, Trash, Undo2, View } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -46,45 +46,47 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
     const profitLoss = (property.soldPrice || 0) - property.purchasePrice
     
     return (
-        <Card className="h-full flex flex-col">
+        <Card className={cn(
+            "flex flex-col border-t-4",
+            profitLoss >= 0 ? 'border-green-600' : 'border-red-600'
+        )}>
             <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
-                    <div className="flex items-start gap-4">
-                        <div className="bg-muted p-3 rounded-md">
-                            <Building className="h-6 w-6 text-muted-foreground" />
+                    <CardTitle className="text-lg">{property.name}</CardTitle>
+                    <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="text-sm flex items-center gap-2 text-muted-foreground">
+                        <Building className="h-4 w-4" />
+                        <span>{property.propertyType}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p className="text-muted-foreground">Purchase Price</p>
+                            <p className="font-semibold">{formatCurrency(property.purchasePrice)}</p>
                         </div>
                         <div>
-                            <CardTitle className="text-lg leading-tight">{property.name}</CardTitle>
-                            <CardDescription>{`${property.address.street}, ${property.address.city}`}</CardDescription>
+                            <p className="text-muted-foreground">Sold Price</p>
+                            <p className="font-semibold">{formatCurrency(property.soldPrice)}</p>
                         </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <p className="text-muted-foreground">Purchase Price</p>
-                        <p className="font-semibold">{formatCurrency(property.purchasePrice)}</p>
-                    </div>
-                    <div>
-                        <p className="text-muted-foreground">Sold Price</p>
-                        <p className="font-semibold">{formatCurrency(property.soldPrice)}</p>
                     </div>
                 </CardContent>
             </Link>
-            <CardFooter className="mt-auto bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
+            <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
                  <div>
-                    <p className="text-muted-foreground">Sold Date</p>
-                    <p className="font-semibold">
-                        {property.soldDate ? format(property.soldDate.toDate(), 'PPP') : 'N/A'}
+                    <p className="text-muted-foreground">Profit / Loss</p>
+                    <p className={cn(
+                        "font-bold text-base",
+                        profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                    )}>
+                        {formatCurrency(profitLoss)}
                     </p>
-                </div>
+                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="text-right">
-                       <p className="text-muted-foreground">Profit / Loss</p>
-                       <p className={cn(
-                            "font-bold text-base",
-                            profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
-                        )}>
-                            {formatCurrency(profitLoss)}
+                     <div className="text-right">
+                        <p className="text-muted-foreground">Sold Date</p>
+                        <p className="font-semibold">
+                            {property.soldDate ? format(property.soldDate.toDate(), 'PPP') : 'N/A'}
                         </p>
                     </div>
                     <DropdownMenu>
@@ -117,35 +119,24 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
 const PageSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(3)].map((_, i) => (
-            <Card key={i} className="h-full flex flex-col">
-                 <CardHeader>
-                    <div className="flex items-start gap-4">
-                        <Skeleton className="h-12 w-12 rounded-md" />
-                        <div className="space-y-2">
-                           <Skeleton className="h-5 w-48" />
-                           <Skeleton className="h-4 w-32" />
+            <Card key={i} className="flex flex-col">
+                <div className="flex-grow p-6 space-y-4">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <div className="space-y-2 pt-2">
+                        <Skeleton className="h-4 w-full" />
+                        <div className="grid grid-cols-2 gap-4">
+                           <Skeleton className="h-4 w-5/6" />
+                           <Skeleton className="h-4 w-5/6" />
                         </div>
                     </div>
-                </CardHeader>
-                 <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                     <div className="space-y-1">
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-5 w-24" />
-                     </div>
-                      <div className="space-y-1">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-5 w-24" />
-                     </div>
-                 </CardContent>
-                <CardFooter className="mt-auto bg-muted/50 p-4 flex justify-between items-center text-sm">
+                </div>
+                <CardFooter className="bg-muted/50 p-4 flex justify-between items-center border-t">
                     <div className="space-y-1">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-5 w-28" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-6 w-28" />
                     </div>
-                     <div className="space-y-1 text-right">
-                        <Skeleton className="h-4 w-20 ml-auto" />
-                        <Skeleton className="h-6 w-24 ml-auto" />
-                    </div>
+                    <Skeleton className="h-9 w-20" />
                 </CardFooter>
             </Card>
         ))}

@@ -2,7 +2,7 @@
 'use client';
 
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { Building2 } from 'lucide-react';
+import { Building2, MapPin } from 'lucide-react';
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import type { Property } from '@/app/(app)/properties/page';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 function PublicPropertyCard({ property }: { property: Property }) {
   const { toast } = useToast();
@@ -35,78 +36,57 @@ function PublicPropertyCard({ property }: { property: Property }) {
   if (!property.listingPrice) return null; // Don't show properties without a listing price
 
   return (
-    <Card className="overflow-hidden flex flex-col h-full">
-      <CardHeader>
-        <div className="flex items-start gap-4">
-            <div className="bg-muted p-3 rounded-md mt-1">
-                <Building2 className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <div>
-                <CardTitle className="text-lg leading-tight">{property.name}</CardTitle>
-                <CardDescription className="text-sm">{`${property.address.street}, ${property.address.city}, ${property.address.state}`}</CardDescription>
-            </div>
+    <Card className="flex flex-col border-t-4 border-primary">
+        <div className="flex-grow flex flex-col rounded-t-lg">
+            <CardHeader>
+                <CardTitle className="text-lg">{property.name}</CardTitle>
+                <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                <div className="text-sm flex items-center gap-2 text-muted-foreground">
+                    <Building2 className="h-4 w-4" />
+                    <span>{property.propertyType}</span>
+                </div>
+                 <div className="text-sm text-muted-foreground">
+                    Size: {`${property.landDetails.area} ${property.landDetails.areaUnit}`}
+                 </div>
+            </CardContent>
         </div>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
             <div>
-                <p className="text-muted-foreground">Type</p>
-                <p className="font-medium">{property.propertyType}</p>
+                <p className="text-muted-foreground">Asking Price</p>
+                <p className="font-semibold text-base">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(property.listingPrice)}</p>
             </div>
-            <div>
-                <p className="text-muted-foreground">Size</p>
-                <p className="font-medium">{`${property.landDetails.area} ${property.landDetails.areaUnit}`}</p>
-            </div>
-        </div>
-        <div>
-            <p className="text-sm text-muted-foreground">Asking Price</p>
-            <p className="text-2xl font-bold">{`₹${property.listingPrice.toLocaleString('en-IN')}`}</p>
-        </div>
-      </CardContent>
-      <CardFooter className="p-4 pt-0 mt-auto">
-        <Button className="w-full" onClick={handleContactAgent}>
-          Contact Agent
-        </Button>
-      </CardFooter>
+            <Button size="sm" onClick={handleContactAgent}>
+                Contact Agent
+            </Button>
+        </CardFooter>
     </Card>
   );
 }
 
 const PageSkeleton = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-    {[...Array(8)].map((_, i) => (
-       <Card key={i} className="overflow-hidden flex flex-col h-full">
-            <CardHeader>
-                <div className="flex items-start gap-4">
-                    <Skeleton className="h-12 w-12 rounded-md flex-shrink-0" />
-                    <div className="space-y-2 flex-grow">
-                        <Skeleton className="h-5 w-3/4" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {[...Array(8)].map((_, i) => (
+            <Card key={i} className="flex flex-col">
+                <div className="flex-grow p-6 space-y-4">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <div className="space-y-2 pt-2">
                         <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
                     </div>
                 </div>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <CardFooter className="bg-muted/50 p-4 flex justify-between items-center border-t">
                     <div className="space-y-1">
-                        <Skeleton className="h-4 w-12" />
-                        <Skeleton className="h-5 w-20" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-6 w-28" />
                     </div>
-                    <div className="space-y-1">
-                        <Skeleton className="h-4 w-10" />
-                        <Skeleton className="h-5 w-24" />
-                    </div>
-                </div>
-                <div className="space-y-1">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-7 w-32" />
-                </div>
-            </CardContent>
-            <CardFooter className="p-4 pt-0 mt-auto">
-                <Skeleton className="h-10 w-full" />
-            </CardFooter>
-        </Card>
-    ))}
-  </div>
+                    <Skeleton className="h-9 w-24" />
+                </CardFooter>
+            </Card>
+        ))}
+    </div>
 );
 
 export default function PublicListingsPage() {
