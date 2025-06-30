@@ -10,7 +10,6 @@ import {
   deleteUser,
   User,
 } from 'firebase/auth'
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import {
   Camera,
@@ -42,8 +41,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
-import { auth, db, storage } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
 import { useAuth } from '../layout'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.'),
@@ -157,19 +157,23 @@ export default function SettingsPage() {
   }
 
   const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!auth.currentUser || !storage || !event.target.files || event.target.files.length === 0) return
+    if (!auth.currentUser || !event.target.files || event.target.files.length === 0) return
 
     const file = event.target.files[0]
-    const storageRef = ref(storage, `users/${user.uid}/profile-picture/${file.name}`)
-
+    const uploadToast = toast({ title: 'Uploading...', description: 'Your new profile picture is being uploaded.' });
+    
     try {
-      await uploadBytes(storageRef, file)
-      const photoURL = await getDownloadURL(storageRef)
-      await updateProfile(auth.currentUser, { photoURL })
-      setUser(prevUser => ({ ...prevUser, photoURL } as User))
-      toast({ title: 'Success', description: 'Profile picture updated.' })
+      const photoURL = await uploadToCloudinary(file);
+
+      if (photoURL) {
+        await updateProfile(auth.currentUser, { photoURL });
+        setUser(prevUser => ({ ...prevUser, photoURL } as User));
+        uploadToast.update({ title: 'Success', description: 'Profile picture updated.' });
+      } else {
+        throw new Error('Upload to Cloudinary failed.');
+      }
     } catch (error: any) {
-      toast({ title: 'Error', description: 'Failed to upload profile picture.', variant: 'destructive' })
+      uploadToast.update({ title: 'Error', description: 'Failed to upload profile picture.', variant: 'destructive' });
     }
   }
 

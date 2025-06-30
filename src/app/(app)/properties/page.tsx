@@ -3,7 +3,6 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc, serverTimestamp } from 'firebase/firestore'
-import { ref as storageRef, uploadBytesResumable } from 'firebase/storage'
 import type { User } from 'firebase/auth'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin, LocateFixed, Search } from 'lucide-react'
@@ -26,12 +25,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { db, storage } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
@@ -378,7 +378,7 @@ export default function PropertyManagerPage() {
 
 
   const onSubmit = async (data: PropertyFormData) => {
-    if (!user || !db || !storage) {
+    if (!user || !db) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
     }
@@ -386,35 +386,6 @@ export default function PropertyManagerPage() {
     
     const newPropertyRef = doc(collection(db, 'properties'));
     const newPropertyId = newPropertyRef.id;
-
-    const uploadFile = (file: File, user: User) => {
-        return new Promise((resolve, reject) => {
-            const filePath = `users/${user.uid}/properties/${newPropertyId}/documents/${file.name}`;
-            const fileRef = storageRef(storage, filePath);
-            const uploadTask = uploadBytesResumable(fileRef, file);
-
-            uploadTask.on(
-                'state_changed',
-                null, 
-                (error) => { reject(error); },
-                async () => {
-                    const fileDocRef = doc(db, 'properties', newPropertyId, 'files', file.name);
-                    try {
-                        await setDoc(fileDocRef, {
-                          fileName: file.name,
-                          storagePath: filePath,
-                          contentType: file.type,
-                          sizeBytes: file.size,
-                          uploadTimestamp: serverTimestamp(),
-                        });
-                        resolve(true);
-                    } catch (firestoreError) {
-                        reject(firestoreError);
-                    }
-                }
-            );
-        });
-    };
 
     try {
         const filesToUpload: File[] = [
@@ -425,7 +396,21 @@ export default function PropertyManagerPage() {
         ].filter((file): file is File => file instanceof File && file.size > 0);
         
         if (filesToUpload.length > 0) {
-            await Promise.all(filesToUpload.map(file => uploadFile(file, user)));
+            await Promise.all(filesToUpload.map(async (file) => {
+                const url = await uploadToCloudinary(file);
+                if (url) {
+                    const fileDocRef = doc(db, 'properties', newPropertyId, 'files', file.name);
+                    await setDoc(fileDocRef, {
+                      fileName: file.name,
+                      url: url,
+                      contentType: file.type,
+                      sizeBytes: file.size,
+                      uploadTimestamp: serverTimestamp(),
+                    });
+                } else {
+                    throw new Error(`Failed to upload ${file.name}`);
+                }
+            }));
         }
 
         const { registryDoc, landBookDoc, aadhaarDoc, panDoc, ...propertyDetails } = data;
@@ -720,7 +705,7 @@ export default function PropertyManagerPage() {
           <Form {...soldForm}>
             <form onSubmit={soldForm.handleSubmit(onSoldSubmit)} className="space-y-4 pt-4">
                 <FormField control={soldForm.control} name="soldPrice" render={({ field }) => (
-                    <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={soldForm.control} name="soldDate" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>

@@ -31,7 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
-import { auth, db, storage } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import {
   collection,
   deleteDoc,
@@ -42,13 +42,6 @@ import {
   setDoc,
   Timestamp,
 } from 'firebase/firestore'
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytesResumable,
-} from 'firebase/storage'
-import { User } from 'firebase/auth'
 import {
   File as FileIcon,
   FileArchive,
@@ -71,6 +64,7 @@ import {
 } from './ui/dropdown-menu'
 import { Skeleton } from './ui/skeleton'
 import { useAuth } from '../app/(app)/layout'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 
 interface FileManagerProps {
   entityType: 'properties' | 'prospects'
@@ -80,7 +74,7 @@ interface FileManagerProps {
 interface FileMetadata {
   id: string
   fileName: string
-  storagePath: string
+  url: string
   contentType: string
   sizeBytes: number
   uploadTimestamp: Timestamp
@@ -153,11 +147,13 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0]
       handleUpload(file)
+      // Reset the input value to allow uploading the same file again
+      event.target.value = ''
     }
   }
 
-  const handleUpload = (file: File) => {
-    if (!user || !storage) {
+  const handleUpload = async (file: File) => {
+    if (!user || !db) {
       toast({ title: 'Error', description: 'Cannot upload file.', variant: 'destructive' })
       return
     }
@@ -165,39 +161,44 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     setUploadProgress(0)
     setIsUploadDialogOpen(true)
 
-    const storagePath = `users/${user.uid}/${entityType}/${entityId}/documents/${file.name}`
-    const storageRef = ref(storage, storagePath)
-    const uploadTask = uploadBytesResumable(storageRef, file)
+    // Simulate progress as Cloudinary doesn't provide it for direct uploads
+    const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+            if (prev >= 95) {
+                clearInterval(progressInterval);
+                return 95;
+            }
+            return prev + 5;
+        });
+    }, 200);
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-        setUploadProgress(progress)
-      },
-      (error) => {
-        console.error('Upload error:', error)
-        toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' })
-        setUploadingFile(null)
-      },
-      async () => {
-        if (!db) return;
-        const fileDocRef = doc(db, entityType, entityId, 'files', file.name)
+    const uploadedUrl = await uploadToCloudinary(file);
+    clearInterval(progressInterval);
+    
+    if (uploadedUrl && db) {
+        const fileDocRef = doc(db, entityType, entityId, 'files', file.name);
 
         await setDoc(fileDocRef, {
           fileName: file.name,
-          storagePath: storagePath,
+          url: uploadedUrl,
           contentType: file.type,
           sizeBytes: file.size,
           uploadTimestamp: serverTimestamp(),
-        })
-
+        });
+        
+        setUploadProgress(100);
         toast({ title: 'Success', description: 'File uploaded successfully.' })
+        
+        setTimeout(() => {
+            setUploadingFile(null)
+            setIsUploadDialogOpen(false)
+        }, 500);
+
+    } else {
+        toast({ title: 'Upload Failed', description: 'Could not upload the file to Cloudinary.', variant: 'destructive' })
         setUploadingFile(null)
-        setUploadProgress(0)
         setIsUploadDialogOpen(false)
-      }
-    )
+    }
   }
 
   const handleDeleteClick = (file: FileMetadata) => {
@@ -206,36 +207,27 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
   }
 
   const confirmDelete = async () => {
-    if (!fileToDelete || !storage || !db) {
-        toast({ title: 'Error', description: 'Could not delete file.', variant: 'destructive' })
+    if (!fileToDelete || !db) {
+        toast({ title: 'Error', description: 'Could not delete file record.', variant: 'destructive' })
         return
     }
 
-    const fileStorageRef = ref(storage, fileToDelete.storagePath)
     const fileDocRef = doc(db, entityType, entityId, 'files', fileToDelete.id)
 
     try {
-      await deleteObject(fileStorageRef)
       await deleteDoc(fileDocRef)
-      toast({ title: 'Success', description: 'File deleted successfully.' })
+      toast({ title: 'Success', description: 'File record deleted successfully.' })
     } catch (error) {
       console.error('Delete error:', error)
-      toast({ title: 'Delete Failed', description: 'Could not delete the file.', variant: 'destructive' })
+      toast({ title: 'Delete Failed', description: 'Could not delete the file record.', variant: 'destructive' })
     } finally {
       setIsDeleteDialogOpen(false)
       setFileToDelete(null)
     }
   }
 
-  const handleViewClick = async (file: FileMetadata) => {
-    if (!storage) return;
-    try {
-      const url = await getDownloadURL(ref(storage, file.storagePath))
-      window.open(url, '_blank')
-    } catch (error) {
-        console.error('Error getting download URL:', error)
-        toast({ title: 'Error', description: 'Could not get file URL.', variant: 'destructive' })
-    }
+  const handleViewClick = (file: FileMetadata) => {
+    window.open(file.url, '_blank')
   }
 
   const TableSkeleton = () => (
@@ -358,7 +350,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the file {'"'}
-              {fileToDelete?.fileName}{'"'} from storage.
+              {fileToDelete?.fileName}{'"'} from our records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
