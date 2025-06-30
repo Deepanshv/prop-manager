@@ -38,9 +38,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast'
 import { auth, db } from '@/lib/firebase'
 import { useAuth } from '../layout'
@@ -191,197 +192,179 @@ export default function SettingsPage() {
     }
   }
   
-  const PageSkeleton = () => (
-    <div className="space-y-6">
-      <Skeleton className="h-9 w-48" />
-      <Card>
-        <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
-        <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-                <Skeleton className="h-24 w-24 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                </div>
-            </div>
-            <div className="max-w-sm space-y-4 pt-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-32 mt-4" />
-            </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
-         <CardContent className="space-y-4 max-w-sm">
-             <Skeleton className="h-4 w-24" />
-             <Skeleton className="h-10 w-full" />
-             <Skeleton className="h-4 w-24" />
-             <Skeleton className="h-10 w-full" />
-             <Skeleton className="h-4 w-24" />
-             <Skeleton className="h-10 w-full" />
-             <Skeleton className="h-10 w-32 mt-4" />
-         </CardContent>
-      </Card>
-    </div>
-  )
-
   if (!user) {
-    return <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6"><PageSkeleton /></main>;
+     return (
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            <Card>
+                <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
+                <CardContent>
+                    <Skeleton className="h-40 w-full" />
+                </CardContent>
+            </Card>
+        </main>
+    );
   }
 
   return (
     <>
       <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <div className="grid gap-6">
-            <Card>
-            <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your display name and contact information.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center gap-4">
-                <div className="relative">
-                    <Avatar className="h-24 w-24">
-                    <AvatarImage src={user.photoURL || "https://placehold.co/96x96.png"} alt="User Avatar" data-ai-hint="user avatar"/>
-                    <AvatarFallback className="text-3xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                    <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-8 w-8" onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="h-5 w-5" />
-                    </Button>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleProfilePictureChange} />
-                </div>
-                </div>
-                {isProfileLoading ? (
-                  <div className="mt-6 space-y-4 max-w-sm">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                ) : (
-                <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="mt-6 space-y-4 max-w-sm">
-                    <FormItem>
-                      <FormLabel>Email Address</FormLabel>
-                      <Input readOnly disabled value={user.email || 'No email associated'} />
-                    </FormItem>
-                    <FormField
-                    control={profileForm.control}
-                    name="displayName"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Display Name</FormLabel>
-                        <FormControl><Input placeholder="Your Name" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={profileForm.control}
-                    name="primaryNumber"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Primary Number</FormLabel>
-                        <FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                     <FormField
-                    control={profileForm.control}
-                    name="secondaryNumber"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Secondary Number (Optional)</FormLabel>
-                        <FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <Button type="submit" disabled={profileForm.formState.isSubmitting}>
-                        {profileForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                         Update Profile
-                    </Button>
-                </form>
-                </Form>
-                )}
-            </CardContent>
-            </Card>
-            
-            <Card>
-            <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>Choose a new password for your account.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(handlePasswordUpdate)} className="space-y-4 max-w-sm">
-                    <FormField
-                    control={passwordForm.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl><Input type="password" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl><Input type="password" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={passwordForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
-                        <FormControl><Input type="password" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <Button type="submit" disabled={passwordForm.formState.isSubmitting}>
-                        {passwordForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Change Password
-                    </Button>
-                </form>
-                </Form>
-            </CardContent>
-            </Card>
+        
+        <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="password">Password</TabsTrigger>
+            </TabsList>
 
-            <Card className="border-destructive">
-            <CardHeader>
-                <CardTitle>Danger Zone</CardTitle>
-                <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="font-medium">Delete Your Account</p>
-                        <p className="text-sm text-muted-foreground">This will permanently delete your account and all associated data.</p>
-                    </div>
-                <Button variant="destructive" onClick={() => setIsDeleteAlertOpen(true)}>Delete My Account</Button>
+            <TabsContent value="profile" className="mt-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Profile Information</CardTitle>
+                        <CardDescription>Update your display name, contact info, and profile picture.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                       {isProfileLoading ? (
+                            <div className="flex flex-col sm:flex-row items-start gap-6">
+                                <div className="relative flex-shrink-0">
+                                    <Skeleton className="h-28 w-28 rounded-full" />
+                                </div>
+                                <div className="flex-grow w-full space-y-4">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <Skeleton className="h-10 w-full" />
+                                        <Skeleton className="h-10 w-full" />
+                                    </div>
+                                    <Skeleton className="h-10 w-32 mt-2" />
+                                </div>
+                            </div>
+                       ) : (
+                         <div className="flex flex-col sm:flex-row items-start gap-6">
+                            <div className="relative flex-shrink-0">
+                                <Avatar className="h-28 w-28 border-2 border-primary/50 p-1">
+                                    <AvatarImage src={user.photoURL || "https://placehold.co/112x112.png"} alt="User Avatar" data-ai-hint="user avatar"/>
+                                    <AvatarFallback className="text-4xl">{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
+                                </Avatar>
+                                <Button size="icon" className="absolute bottom-0 right-0 rounded-full h-9 w-9" onClick={() => fileInputRef.current?.click()}>
+                                    <Camera className="h-5 w-5" />
+                                    <span className="sr-only">Change profile picture</span>
+                                </Button>
+                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleProfilePictureChange} />
+                            </div>
+
+                            <div className="flex-grow w-full">
+                                <Form {...profileForm}>
+                                    <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                                        <FormField control={profileForm.control} name="displayName" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Display Name</FormLabel>
+                                                <FormControl><Input placeholder="Your Name" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}/>
+                                        <FormItem>
+                                            <FormLabel>Email Address</FormLabel>
+                                            <Input readOnly disabled value={user.email || 'No email associated'} />
+                                        </FormItem>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <FormField control={profileForm.control} name="primaryNumber" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Primary Number</FormLabel>
+                                                    <FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}/>
+                                            <FormField control={profileForm.control} name="secondaryNumber" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Secondary Number</FormLabel>
+                                                     <FormDescription className="h-0 -mt-2 sm:hidden">Optional</FormDescription>
+                                                    <FormControl><Input placeholder="Optional 10-digit number" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}/>
+                                        </div>
+                                        <Button type="submit" disabled={profileForm.formState.isSubmitting}>
+                                            {profileForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                            Save Changes
+                                        </Button>
+                                    </form>
+                                </Form>
+                            </div>
+                        </div>
+                       )}
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            
+            <TabsContent value="password" className="mt-4">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Change Password</CardTitle>
+                        <CardDescription>Choose a new password for your account. It's a good idea to use a strong password that you're not using elsewhere.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Form {...passwordForm}>
+                        <form onSubmit={passwordForm.handleSubmit(handlePasswordUpdate)} className="space-y-4 max-w-sm">
+                            <FormField
+                            control={passwordForm.control}
+                            name="currentPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Current Password</FormLabel>
+                                <FormControl><Input type="password" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <FormField
+                            control={passwordForm.control}
+                            name="newPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>New Password</FormLabel>
+                                <FormControl><Input type="password" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <FormField
+                            control={passwordForm.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Confirm New Password</FormLabel>
+                                <FormControl><Input type="password" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <Button type="submit" disabled={passwordForm.formState.isSubmitting}>
+                                {passwordForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Change Password
+                            </Button>
+                        </form>
+                        </Form>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        </Tabs>
+
+        <Card className="border-destructive">
+        <CardHeader>
+            <CardTitle>Danger Zone</CardTitle>
+            <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="font-medium">Delete Your Account</p>
+                    <p className="text-sm text-muted-foreground">This will permanently delete your account and all associated data.</p>
                 </div>
-            </CardContent>
-            </Card>
-        </div>
+            <Button variant="destructive" onClick={() => setIsDeleteAlertOpen(true)}>Delete My Account</Button>
+            </div>
+        </CardContent>
+        </Card>
       </main>
       
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
@@ -412,5 +395,3 @@ export default function SettingsPage() {
     </>
   )
 }
-
-    
