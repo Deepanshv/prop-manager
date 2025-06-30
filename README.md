@@ -14,7 +14,7 @@ Please follow these instructions exactly in your Cloudinary dashboard:
 4.  Scroll down to the **Upload presets** section.
 5.  Click **"Add upload preset"**.
 6.  On the "Add upload preset" page, configure the following:
-    *   **Upload preset name**: Enter `property_manager_unsigned` (must be this exact name, all lowercase).
+    *   **Upload preset name**: Enter `property_manager_uploads` (must be this exact name, all lowercase).
     *   **Signing Mode**: Change from "Signed" to **"Unsigned"**. This is critical.
 7.  Click **Save** at the top right.
 

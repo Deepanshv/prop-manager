@@ -1,4 +1,3 @@
-
 'use client';
 
 // ====================================================================================
@@ -13,7 +12,7 @@
 // 4. Scroll down to the "Upload presets" section and click "Add upload preset".
 //
 // 5. On the "Add upload preset" page:
-//    a. For "Upload preset name", enter EXACTLY: property_manager_unsigned
+//    a. For "Upload preset name", enter EXACTLY: property_manager_uploads
 //       (It must be all lowercase and spelled correctly).
 //    b. For "Signing Mode", change it from "Signed" to "Unsigned". This is critical.
 //
@@ -23,7 +22,7 @@
 // ====================================================================================
 
 const CLOUD_NAME = 'dud5wzuya'; // Your Cloudinary cloud name.
-const UPLOAD_PRESET = 'property_manager_unsigned'; // Must match the UNSIGNED preset you created.
+const UPLOAD_PRESET = 'property_manager_uploads'; // Must match the UNSIGNED preset you created.
 
 export async function uploadToCloudinary(file: File): Promise<{ success: boolean; url?: string; message?: string }> {
   const formData = new FormData();
@@ -49,7 +48,7 @@ export async function uploadToCloudinary(file: File): Promise<{ success: boolean
             errorMessage = errorData.error.message;
             // Provide a more helpful message for the most common configuration error.
             if (errorMessage.includes('Upload preset') && errorMessage.includes('not found')) {
-                errorMessage = 'Upload preset "property_manager_unsigned" not found. Please follow the setup instructions in the code comments of lib/cloudinary.ts to create it in your Cloudinary dashboard.';
+                errorMessage = `Upload preset "${UPLOAD_PRESET}" not found. Please follow the setup instructions in the README.md file to create it in your Cloudinary dashboard.`;
             }
         } else {
             // Provide a fallback message if the structure is not what we expect.
