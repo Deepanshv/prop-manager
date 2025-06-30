@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { db } from '@/lib/firebase'
@@ -35,7 +35,6 @@ import {
   Trash2,
   Upload,
   View,
-  X,
 } from 'lucide-react'
 import * as React from 'react'
 import { Skeleton } from './ui/skeleton'
@@ -280,17 +279,11 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
       </Card>
 
       <Dialog open={!!viewingFileUrl} onOpenChange={(open) => !open && setViewingFileUrl(null)}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-4 sm:p-6">
-            <DialogHeader className="flex-shrink-0">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0">
+            <DialogHeader className="p-4 border-b flex-shrink-0">
                 <DialogTitle>Document Viewer</DialogTitle>
-                <DialogClose asChild>
-                    <Button variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full">
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Close</span>
-                    </Button>
-                </DialogClose>
             </DialogHeader>
-            <div className="flex-1 h-full w-full mt-2 -m-2">
+            <div className="flex-1 w-full bg-muted/20">
                 {viewingFileUrl && (
                     <iframe src={viewingFileUrl} className="w-full h-full border-0" title="Document Viewer" />
                 )}
