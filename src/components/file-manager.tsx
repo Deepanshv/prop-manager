@@ -298,7 +298,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
                     <img 
                         src={viewingFile.url} 
                         alt={viewingFile.documentType}
-                        className={cn("w-full h-full object-cover transition-opacity duration-300", isViewerLoading && "opacity-0")} 
+                        className={cn("w-full h-full object-contain transition-opacity duration-300", isViewerLoading && "opacity-0")} 
                         onLoad={() => setIsViewerLoading(false)}
                     />
                   ) : (
