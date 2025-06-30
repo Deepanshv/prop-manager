@@ -48,7 +48,7 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
     return (
         <Card className={cn(
             "flex flex-col border-t-4",
-            profitLoss >= 0 ? 'border-green-600' : 'border-red-600'
+            profitLoss >= 0 ? 'border-green-500' : 'border-red-500'
         )}>
             <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
@@ -79,7 +79,7 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
                         "font-bold text-base",
                         profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
                     )}>
-                        {formatCurrency(profitLoss)}
+                        {profitLoss >= 0 ? '+' : ''}{formatCurrency(profitLoss)}
                     </p>
                  </div>
                 <div className="flex items-center gap-2">
