@@ -34,16 +34,17 @@ function PropertyCard({ property }: { property: Property }) {
                 <div className="relative aspect-video">
                     <Image
                         src={placeholderImage}
-                        alt={`Image of ${property.address.street}`}
+                        alt={`Image of ${property.name || property.address.street}`}
                         fill
                         className="object-cover"
                         data-ai-hint="house exterior"
                     />
                 </div>
             </CardHeader>
-            <CardContent className="p-4">
-                <CardTitle className="text-lg">{`₹${property.purchasePrice.toLocaleString('en-IN')}`}</CardTitle>
-                <CardDescription className="mt-1">{`${property.address.street}, ${property.address.city}, ${property.address.state}`}</CardDescription>
+            <CardContent className="p-4 space-y-1">
+                <CardTitle className="text-lg truncate">{property.name}</CardTitle>
+                <p className="text-xl font-semibold">{`₹${property.purchasePrice.toLocaleString('en-IN')}`}</p>
+                <CardDescription className="pt-1 truncate">{`${property.address.street}, ${property.address.city}, ${property.address.state}`}</CardDescription>
             </CardContent>
             <CardFooter className="p-4 pt-0">
                  <Button className="w-full" asChild>

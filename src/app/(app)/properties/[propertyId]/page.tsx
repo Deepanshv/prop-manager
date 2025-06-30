@@ -56,6 +56,7 @@ const landDetailsSchema = z.object({
 });
 
 const propertyFormSchema = z.object({
+  name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: addressSchema,
   landDetails: landDetailsSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
@@ -311,7 +312,7 @@ export default function PropertyDetailPage() {
         <Button variant="outline" size="icon" asChild>
             <Link href="/properties"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{`${property.address.street}, ${property.address.city}`}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{property.name}</h1>
       </div>
       
       <Tabs defaultValue="details" className="w-full">
@@ -329,6 +330,20 @@ export default function PropertyDetailPage() {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     
+                     <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Property Name</h3>
+                        <div className="border p-4 rounded-md space-y-4">
+                            <FormField control={form.control} name="name" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Name</FormLabel>
+                                    <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} /></FormControl>
+                                    <FormDescription>A unique name for easy identification.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                        </div>
+                    </div>
+
                      <div className="space-y-4">
                         <h3 className="text-lg font-medium">Address Details</h3>
                         <div className="border p-4 rounded-md space-y-4">

@@ -157,7 +157,7 @@ export default function DashboardPage() {
               ) : recentActivity.length > 0 ? (
                 recentActivity.map((activity) => (
                   <TableRow key={activity.id}>
-                    <TableCell className="font-medium">{`${activity.address.street}, ${activity.address.city}`}</TableCell>
+                    <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>
                       <Badge variant={"secondary"}>
                         New Property

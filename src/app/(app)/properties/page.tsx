@@ -59,6 +59,7 @@ const landDetailsSchema = z.object({
 });
 
 const propertyFormSchema = z.object({
+  name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: addressSchema,
   landDetails: landDetailsSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
@@ -80,6 +81,7 @@ type MarkAsSoldFormData = z.infer<typeof markAsSoldSchema>;
 
 export interface Property {
   id: string
+  name: string
   ownerUid: string
   address: {
     street: string
@@ -112,8 +114,8 @@ const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property
         <Card className="flex flex-col">
             <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
-                    <CardTitle className="text-lg">{property.address.street}</CardTitle>
-                    <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {property.address.city}, {property.address.state}</CardDescription>
+                    <CardTitle className="text-lg">{property.name}</CardTitle>
+                    <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                     <div className="text-sm flex items-center gap-2 text-muted-foreground">
@@ -184,6 +186,7 @@ export default function PropertyManagerPage() {
       address: { street: '', city: '', state: '', zip: '', landmark: ''},
       landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
       propertyType: undefined,
+      name: '',
     },
   })
 
@@ -311,6 +314,7 @@ export default function PropertyManagerPage() {
 
   const handleAddProperty = () => {
     form.reset({
+      name: '',
       isListedPublicly: false,
       address: { street: '', city: '', state: '', zip: '', landmark: '' },
       landDetails: { khasraNumber: '', landbookNumber: '', area: undefined, areaUnit: undefined },
@@ -512,6 +516,20 @@ export default function PropertyManagerPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 max-h-[80vh] overflow-y-auto pr-4">
               
+              <div className="space-y-2">
+                <h3 className="font-medium">Property Name</h3>
+                 <div className="border p-4 rounded-md">
+                    <FormField control={form.control} name="name" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} /></FormControl>
+                            <FormDescription>A unique name for easy identification.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                 </div>
+              </div>
+
               <div className="space-y-4">
                 <h3 className="font-medium">Address Details</h3>
                 <div className="border p-4 rounded-md space-y-4">
@@ -695,7 +713,7 @@ export default function PropertyManagerPage() {
             <DialogTitle>Mark Property as Sold</DialogTitle>
             <DialogDescription>
               Enter the final sale price and date for &quot;
-              {selectedProperty && `${selectedProperty.address.street}, ${selectedProperty.address.city}`}
+              {selectedProperty && `${selectedProperty.name}`}
               &quot;. This action will move the property to your Sales History.
             </DialogDescription>
           </DialogHeader>

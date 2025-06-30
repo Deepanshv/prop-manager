@@ -54,8 +54,8 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
                             <Building className="h-6 w-6 text-muted-foreground" />
                         </div>
                         <div>
-                            <CardTitle className="text-lg leading-tight">{`${property.address.street}`}</CardTitle>
-                            <CardDescription>{`${property.address.city}, ${property.address.state} ${property.address.zip}`}</CardDescription>
+                            <CardTitle className="text-lg leading-tight">{property.name}</CardTitle>
+                            <CardDescription>{`${property.address.street}, ${property.address.city}`}</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
