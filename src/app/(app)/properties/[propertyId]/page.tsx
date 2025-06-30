@@ -423,7 +423,7 @@ export default function PropertyDetailPage() {
                                 <FormItem><FormLabel>Landbook Number</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                                 <FormItem><FormLabel>Area Unit</FormLabel>
@@ -454,7 +454,7 @@ export default function PropertyDetailPage() {
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                                <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                                 <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>

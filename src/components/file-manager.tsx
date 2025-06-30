@@ -178,7 +178,8 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     clearInterval(progressInterval);
     
     if (uploadedUrl && db) {
-        const fileDocRef = doc(db, entityType, entityId, 'files', file.name);
+        // Create a new doc with an auto-generated ID
+        const fileDocRef = doc(collection(db, entityType, entityId, 'files'));
 
         await setDoc(fileDocRef, {
           fileName: file.name,
