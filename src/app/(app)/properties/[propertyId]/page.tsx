@@ -22,12 +22,13 @@ import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 export default function PropertyDetailPage() {
   const { user } = useAuth()
   const params = useParams()
-  const propertyId = params.propertyId
   const router = useRouter()
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
+
+  const propertyId = React.useMemo(() => params.propertyId, [params.propertyId]);
 
   const [formInitialData, setFormInitialData] = React.useState<Partial<PropertyFormData> | undefined>(undefined);
 
