@@ -80,7 +80,8 @@ type PropertyFormData = z.infer<typeof propertyFormSchema>
 
 export default function PropertyDetailPage() {
   const { user } = useAuth()
-  const { propertyId } = useParams()
+  const params = useParams()
+  const propertyId = params.propertyId
   const router = useRouter()
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
