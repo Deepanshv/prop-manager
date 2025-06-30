@@ -5,7 +5,6 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { Building2, Copy } from 'lucide-react'
 import * as React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -22,26 +21,30 @@ import type { Property } from '@/app/(app)/properties/page'
 import { useToast } from '@/hooks/use-toast'
 
 function PropertyCard({ property }: { property: Property }) {
-  const placeholderImage = `https://placehold.co/600x400.png`
-  return (
-    <Card className="overflow-hidden flex flex-col">
-      <CardHeader className="p-0">
-        <div className="relative aspect-video">
-          <Image
-            src={placeholderImage}
-            alt={`Image of ${property.name || property.address.street}`}
-            fill
-            className="object-cover"
-            data-ai-hint="house exterior"
-          />
+    return (
+    <Card className="overflow-hidden flex flex-col h-full">
+      <CardHeader>
+        <div className="flex items-start gap-4">
+            <div className="bg-muted p-3 rounded-md mt-1">
+                <Building2 className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+                <CardTitle className="text-lg leading-tight">{property.name}</CardTitle>
+                <CardDescription className="text-sm">{`${property.address.street}, ${property.address.city}, ${property.address.state}`}</CardDescription>
+            </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 space-y-1 flex-grow">
-        <CardTitle className="text-lg truncate">{property.name}</CardTitle>
-        <p className="text-xl font-semibold">{`₹${property.purchasePrice.toLocaleString('en-IN')}`}</p>
-        <CardDescription className="pt-1 truncate">{`${property.address.street}, ${property.address.city}, ${property.address.state}`}</CardDescription>
+      <CardContent className="flex-grow space-y-4">
+        <div>
+            <p className="text-sm text-muted-foreground">Price</p>
+            <p className="text-2xl font-bold">{`₹${property.purchasePrice.toLocaleString('en-IN')}`}</p>
+        </div>
+        <div>
+            <p className="text-sm text-muted-foreground">Property Type</p>
+            <p className="font-medium">{property.propertyType}</p>
+        </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 mt-auto">
         <Button className="w-full" asChild>
           <Link href={`/properties/${property.id}`}>View Details</Link>
         </Button>
@@ -53,17 +56,30 @@ function PropertyCard({ property }: { property: Property }) {
 const PageSkeleton = () => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     {[...Array(8)].map((_, i) => (
-      <Card key={i}>
-        <Skeleton className="aspect-video w-full" />
-        <CardContent className="p-4 space-y-2">
-          <Skeleton className="h-6 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-full" />
-        </CardContent>
-        <CardFooter className="p-4">
-          <Skeleton className="h-10 w-full" />
-        </CardFooter>
-      </Card>
+       <Card key={i} className="overflow-hidden flex flex-col h-full">
+            <CardHeader>
+                <div className="flex items-start gap-4">
+                    <Skeleton className="h-12 w-12 rounded-md flex-shrink-0" />
+                    <div className="space-y-2 flex-grow">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-full" />
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-4">
+                <div className="space-y-1">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-7 w-32" />
+                </div>
+                 <div className="space-y-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-28" />
+                </div>
+            </CardContent>
+            <CardFooter className="p-4 pt-0 mt-auto">
+                <Skeleton className="h-10 w-full" />
+            </CardFooter>
+        </Card>
     ))}
   </div>
 )
