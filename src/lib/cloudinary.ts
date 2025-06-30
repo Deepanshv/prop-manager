@@ -40,10 +40,22 @@ export async function uploadToCloudinary(file: File): Promise<{ success: boolean
     });
 
     if (!response.ok) {
-      // This will give us a more detailed error from Cloudinary
-      const errorData = await response.json();
-      console.error('Cloudinary Error Response:', errorData);
-      throw new Error(`Upload failed: ${errorData.error.message}`);
+      let errorMessage = 'An unexpected error occurred during upload.';
+      try {
+        const errorData = await response.json();
+        console.error('Cloudinary Error Response:', errorData);
+        // Safely access the nested error message.
+        if (errorData && errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message;
+        } else {
+            // Provide a fallback message if the structure is not what we expect.
+            errorMessage = `The server returned status ${response.status}. Please check your Cloudinary configuration, especially the upload preset name.`;
+        }
+      } catch (e) {
+        // This catch block handles cases where response.json() fails (e.g., the response is not JSON).
+        errorMessage = `The server returned a non-JSON error response (status ${response.status}).`;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
