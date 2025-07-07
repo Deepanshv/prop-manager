@@ -21,7 +21,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Building2,
-  DollarSign,
+  IndianRupee,
   Users,
 } from "lucide-react"
 import { useAuth } from './layout'
@@ -103,7 +103,7 @@ export default function DashboardPage() {
   const kpis = [
     { title: "Total Properties", value: properties.length, icon: Building2, format: (v: number) => v.toLocaleString() },
     { title: "Active Prospects", value: activeProspects, icon: Users, format: (v: number) => v.toLocaleString() },
-    { title: "Portfolio Value", value: portfolioValue, icon: DollarSign, format: (v: number) => `₹${(v / 10000000).toFixed(2)} Cr` },
+    { title: "Portfolio Value", value: portfolioValue, icon: IndianRupee, format: (v: number) => `₹${(v / 10000000).toFixed(2)} Cr` },
   ]
   
   return (
