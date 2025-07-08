@@ -30,6 +30,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
+import { CardDescription as Description } from '@/components/ui/card'
 
 const PropertiesMap = dynamic(() => import('@/components/properties-map'), {
   ssr: false,
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const [properties, setProperties] = React.useState<Property[]>([])
   const [prospects, setProspects] = React.useState<Prospect[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [focusedPropertyId, setFocusedPropertyId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -129,12 +131,13 @@ export default function DashboardPage() {
       </div>
 
       <Card className="h-[400px]">
-        <PropertiesMap properties={properties} />
+        <PropertiesMap properties={properties} focusedPropertyId={focusedPropertyId} />
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
+          <Description>Click on a property to view its location on the map.</Description>
         </CardHeader>
         <CardContent>
           <Table>
@@ -156,7 +159,21 @@ export default function DashboardPage() {
                 ))
               ) : recentActivity.length > 0 ? (
                 recentActivity.map((activity) => (
-                  <TableRow key={activity.id}>
+                  <TableRow 
+                    key={activity.id}
+                    className="cursor-pointer"
+                    onClick={() => {
+                        if (activity.address.latitude && activity.address.longitude) {
+                            setFocusedPropertyId(activity.id);
+                        } else {
+                            toast({
+                                title: 'Location Not Set',
+                                description: `The location for "${activity.name}" has not been set. Please edit the property to set it on the map.`,
+                                variant: 'destructive',
+                            })
+                        }
+                    }}
+                  >
                     <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>
                       <Badge variant={activity.status === 'For Sale' ? 'outline' : 'secondary'}>

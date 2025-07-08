@@ -16,9 +16,10 @@ L.Icon.Default.mergeOptions({
 
 interface PropertiesMapProps {
     properties: Property[];
+    focusedPropertyId?: string | null;
 }
 
-const PropertiesMap = ({ properties }: PropertiesMapProps) => {
+const PropertiesMap = ({ properties, focusedPropertyId }: PropertiesMapProps) => {
     const mapContainerRef = React.useRef<HTMLDivElement>(null);
     const mapInstanceRef = React.useRef<Map | null>(null);
     const markersRef = React.useRef<L.Marker[]>([]);
@@ -62,7 +63,24 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
                     .bindPopup(`<strong>${property.name}</strong><br/>${property.address.street}, ${property.address.city}`);
                 markersRef.current.push(marker);
             });
+        }
+        
+        const propertyToFocus = propertiesWithCoords.find(p => p.id === focusedPropertyId);
 
+        if (propertyToFocus) {
+            const latLng: [number, number] = [propertyToFocus.address.latitude!, propertyToFocus.address.longitude!];
+            map.flyTo(latLng, 16);
+            
+            const markerToOpen = markersRef.current.find(m => 
+                m.getLatLng().lat === latLng[0] && m.getLatLng().lng === latLng[1]
+            );
+
+            // Use timeout to ensure popup opens after flyTo animation is complete
+            setTimeout(() => {
+                markerToOpen?.openPopup();
+            }, 1000);
+
+        } else if (propertiesWithCoords.length > 0) {
             const bounds = new L.LatLngBounds(propertiesWithCoords.map(p => [p.address.latitude!, p.address.longitude!]));
             if (bounds.isValid()) {
                 map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14 });
@@ -71,7 +89,7 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
             // Reset to default view if no properties have coordinates
             map.flyTo([20.5937, 78.9629], 5);
         }
-    }, [properties]);
+    }, [properties, focusedPropertyId]);
 
     return <div ref={mapContainerRef} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }} />;
 };
