@@ -57,7 +57,7 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Deal Information</h3>
+          <h3 className="text-lg font-medium">Prospect Details</h3>
           <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
             <FormField control={form.control} name="dealName" render={({ field }) => (
                 <FormItem className="md:col-span-2">
@@ -71,6 +71,13 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                 <FormItem>
                     <FormLabel>Source</FormLabel>
                     <FormControl><Input placeholder="e.g. Real Estate Agent, Zillow" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+             <FormField control={form.control} name="estimatedValue" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Estimated Value (₹)</FormLabel>
+                    <FormControl><Input type="number" placeholder="10000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )} />
@@ -89,54 +96,33 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                     <FormMessage />
                 </FormItem>
             )} />
+
+            {mode === 'edit' && (
+                <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Prospect Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a status" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="New">New</SelectItem>
+                                    <SelectItem value="Converted">Converted</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
           </div>
         </div>
-
-        <div className="space-y-4">
-            <h3 className="text-lg font-medium">Value</h3>
-            <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-                <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Estimated Value (₹)</FormLabel>
-                        <FormControl><Input type="number" placeholder="10000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-            </div>
-        </div>
-
-        {mode === 'edit' && (
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium">Status</h3>
-                <div className="border p-4 rounded-md">
-                    <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Prospect Status</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a status" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="New">New</SelectItem>
-                                        <SelectItem value="Converted">Converted</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormDescription>
-                                    Set the current status of this prospect.
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-            </div>
-        )}
-
+        
         <div className="flex justify-end gap-2">
           {children}
           <Button type="submit" disabled={isSaving}>
