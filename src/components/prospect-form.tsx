@@ -12,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 export const prospectSchema = z.object({
@@ -19,6 +20,7 @@ export const prospectSchema = z.object({
   source: z.string().min(2, { message: "Source is required." }),
   estimatedValue: z.coerce.number().positive({ message: 'Must be a positive number' }).min(1),
   dateAdded: z.date({ required_error: "A date is required."}),
+  status: z.enum(['New', 'Converted']),
 });
 
 export type ProspectFormData = z.infer<typeof prospectSchema>
@@ -39,6 +41,7 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
       source: '',
       estimatedValue: 0,
       dateAdded: new Date(),
+      status: 'New',
     }
   });
 
@@ -101,6 +104,38 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                 )} />
             </div>
         </div>
+
+        {mode === 'edit' && (
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium">Status</h3>
+                <div className="border p-4 rounded-md">
+                    <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prospect Status</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a status" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="New">New</SelectItem>
+                                        <SelectItem value="Converted">Converted</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                    Set the current status of this prospect.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            </div>
+        )}
 
         <div className="flex justify-end gap-2">
           {children}

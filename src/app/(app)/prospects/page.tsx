@@ -14,7 +14,6 @@ import {
 } from 'firebase/firestore'
 import { format } from 'date-fns'
 import {
-    CheckCircle,
     ChevronLeft,
     ChevronRight,
     ChevronsLeft,
@@ -92,7 +91,6 @@ export default function ProspectManagerPage() {
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-    const [isConvertModalOpen, setIsConvertModalOpen] = React.useState(false);
     const [selectedProspect, setSelectedProspect] = React.useState<Prospect | null>(null);
     const { toast } = useToast();
 
@@ -151,6 +149,7 @@ export default function ProspectManagerPage() {
           source: '',
           estimatedValue: 0,
           dateAdded: new Date(),
+          status: 'New',
         })
         setIsModalOpen(true);
     };
@@ -169,11 +168,6 @@ export default function ProspectManagerPage() {
         setIsAlertOpen(true);
     };
     
-    const handleConvert = (prospect: Prospect) => {
-        setSelectedProspect(prospect);
-        setIsConvertModalOpen(true);
-    }
-
     const confirmDelete = async () => {
         if (!selectedProspect || !db) return;
         try {
@@ -187,21 +181,6 @@ export default function ProspectManagerPage() {
         }
     };
     
-    const confirmConvert = async () => {
-        if (!selectedProspect || !db) return;
-        try {
-            await updateDoc(doc(db, 'prospects', selectedProspect.id), { status: 'Converted' });
-            toast({ title: "Success", description: `Prospect marked as 'Converted'. You can now create a new property from this deal.`});
-            // In a full implementation, you might redirect to a pre-filled new property form.
-            // router.push(`/properties/new?fromProspect=${selectedProspect.id}`);
-        } catch (error) {
-            toast({ title: "Error", description: "Failed to convert prospect.", variant: 'destructive' });
-        } finally {
-            setIsConvertModalOpen(false);
-            setSelectedProspect(null);
-        }
-    }
-
     const handleFormSubmit = async (data: ProspectFormData) => {
         if (!user || !db) return;
         setIsSubmitting(true);
@@ -219,7 +198,6 @@ export default function ProspectManagerPage() {
                     ...data, 
                     ownerUid: user.uid, 
                     dateAdded: Timestamp.fromDate(data.dateAdded),
-                    status: 'New' as const
                 };
                 await addDoc(collection(db, 'prospects'), submissionData);
                 toast({ title: "Success", description: "New prospect added."});
@@ -286,9 +264,6 @@ export default function ProspectManagerPage() {
                                         <TableCell>{format(prospect.dateAdded.toDate(), 'PP')}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-1">
-                                                {prospect.status !== 'Converted' && (
-                                                    <Button variant="ghost" size="sm" onClick={() => handleConvert(prospect)} title="Convert to Property"><CheckCircle className="h-4 w-4"/></Button>
-                                                )}
                                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(prospect)} title="Edit Prospect"><Pencil className="h-4 w-4" /></Button>
                                                 <Button variant="ghost" size="sm" onClick={() => handleDelete(prospect)} className="text-destructive hover:text-destructive" title="Delete Prospect"><Trash2 className="h-4 w-4" /></Button>
                                             </div>
@@ -322,7 +297,7 @@ export default function ProspectManagerPage() {
                     <DialogHeader>
                         <DialogTitle>{selectedProspect ? 'Edit Prospect' : 'Add New Prospect'}</DialogTitle>
                         <DialogDescription>
-                          {selectedProspect ? 'Update the details for this prospect. Status is changed via the "Convert" button.' : 'Fill in the details for a new prospect.'}
+                          {selectedProspect ? 'Update the details for this prospect.' : 'Fill in the details for a new prospect.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
@@ -346,15 +321,6 @@ export default function ProspectManagerPage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setSelectedProspect(null)}>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete}>Delete Prospect</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <AlertDialog open={isConvertModalOpen} onOpenChange={setIsConvertModalOpen}>
-                 <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Convert Prospect to Property?</AlertDialogTitle><AlertDialogDescription>This will mark "{selectedProspect?.dealName}" as 'Converted'.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setSelectedProspect(null)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmConvert}>Yes, Convert</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
