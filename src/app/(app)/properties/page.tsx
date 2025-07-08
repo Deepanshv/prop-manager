@@ -91,7 +91,14 @@ const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property
                     <p className="font-semibold text-base">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(property.purchasePrice)}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Badge variant={property.status === 'For Sale' ? 'default' : 'secondary'}>{property.status || 'Owned'}</Badge>
+                    <Badge
+                        className={cn(
+                            (property.status === 'Owned' || !property.status) && 'bg-[#644117] text-white hover:bg-[#644117]/90',
+                            property.status === 'For Sale' && 'bg-primary text-primary-foreground hover:bg-primary/80'
+                        )}
+                    >
+                        {property.status || 'Owned'}
+                    </Badge>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">

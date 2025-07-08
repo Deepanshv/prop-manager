@@ -193,7 +193,7 @@ export default function DashboardPage() {
                         className={cn(
                           activity.status === 'For Sale' && 'bg-primary text-primary-foreground hover:bg-primary/80',
                           activity.status === 'Sold' && 'bg-chart-2 text-primary-foreground hover:bg-chart-2/80',
-                          (activity.status === 'Owned' || !activity.status) && 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                          (activity.status === 'Owned' || !activity.status) && 'bg-[#644117] text-white hover:bg-[#644117]/90'
                         )}
                       >
                         {activity.status || 'Owned'}
