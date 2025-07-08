@@ -1,4 +1,3 @@
-
 'use client'
 
 import { onAuthStateChanged, signOut, User } from 'firebase/auth'
@@ -106,7 +105,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Building2 className="h-5 w-5" />
               </div>
-              <h1 className="text-xl font-semibold text-foreground">Property-Manager</h1>
+              <h1 className="text-xl font-semibold text-foreground">Property Manager</h1>
             </div>
           </SidebarHeader>
           <SidebarContent>

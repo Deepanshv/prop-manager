@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'Property-Manager',
+  title: 'Property Manager',
   description: 'Manage your properties with ease.',
 };
 

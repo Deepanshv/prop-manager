@@ -128,7 +128,7 @@ export default function PublicListingsPage() {
              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Building2 className="h-5 w-5" />
               </div>
-              <span>Property-Manager</span>
+              <span>Property Manager</span>
            </Link>
            {/* This is a public page, so no auth-related buttons here */}
         </div>
@@ -160,7 +160,7 @@ export default function PublicListingsPage() {
       </main>
       <footer className="bg-card border-t py-6 mt-8">
         <div className="container mx-auto px-4 lg:px-6 text-center text-muted-foreground text-sm">
-          &copy; {new Date().getFullYear()} Property-Manager. All rights reserved.
+          &copy; {new Date().getFullYear()} Property Manager. All rights reserved.
         </div>
       </footer>
     </div>
