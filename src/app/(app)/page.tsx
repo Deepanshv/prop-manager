@@ -157,7 +157,7 @@ export default function DashboardPage() {
                 <TableHead>Property</TableHead>
                 <TableHead className="w-[120px] text-center">Status</TableHead>
                 <TableHead className="w-[150px] text-right">Date</TableHead>
-                <TableHead className="w-[100px] text-right">Actions</TableHead>
+                <TableHead className="w-[100px] text-right">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
