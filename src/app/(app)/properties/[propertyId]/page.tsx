@@ -22,15 +22,12 @@ import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 export default function PropertyDetailPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const { propertyId: propertyIdParam } = useParams()
+  const params = useParams()
+  const propertyId = params.propertyId as string;
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
-
-  const propertyId = React.useMemo(() => (
-    Array.isArray(propertyIdParam) ? propertyIdParam[0] : propertyIdParam
-  ), [propertyIdParam])
 
   const [formInitialData, setFormInitialData] = React.useState<Partial<PropertyFormData> | undefined>(undefined);
 
@@ -42,7 +39,7 @@ export default function PropertyDetailPage() {
 
     const fetchProperty = async () => {
       try {
-        const propDocRef = doc(db, 'properties', propertyId as string)
+        const propDocRef = doc(db, 'properties', propertyId)
         const docSnap = await getDoc(propDocRef)
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
           const propData = { id: docSnap.id, ...docSnap.data() } as Property
@@ -108,7 +105,7 @@ export default function PropertyDetailPage() {
     }
 
     try {
-      const propDocRef = doc(db, 'properties', propertyId as string)
+      const propDocRef = doc(db, 'properties', propertyId)
       await updateDoc(propDocRef, propertyData)
       toast({ title: 'Success', description: 'Property updated successfully.' })
        if (propertyData.status === 'Sold') {
