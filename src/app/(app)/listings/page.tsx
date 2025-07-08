@@ -1,7 +1,7 @@
 
 'use client'
 
-import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where } from 'firebase/firestore'
+import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, getDoc, setDoc } from 'firebase/firestore'
 import { Building2, Calendar as CalendarIcon, CheckCircle, Copy, Loader2, MapPin, MoreHorizontal, Trash, View } from 'lucide-react'
 import * as React from 'react'
 import Link from 'next/link'
@@ -37,6 +37,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { db } from '@/lib/firebase'
 import type { Property } from '@/app/(app)/properties/page'
 import { useToast } from '@/hooks/use-toast'
@@ -145,10 +146,31 @@ export default function InternalListingsPage() {
   const [isSoldModalOpen, setIsSoldModalOpen] = React.useState(false)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
+  
+  const [isPublicPageEnabled, setIsPublicPageEnabled] = React.useState(false);
+  const [isPublicSettingLoading, setIsPublicSettingLoading] = React.useState(true);
+  const [isUpdatingPublicSetting, setIsUpdatingPublicSetting] = React.useState(false);
+
 
   const soldForm = useForm<MarkAsSoldFormData>({
     resolver: zodResolver(markAsSoldSchema),
   })
+
+  React.useEffect(() => {
+    if (user && db) {
+        setIsPublicSettingLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        getDoc(userDocRef).then(docSnap => {
+            if (docSnap.exists()) {
+                setIsPublicPageEnabled(docSnap.data().publicListingsEnabled || false);
+            }
+        }).catch(error => {
+            toast({ title: 'Error', description: 'Could not fetch public page setting.', variant: 'destructive' });
+        }).finally(() => {
+            setIsPublicSettingLoading(false);
+        });
+    }
+  }, [user, db, toast]);
 
   React.useEffect(() => {
     if (user) {
@@ -182,6 +204,21 @@ export default function InternalListingsPage() {
 
     return () => unsubscribe()
   }, [user])
+  
+  const handlePublicListingToggle = async (enabled: boolean) => {
+    if (!user || !db) return;
+    setIsUpdatingPublicSetting(true);
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, { publicListingsEnabled: enabled }, { merge: true });
+        setIsPublicPageEnabled(enabled);
+        toast({ title: 'Success', description: `Public page has been ${enabled ? 'enabled' : 'disabled'}.` });
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to update setting.', variant: 'destructive' });
+    } finally {
+        setIsUpdatingPublicSetting(false);
+    }
+  };
 
   const copyPublicLink = () => {
     if (publicUrl) {
@@ -249,10 +286,46 @@ export default function InternalListingsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Public Listings</h1>
             <p className="text-muted-foreground">This is your internal view of properties marked as "List Publicly".</p>
           </div>
-          <Button onClick={copyPublicLink} disabled={!publicUrl}>
-            <Copy className="mr-2 h-4 w-4" /> Copy Shareable Link
-          </Button>
         </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Public Page Control</CardTitle>
+                <CardDescription>Use this toggle to enable or disable your public-facing listings page.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isPublicSettingLoading ? (
+                  <Skeleton className="h-14 w-full rounded-lg" />
+                ) : (
+                    <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <label htmlFor="public-page-switch" className="font-medium">
+                                Enable Public Page
+                            </label>
+                            <p className="text-[0.8rem] text-muted-foreground">
+                                When enabled, anyone with your unique link can view your public properties.
+                            </p>
+                        </div>
+                        <Switch
+                            id="public-page-switch"
+                            checked={isPublicPageEnabled}
+                            onCheckedChange={handlePublicListingToggle}
+                            disabled={isUpdatingPublicSetting}
+                            aria-label="Enable Public Page"
+                        />
+                    </div>
+                )}
+            </CardContent>
+             <CardFooter className={cn("flex-col items-start gap-2 border-t pt-4", !isPublicPageEnabled && "hidden")}>
+                <p className="text-sm text-muted-foreground">Your shareable link:</p>
+                <div className="flex items-center gap-2 w-full">
+                    <Input readOnly value={publicUrl} className="bg-muted/50" />
+                    <Button onClick={copyPublicLink} disabled={!publicUrl} variant="outline" className="flex-shrink-0">
+                        <Copy className="mr-2 h-4 w-4" /> Copy
+                    </Button>
+                </div>
+            </CardFooter>
+        </Card>
 
         {loading ? (
           <PageSkeleton />
