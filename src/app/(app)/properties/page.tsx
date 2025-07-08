@@ -65,7 +65,7 @@ export interface Property {
   soldDate?: Timestamp
 }
 
-const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void }) => {
+const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void }) => {
     const router = useRouter();
 
     return (
@@ -124,7 +124,8 @@ const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property
             </CardFooter>
         </Card>
     )
-}
+});
+PropertyCard.displayName = "PropertyCard";
 
 export default function PropertyManagerPage() {
   const { user } = useAuth()
@@ -177,16 +178,16 @@ export default function PropertyManagerPage() {
     setIsModalOpen(true)
   }
 
-  const handleDeleteProperty = (property: Property) => {
+  const handleDeleteProperty = React.useCallback((property: Property) => {
     setSelectedProperty(property)
     setIsDeleteAlertOpen(true)
-  }
+  }, []);
   
-  const handleMarkAsSold = (property: Property) => {
+  const handleMarkAsSold = React.useCallback((property: Property) => {
     setSelectedProperty(property);
     soldForm.reset({ soldPrice: property.purchasePrice, soldDate: new Date() });
     setIsSoldModalOpen(true);
-  };
+  }, [soldForm]);
 
   const confirmDelete = async () => {
     if (!selectedProperty || !db) return

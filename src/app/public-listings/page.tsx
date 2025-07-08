@@ -21,7 +21,7 @@ import { db } from '@/lib/firebase';
 import type { Property } from '@/app/(app)/properties/page';
 import { useToast } from '@/hooks/use-toast';
 
-function PublicPropertyCard({ property }: { property: Property }) {
+const PublicPropertyCard = React.memo(({ property }: { property: Property }) => {
   const { toast } = useToast();
 
   const handleContactAgent = () => {
@@ -61,7 +61,9 @@ function PublicPropertyCard({ property }: { property: Property }) {
         </CardFooter>
     </Card>
   );
-}
+});
+PublicPropertyCard.displayName = "PublicPropertyCard";
+
 
 const PageSkeleton = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -233,4 +235,3 @@ export default function PublicListingsPage() {
         </React.Suspense>
     );
 }
-

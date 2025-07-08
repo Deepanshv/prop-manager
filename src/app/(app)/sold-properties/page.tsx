@@ -38,7 +38,7 @@ import type { Property } from '../properties/page'
 import { Badge } from '@/components/ui/badge'
 
 
-function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Property, onDelete: (property: Property) => void, onMarkAsUnsold: (property: Property) => void }) {
+const SoldPropertyCard = React.memo(({ property, onDelete, onMarkAsUnsold }: { property: Property, onDelete: (property: Property) => void, onMarkAsUnsold: (property: Property) => void }) => {
     const router = useRouter();
     const formatCurrency = (amount?: number) => {
         if (typeof amount !== 'number') return 'N/A'
@@ -118,7 +118,8 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
             </CardFooter>
         </Card>
     )
-}
+});
+SoldPropertyCard.displayName = "SoldPropertyCard";
 
 const PageSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -217,15 +218,15 @@ export default function SoldPropertiesPage() {
   }, [soldProperties, selectedYear]);
 
   
-  const handleDeleteProperty = (property: Property) => {
+  const handleDeleteProperty = React.useCallback((property: Property) => {
     setSelectedProperty(property);
     setIsDeleteAlertOpen(true);
-  };
+  }, []);
 
-  const handleMarkAsUnsold = (property: Property) => {
+  const handleMarkAsUnsold = React.useCallback((property: Property) => {
     setSelectedProperty(property);
     setIsUnsoldAlertOpen(true);
-  };
+  }, []);
 
   const confirmDelete = async () => {
     if (!selectedProperty || !db) return;
