@@ -40,6 +40,7 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast'
 import { auth, db } from '@/lib/firebase'
@@ -73,6 +74,11 @@ export default function SettingsPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [isProfileLoading, setIsProfileLoading] = React.useState(true);
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  
+  const [isPublicPageEnabled, setIsPublicPageEnabled] = React.useState(false);
+  const [isPublicSettingLoading, setIsPublicSettingLoading] = React.useState(true);
+  const [isUpdatingPublicSetting, setIsUpdatingPublicSetting] = React.useState(false);
+
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -91,23 +97,29 @@ export default function SettingsPage() {
   React.useEffect(() => {
     if (user && db) {
       setIsProfileLoading(true);
+      setIsPublicSettingLoading(true);
       setAvatarUrl(user.photoURL);
+
       const fetchProfile = async () => {
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(userDocRef);
           let primaryNumber = '';
           let secondaryNumber = '';
+          let publicListingsEnabled = false;
+
           if (docSnap.exists()) {
             const data = docSnap.data();
             primaryNumber = data.primaryNumber || '';
             secondaryNumber = data.secondaryNumber || '';
+            publicListingsEnabled = data.publicListingsEnabled || false;
           }
           profileForm.reset({
             displayName: user.displayName || '',
             primaryNumber,
             secondaryNumber,
           });
+          setIsPublicPageEnabled(publicListingsEnabled);
         } catch (error) {
           toast({ title: 'Error', description: 'Could not fetch profile data.', variant: 'destructive' });
            profileForm.reset({
@@ -117,6 +129,7 @@ export default function SettingsPage() {
           });
         } finally {
           setIsProfileLoading(false);
+          setIsPublicSettingLoading(false);
         }
       };
       fetchProfile();
@@ -176,6 +189,22 @@ export default function SettingsPage() {
       uploadToast.update({ id: uploadToast.id, title: 'Error', description: error.message || 'Failed to upload profile picture.', variant: 'destructive' });
     }
   }
+  
+  const handlePublicListingToggle = async (enabled: boolean) => {
+    if (!auth.currentUser || !db) return;
+    setIsUpdatingPublicSetting(true);
+    try {
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        await setDoc(userDocRef, { publicListingsEnabled: enabled }, { merge: true });
+        setIsPublicPageEnabled(enabled);
+        toast({ title: 'Success', description: `Public page has been ${enabled ? 'enabled' : 'disabled'}.` });
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to update setting.', variant: 'destructive' });
+    } finally {
+        setIsUpdatingPublicSetting(false);
+    }
+  };
+
 
   const handleDeleteAccount = async () => {
     if (!auth.currentUser) return
@@ -347,6 +376,36 @@ export default function SettingsPage() {
                 </Card>
             </TabsContent>
         </Tabs>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Public Listings Page</CardTitle>
+                <CardDescription>Control the visibility of your public-facing property listings page.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isPublicSettingLoading ? (
+                  <Skeleton className="h-20 w-full" />
+                ) : (
+                    <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <label htmlFor="public-page-switch" className="font-medium">
+                                Enable Public Page
+                            </label>
+                            <p className="text-[0.8rem] text-muted-foreground">
+                                When enabled, anyone with your unique link can view your public properties.
+                            </p>
+                        </div>
+                        <Switch
+                            id="public-page-switch"
+                            checked={isPublicPageEnabled}
+                            onCheckedChange={handlePublicListingToggle}
+                            disabled={isUpdatingPublicSetting}
+                            aria-label="Enable Public Page"
+                        />
+                    </div>
+                )}
+            </CardContent>
+        </Card>
 
         <Card className="border-destructive">
         <CardHeader>

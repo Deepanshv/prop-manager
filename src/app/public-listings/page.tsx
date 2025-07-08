@@ -1,11 +1,11 @@
 
 'use client';
 
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { Building2, MapPin } from 'lucide-react';
+import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
+import { Building2, Globe, MapPin } from 'lucide-react';
 import * as React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,20 +20,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import type { Property } from '@/app/(app)/properties/page';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 function PublicPropertyCard({ property }: { property: Property }) {
   const { toast } = useToast();
 
   const handleContactAgent = () => {
-    // In a real app, this would open a contact form or show contact info.
     toast({
       title: 'Contact Agent',
       description: 'Functionality to contact the agent would be implemented here.',
     });
   };
 
-  if (!property.listingPrice) return null; // Don't show properties without a listing price
+  if (!property.listingPrice) return null;
 
   return (
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
@@ -89,48 +87,124 @@ const PageSkeleton = () => (
     </div>
 );
 
-export default function PublicListingsPage() {
+function PublicListingsContent() {
+  const searchParams = useSearchParams();
+  const ownerId = searchParams.get('owner');
+
   const [properties, setProperties] = React.useState<Property[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [pageState, setPageState] = React.useState<'loading' | 'enabled' | 'disabled' | 'invalid'>('loading');
+  const [ownerName, setOwnerName] = React.useState('Property Manager');
 
   React.useEffect(() => {
     if (!db) {
-      setLoading(false);
+      setPageState('disabled');
+      return;
+    }
+    if (!ownerId) {
+      setPageState('invalid');
       return;
     }
 
-    const q = query(collection(db, 'properties'), where('isListedPublicly', '==', true));
+    const userDocRef = doc(db, 'users', ownerId);
+    let unsubscribeProperties: (() => void) | undefined;
 
-    const unsubscribe = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const props: Property[] = [];
-        querySnapshot.forEach((doc) => {
-          props.push({ id: doc.id, ...doc.data() } as Property);
-        });
-        setProperties(props);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching public properties: ', error);
-        setLoading(false);
+    getDoc(userDocRef).then(userDoc => {
+      if (userDoc.exists() && userDoc.data().publicListingsEnabled) {
+        setPageState('enabled');
+        setOwnerName(userDoc.data().displayName || 'Property Manager');
+
+        const q = query(
+          collection(db, 'properties'),
+          where('ownerUid', '==', ownerId),
+          where('isListedPublicly', '==', true)
+        );
+        
+        unsubscribeProperties = onSnapshot(
+          q,
+          (querySnapshot) => {
+            const props: Property[] = [];
+            querySnapshot.forEach((doc) => {
+              props.push({ id: doc.id, ...doc.data() } as Property);
+            });
+            setProperties(props);
+          },
+          (error) => {
+            console.error('Error fetching public properties: ', error);
+            setPageState('disabled');
+          }
+        );
+      } else {
+        setPageState('disabled');
       }
-    );
+    }).catch(error => {
+      console.error("Error fetching user document:", error);
+      setPageState('disabled');
+    });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      if (unsubscribeProperties) {
+        unsubscribeProperties();
+      }
+    };
+  }, [ownerId]);
+  
+  const renderContent = () => {
+    switch (pageState) {
+        case 'loading':
+            return <PageSkeleton />;
+        case 'invalid':
+            return (
+                <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <Globe className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h2 className="mt-4 text-xl font-semibold text-muted-foreground">Invalid Link</h2>
+                    <p className="mt-2 text-muted-foreground">
+                        The link you are using is incomplete. Please use the link provided by the property manager.
+                    </p>
+                </div>
+            );
+        case 'disabled':
+             return (
+                <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <Globe className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h2 className="mt-4 text-xl font-semibold text-muted-foreground">Page Not Available</h2>
+                    <p className="mt-2 text-muted-foreground">
+                        The owner has disabled this public listings page. Please check back later.
+                    </p>
+                </div>
+            );
+        case 'enabled':
+            if (properties.length > 0) {
+                 return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {properties.map((prop) => (
+                        <PublicPropertyCard key={prop.id} property={prop} />
+                        ))}
+                    </div>
+                );
+            }
+            return (
+                 <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h2 className="mt-4 text-xl font-semibold text-muted-foreground">No Public Listings</h2>
+                    <p className="mt-2 text-muted-foreground">
+                        There are currently no properties available for public viewing.
+                    </p>
+                </div>
+            );
+    }
+  }
+
 
   return (
     <div className="bg-background min-h-screen">
       <header className="bg-card border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
-           <Link href="/public-listings" className="flex items-center gap-2 text-xl font-semibold">
+           <Link href="#" className="flex items-center gap-2 text-xl font-semibold pointer-events-none">
              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Building2 className="h-5 w-5" />
               </div>
-              <span>Property Manager</span>
+              <span>{ownerName}</span>
            </Link>
-           {/* This is a public page, so no auth-related buttons here */}
         </div>
       </header>
       <main className="container mx-auto p-4 lg:p-6 space-y-6">
@@ -140,23 +214,7 @@ export default function PublicListingsPage() {
               <p className="text-muted-foreground">Browse our current selection of publicly listed properties.</p>
           </div>
         </div>
-
-        {loading ? (
-          <PageSkeleton />
-        ) : properties.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {properties.map((prop) => (
-              <PublicPropertyCard key={prop.id} property={prop} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 border-2 border-dashed rounded-lg">
-            <h2 className="text-xl font-semibold text-muted-foreground">No Public Listings</h2>
-            <p className="mt-2 text-muted-foreground">
-              There are currently no properties available for public viewing. Please check back later.
-            </p>
-          </div>
-        )}
+        {renderContent()}
       </main>
       <footer className="bg-card border-t py-6 mt-8">
         <div className="container mx-auto px-4 lg:px-6 text-center text-muted-foreground text-sm">
@@ -166,3 +224,13 @@ export default function PublicListingsPage() {
     </div>
   );
 }
+
+
+export default function PublicListingsPage() {
+    return (
+        <React.Suspense fallback={<PageSkeleton />}>
+            <PublicListingsContent />
+        </React.Suspense>
+    );
+}
+

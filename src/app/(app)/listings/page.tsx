@@ -41,6 +41,7 @@ import { db } from '@/lib/firebase'
 import type { Property } from '@/app/(app)/properties/page'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { useAuth } from '../layout'
 
 const markAsSoldSchema = z.object({
   soldPrice: z.coerce.number().min(1, 'Sold price is required.'),
@@ -135,6 +136,7 @@ const PageSkeleton = () => (
 )
 
 export default function InternalListingsPage() {
+  const { user } = useAuth()
   const [properties, setProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
   const [publicUrl, setPublicUrl] = React.useState('')
@@ -149,17 +151,18 @@ export default function InternalListingsPage() {
   })
 
   React.useEffect(() => {
-    // This effect runs on the client-side, where window is available
-    setPublicUrl(`${window.location.origin}/public-listings`)
-  }, [])
+    if (user) {
+      setPublicUrl(`${window.location.origin}/public-listings?owner=${user.uid}`)
+    }
+  }, [user])
 
   React.useEffect(() => {
-    if (!db) {
+    if (!db || !user) {
       setLoading(false)
       return
     }
 
-    const q = query(collection(db, 'properties'), where('isListedPublicly', '==', true))
+    const q = query(collection(db, 'properties'), where('ownerUid', '==', user.uid), where('isListedPublicly', '==', true))
 
     const unsubscribe = onSnapshot(
       q,
@@ -178,7 +181,7 @@ export default function InternalListingsPage() {
     )
 
     return () => unsubscribe()
-  }, [])
+  }, [user])
 
   const copyPublicLink = () => {
     if (publicUrl) {
