@@ -110,7 +110,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <h1 className="text-xl font-semibold text-foreground">Property Manager</h1>
             </div>
           </SidebarHeader>
-          <SidebarSeparator />
+          <SidebarSeparator className="my-4" />
           <SidebarContent>
             <SidebarMenu>
               {navItems.map((item) => (
