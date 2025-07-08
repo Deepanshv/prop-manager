@@ -101,7 +101,7 @@
 }
 
 .custom-map-pin.owned {
-  fill: hsl(var(--muted-foreground));
+  fill: hsl(var(--muted));
 }
 
 .custom-map-pin.for-sale {
