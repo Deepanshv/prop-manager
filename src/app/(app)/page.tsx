@@ -156,7 +156,7 @@ export default function DashboardPage() {
               <TableRow>
                 <TableHead>Property</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
                         {activity.status || 'Owned'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-right text-muted-foreground">
                       {format(activity.status === 'Sold' && activity.soldDate ? activity.soldDate.toDate() : activity.purchaseDate.toDate(), "PP")}
                     </TableCell>
                     <TableCell className="text-right">
