@@ -191,9 +191,9 @@ export default function DashboardPage() {
                     <TableCell>
                       <Badge 
                         className={cn(
-                          activity.status === 'For Sale' && 'bg-primary hover:bg-primary/80',
+                          activity.status === 'For Sale' && 'bg-primary text-primary-foreground hover:bg-primary/80',
                           activity.status === 'Sold' && 'bg-chart-2 text-primary-foreground hover:bg-chart-2/80',
-                          (activity.status === 'Owned' || !activity.status) && 'bg-muted-foreground text-secondary-foreground hover:bg-muted-foreground/80'
+                          (activity.status === 'Owned' || !activity.status) && 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                         )}
                       >
                         {activity.status || 'Owned'}
