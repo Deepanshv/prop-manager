@@ -74,13 +74,6 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                     <FormMessage />
                 </FormItem>
             )} />
-             <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Estimated Value (₹)</FormLabel>
-                    <FormControl><Input type="number" placeholder="10000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                </FormItem>
-            )} />
              <FormField control={form.control} name="dateAdded" render={({ field }) => (
                 <FormItem className="flex flex-col">
                     <FormLabel>Date Added</FormLabel>
@@ -96,13 +89,20 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                     <FormMessage />
                 </FormItem>
             )} />
+             <FormField control={form.control} name="estimatedValue" render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                    <FormLabel>Estimated Value (₹)</FormLabel>
+                    <FormControl><Input type="number" placeholder="10000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
 
             {mode === 'edit' && (
                 <FormField
                     control={form.control}
                     name="status"
                     render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="md:col-span-2">
                             <FormLabel>Prospect Status</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
