@@ -3,7 +3,6 @@
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { ArrowLeft, FileQuestion, Loader2 } from 'lucide-react'
-import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import * as React from 'react'
 
@@ -142,8 +141,8 @@ export default function PropertyDetailPage() {
   return (
     <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" asChild>
-            <Link href="/properties"><ArrowLeft className="h-4 w-4" /></Link>
+        <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold tracking-tight">{property.name}</h1>
       </div>
