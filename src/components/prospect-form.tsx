@@ -12,13 +12,11 @@ import { Calendar } from '@/components/ui/calendar'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 export const prospectSchema = z.object({
   dealName: z.string().min(3, { message: "Deal name must be at least 3 characters." }),
   source: z.string().min(2, { message: "Source is required." }),
-  status: z.enum(['New', 'Converted']),
   estimatedValue: z.coerce.number().positive({ message: 'Must be a positive number' }).min(1),
   dateAdded: z.date({ required_error: "A date is required."}),
 });
@@ -39,7 +37,6 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
     defaultValues: initialData || {
       dealName: '',
       source: '',
-      status: 'New',
       estimatedValue: 0,
       dateAdded: new Date(),
     }
@@ -52,7 +49,6 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
   }, [initialData, form]);
   
   const submitButtonText = mode === 'add' ? 'Add Prospect' : 'Save Changes';
-  const prospectStatuses = ['New', 'Converted'];
 
   return (
     <Form {...form}>
@@ -94,20 +90,8 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
         </div>
 
         <div className="space-y-4">
-            <h3 className="text-lg font-medium">Status & Value</h3>
+            <h3 className="text-lg font-medium">Value</h3>
             <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-                <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.status}>
-                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {prospectStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )} />
                 <FormField control={form.control} name="estimatedValue" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Estimated Value (₹)</FormLabel>

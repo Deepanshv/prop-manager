@@ -149,7 +149,6 @@ export default function ProspectManagerPage() {
         setFormInitialData({
           dealName: '',
           source: '',
-          status: 'New',
           estimatedValue: 0,
           dateAdded: new Date(),
         })
@@ -206,12 +205,22 @@ export default function ProspectManagerPage() {
     const handleFormSubmit = async (data: ProspectFormData) => {
         if (!user || !db) return;
         setIsSubmitting(true);
-        const submissionData = { ...data, ownerUid: user.uid, dateAdded: Timestamp.fromDate(data.dateAdded) };
+
         try {
             if (selectedProspect) {
-                await updateDoc(doc(db, 'prospects', selectedProspect.id), submissionData);
+                const updateData = {
+                    ...data,
+                    dateAdded: Timestamp.fromDate(data.dateAdded)
+                };
+                await updateDoc(doc(db, 'prospects', selectedProspect.id), updateData);
                 toast({ title: "Success", description: "Prospect updated successfully."});
             } else {
+                const submissionData = { 
+                    ...data, 
+                    ownerUid: user.uid, 
+                    dateAdded: Timestamp.fromDate(data.dateAdded),
+                    status: 'New' as const
+                };
                 await addDoc(collection(db, 'prospects'), submissionData);
                 toast({ title: "Success", description: "New prospect added."});
             }
@@ -313,7 +322,7 @@ export default function ProspectManagerPage() {
                     <DialogHeader>
                         <DialogTitle>{selectedProspect ? 'Edit Prospect' : 'Add New Prospect'}</DialogTitle>
                         <DialogDescription>
-                          {selectedProspect ? 'Update the details for this prospect.' : 'Fill in the details for a new prospect.'}
+                          {selectedProspect ? 'Update the details for this prospect. Status is changed via the "Convert" button.' : 'Fill in the details for a new prospect.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
