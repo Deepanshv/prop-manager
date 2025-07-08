@@ -52,10 +52,24 @@ const basePropertyFormSchema = z.object({
   landDetails: landDetailsSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
-  purchasePrice: z.coerce.number().min(1, 'Purchase price must be greater than 0.'),
+  purchasePrice: z.coerce.number(), // This is now a calculated field.
+  pricePerUnit: z.coerce.number({
+        invalid_type_error: "Price per unit must be a number."
+    }).positive({ message: "Price per unit must be a positive number." }).optional(),
   isListedPublicly: z.boolean().default(false),
   listingPrice: z.coerce.number().optional(),
+}).refine(data => {
+    // We only validate purchase price if it's not a draft (i.e., area and price/unit are entered)
+    if (data.landDetails.area > 0 && (data.pricePerUnit ?? 0) > 0) {
+        return data.purchasePrice > 0;
+    }
+    // For initial state or legacy data, we don't block
+    return true;
+}, {
+    message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
+    path: ["purchasePrice"],
 });
+
 
 export const editPropertyFormSchema = basePropertyFormSchema.extend({
   status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
@@ -102,12 +116,11 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(mode === 'edit' ? editPropertyFormSchema : basePropertyFormSchema),
-    // In edit mode, we'll use form.reset() in useEffect to populate the form
-    // In add mode, we can set some defaults.
     defaultValues: mode === 'add' ? {
         status: 'Owned',
         isListedPublicly: false,
         name: '',
+        purchasePrice: 0,
         address: {
             street: '',
             city: '',
@@ -136,6 +149,19 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
 
   const watchedStatus = form.watch('status');
   const watchedIsListedPublicly = form.watch('isListedPublicly');
+  const watchedArea = form.watch('landDetails.area');
+  const watchedPricePerUnit = form.watch('pricePerUnit');
+  const watchedAreaUnit = form.watch('landDetails.areaUnit');
+
+  const calculatedValue = React.useMemo(() => {
+    const area = Number(watchedArea) || 0;
+    const price = Number(watchedPricePerUnit) || 0;
+    return area * price;
+  }, [watchedArea, watchedPricePerUnit]);
+
+  React.useEffect(() => {
+    form.setValue('purchasePrice', calculatedValue, { shouldValidate: true });
+  }, [calculatedValue, form]);
 
 
   React.useEffect(() => {
@@ -296,7 +322,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                         </Button>
                     </div>
                     {suggestions.length > 0 && (
-                        <div className="absolute z-20 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-50 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
                             {suggestions.map((s) => (
                                 <div 
                                     key={s.place_id} 
@@ -352,26 +378,12 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                  <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
                     <FormItem><FormLabel>Landbook Number</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                    <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                )}/>
-                <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
-                    <FormItem><FormLabel>Area Unit</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landDetails?.areaUnit}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}/>
              </div>
         </div>
 
         <div className="space-y-4">
              <h3 className="text-lg font-medium">Property & Financial Details</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 border p-4 rounded-md">
                 <FormField control={form.control} name="propertyType" render={({ field }) => (
                     <FormItem><FormLabel>Property Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.propertyType}>
@@ -382,9 +394,6 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     </Select>
                     <FormMessage />
                     </FormItem>
-                )}/>
-                <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                    <FormItem><FormLabel>Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
@@ -400,6 +409,38 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     <FormMessage />
                     </FormItem>
                 )}/>
+
+                <FormField control={form.control} name="landDetails.area" render={({ field }) => (
+                    <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
+                    <FormItem><FormLabel>Area Unit</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landDetails?.areaUnit}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}/>
+
+                <FormField control={form.control} name="pricePerUnit" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Price per {watchedAreaUnit || 'Unit'} (₹)</FormLabel>
+                        <FormControl><Input type="number" placeholder="e.g. 5000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+                
+                <div className="md:col-span-2 space-y-1">
+                    <FormLabel>Calculated Purchase Price</FormLabel>
+                    <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
+                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedValue)}
+                    </div>
+                    <FormDescription>This value is calculated from Land Area and Price per Unit and will be saved.</FormDescription>
+                    <FormMessage>{form.formState.errors.purchasePrice?.message}</FormMessage>
+                </div>
              </div>
         </div>
         

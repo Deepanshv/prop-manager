@@ -2,7 +2,7 @@
 'use client'
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
-import { ArrowLeft, FileQuestion, Loader2 } from 'lucide-react'
+import { ArrowLeft, FileQuestion } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import * as React from 'react'
 
@@ -43,10 +43,17 @@ export default function PropertyDetailPage() {
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
           const propData = { id: docSnap.id, ...docSnap.data() } as Property
           setProperty(propData)
+          
+          let pricePerUnit = propData.pricePerUnit;
+          if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
+            pricePerUnit = propData.purchasePrice / propData.landDetails.area;
+          }
+
           setFormInitialData({
             ...propData,
             purchaseDate: propData.purchaseDate.toDate(),
             soldDate: propData.soldDate?.toDate(),
+            pricePerUnit: pricePerUnit
           });
         } else {
           toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
@@ -75,6 +82,7 @@ export default function PropertyDetailPage() {
       ...data,
       ownerUid: user.uid,
       purchaseDate: Timestamp.fromDate(data.purchaseDate),
+      pricePerUnit: data.pricePerUnit ?? null,
       soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
       soldPrice: data.soldPrice ?? null,
       listingPrice: data.listingPrice ?? null,
