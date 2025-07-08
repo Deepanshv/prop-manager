@@ -342,7 +342,7 @@ export default function PropertyManagerPage() {
             <DialogTitle>Mark Property as Sold</DialogTitle>
             <DialogDescription>
               Enter the final sale price and date for &quot;
-              {selectedProperty && `${selectedProperty.name}`}
+              {selectedProperty?.name}
               &quot;. This action will move the property to your Sales History.
             </DialogDescription>
           </DialogHeader>
