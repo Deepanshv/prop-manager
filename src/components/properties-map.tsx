@@ -30,11 +30,10 @@ const PropertiesMap = ({ properties }: PropertiesMapProps) => {
                 center: [20.5937, 78.9629], // Default center of India
                 zoom: 5,
                 scrollWheelZoom: false,
+                attributionControl: false,
             });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            }).addTo(mapInstanceRef.current);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(mapInstanceRef.current);
         }
 
         // Cleanup on unmount

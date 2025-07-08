@@ -31,12 +31,10 @@ export const InteractiveMap = ({ center, onMarkerMove }: InteractiveMapProps) =>
   // Initialize map and marker
   React.useEffect(() => {
     if (mapContainerRef.current && !mapRef.current) {
-      const map = L.map(mapContainerRef.current).setView(center, 13)
+      const map = L.map(mapContainerRef.current, { attributionControl: false }).setView(center, 13)
       mapRef.current = map
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map)
 
       const marker = L.marker(center, { draggable: true }).addTo(map)
       markerRef.current = marker
