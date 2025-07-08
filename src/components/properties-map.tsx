@@ -14,6 +14,22 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
+const getMarkerIcon = (status?: 'Owned' | 'For Sale' | 'Sold') => {
+    let statusClass = 'owned'; // Default to owned
+    if (status === 'For Sale') {
+        statusClass = 'for-sale';
+    } else if (status === 'Sold') {
+        statusClass = 'sold';
+    }
+    
+    return L.divIcon({
+        className: `custom-div-icon ${statusClass}`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10], // Center the icon on the coordinate
+        popupAnchor: [0, -10] // Position popup correctly above the icon
+    });
+};
+
 interface PropertiesMapProps {
     properties: Property[];
     focusedPropertyId?: string | null;
@@ -58,7 +74,9 @@ const PropertiesMap = ({ properties, focusedPropertyId }: PropertiesMapProps) =>
 
         if (propertiesWithCoords.length > 0) {
             propertiesWithCoords.forEach(property => {
-                const marker = L.marker([property.address.latitude!, property.address.longitude!])
+                const marker = L.marker([property.address.latitude!, property.address.longitude!], {
+                    icon: getMarkerIcon(property.status)
+                })
                     .addTo(map)
                     .bindPopup(`<strong>${property.name}</strong><br/>${property.address.street}, ${property.address.city}`);
                 markersRef.current.push(marker);

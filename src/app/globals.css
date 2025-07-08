@@ -86,3 +86,29 @@
 .leaflet-container {
     z-index: 0;
 }
+
+/* Custom Map Marker Styles */
+.custom-div-icon {
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  border: 3px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  transition: transform 0.2s ease-in-out;
+}
+
+.leaflet-marker-icon:hover .custom-div-icon {
+    transform: scale(1.2);
+}
+
+.custom-div-icon.owned {
+  background-color: hsl(var(--muted-foreground));
+}
+
+.custom-div-icon.for-sale {
+  background-color: hsl(var(--primary));
+}
+
+.custom-div-icon.sold {
+  background-color: hsl(var(--chart-2));
+}
