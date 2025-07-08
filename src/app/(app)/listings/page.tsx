@@ -283,7 +283,7 @@ export default function InternalListingsPage() {
                 <DialogTitle>Mark Property as Sold</DialogTitle>
                 <DialogDescription>
                   Enter the final sale price and date for &quot;
-                  {selectedProperty.name}
+                  {selectedProperty?.name}
                   &quot;. This will move the property to Sales History.
                 </DialogDescription>
               </DialogHeader>
