@@ -31,6 +31,8 @@ import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
 import { CardDescription as Description } from '@/components/ui/card'
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 const PropertiesMap = dynamic(() => import('@/components/properties-map'), {
   ssr: false,
@@ -40,7 +42,7 @@ const PropertiesMap = dynamic(() => import('@/components/properties-map'), {
 export default function DashboardPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const [properties, setProperties] = React.useState<Property[]>([])
+  const [allProperties, setAllProperties] = React.useState<Property[]>([])
   const [prospects, setProspects] = React.useState<Prospect[]>([])
   const [loading, setLoading] = React.useState(true)
   const [focusedPropertyId, setFocusedPropertyId] = React.useState<string | null>(null);
@@ -67,7 +69,7 @@ export default function DashboardPage() {
     const unsubProperties = onSnapshot(propertyQuery, (snapshot) => {
       if (!isMounted) return;
       const props = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property))
-      setProperties(props.filter(p => p.status !== 'Sold'))
+      setAllProperties(props)
       handleInitialLoad();
     }, (error) => {
       console.error("Error fetching properties:", error)
@@ -93,17 +95,23 @@ export default function DashboardPage() {
     }
   }, [user, toast])
 
-  const portfolioValue = properties.reduce((sum, prop) => sum + (prop.purchasePrice || 0), 0)
+  const activeProperties = React.useMemo(() => allProperties.filter(p => p.status !== 'Sold'), [allProperties]);
+
+  const portfolioValue = activeProperties.reduce((sum, prop) => sum + (prop.purchasePrice || 0), 0)
   const activeProspects = prospects.filter(p => p.status === 'New' || p.status === 'Under Review' || p.status === 'Offer Made').length
   
   const recentActivity = React.useMemo(() => {
-    return [...properties]
-        .sort((a, b) => b.purchaseDate.toDate().getTime() - a.purchaseDate.toDate().getTime())
+    return [...allProperties]
+        .sort((a, b) => {
+            const dateA = a.status === 'Sold' && a.soldDate ? a.soldDate.toDate().getTime() : a.purchaseDate.toDate().getTime();
+            const dateB = b.status === 'Sold' && b.soldDate ? b.soldDate.toDate().getTime() : b.purchaseDate.toDate().getTime();
+            return dateB - dateA;
+        })
         .slice(0, 5);
-  }, [properties]);
+  }, [allProperties]);
 
   const kpis = [
-    { title: "Total Properties", value: properties.length, icon: Building2, format: (v: number) => v.toLocaleString() },
+    { title: "Total Properties", value: activeProperties.length, icon: Building2, format: (v: number) => v.toLocaleString() },
     { title: "Active Prospects", value: activeProspects, icon: Users, format: (v: number) => v.toLocaleString() },
     { title: "Portfolio Value", value: portfolioValue, icon: IndianRupee, format: (v: number) => `₹${(v / 10000000).toFixed(2)} Cr` },
   ]
@@ -131,7 +139,7 @@ export default function DashboardPage() {
       </div>
 
       <Card className="h-[400px]">
-        <PropertiesMap properties={properties} focusedPropertyId={focusedPropertyId} />
+        <PropertiesMap properties={allProperties} focusedPropertyId={focusedPropertyId} />
       </Card>
 
       <Card>
@@ -145,7 +153,7 @@ export default function DashboardPage() {
               <TableRow>
                 <TableHead>Property</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Date Added</TableHead>
+                <TableHead className="text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -176,12 +184,15 @@ export default function DashboardPage() {
                   >
                     <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>
-                      <Badge variant={activity.status === 'For Sale' ? 'default' : 'secondary'}>
+                      <Badge 
+                        variant={activity.status === 'For Sale' ? 'primary' : 'secondary'}
+                        className={cn(activity.status === 'Sold' && 'bg-chart-2 text-primary-foreground hover:bg-chart-2/80')}
+                      >
                         {activity.status || 'Owned'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
-                      {new Date(activity.purchaseDate.seconds * 1000).toLocaleDateString()}
+                      {format(activity.status === 'Sold' && activity.soldDate ? activity.soldDate.toDate() : activity.purchaseDate.toDate(), "PP")}
                     </TableCell>
                   </TableRow>
                 ))
