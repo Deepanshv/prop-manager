@@ -49,7 +49,7 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
     return (
         <Card className={cn(
             "flex flex-col border-t-4",
-            profitLoss >= 0 ? 'border-green-500' : 'border-red-500'
+            profitLoss >= 0 ? 'border-chart-2' : 'border-destructive'
         )}>
             <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
@@ -77,13 +77,13 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
                  <div className="flex items-center gap-4">
                      <div>
                         <p className="text-muted-foreground">Status</p>
-                        <Badge variant="outline">Sold</Badge>
+                        <Badge variant="default" className="bg-chart-2 text-primary-foreground">Sold</Badge>
                      </div>
                     <div>
                         <p className="text-muted-foreground">Profit / Loss</p>
                         <p className={cn(
                             "font-bold text-base",
-                            profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                            profitLoss >= 0 ? 'text-chart-2' : 'text-destructive'
                         )}>
                             {profitLoss >= 0 ? '+' : ''}{formatCurrency(profitLoss)}
                         </p>

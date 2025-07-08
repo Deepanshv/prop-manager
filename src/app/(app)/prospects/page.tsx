@@ -91,22 +91,15 @@ export interface Prospect {
 }
 
 const ProspectStatusBadge = ({ status }: { status: Prospect['status'] }) => {
-    const variantMap: Record<Prospect['status'], BadgeProps['variant']> = {
-        'New': 'default',
-        'Under Review': 'secondary',
-        'Offer Made': 'outline',
-        'Converted': 'default',
-        'Rejected': 'destructive',
+    const statusClasses: Record<Prospect['status'], string> = {
+        'New': 'bg-primary text-primary-foreground',
+        'Under Review': 'bg-chart-4 text-primary-foreground',
+        'Offer Made': 'bg-chart-5 text-primary-foreground',
+        'Converted': 'bg-chart-2 text-primary-foreground',
+        'Rejected': 'bg-destructive text-destructive-foreground',
     };
-    const colorMap: Record<Prospect['status'], string> = {
-        'New': 'bg-blue-500',
-        'Under Review': 'bg-yellow-500',
-        'Offer Made': 'bg-indigo-500',
-        'Converted': 'bg-green-500',
-        'Rejected': 'bg-red-500'
-    }
 
-    return <Badge variant={variantMap[status]} className={cn(colorMap[status], "text-white")}>{status}</Badge>;
+    return <Badge variant="default" className={cn(statusClasses[status])}>{status}</Badge>;
 }
 
 const PROSPECTS_PER_PAGE = 10;
