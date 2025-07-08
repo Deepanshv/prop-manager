@@ -46,7 +46,7 @@ const landDetailsSchema = z.object({
     areaUnit: z.string({ required_error: "Please select a unit." }),
 });
 
-const basePropertyFormSchema = z.object({
+const basePropertyFormObject = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: addressSchema,
   landDetails: landDetailsSchema,
@@ -58,7 +58,9 @@ const basePropertyFormSchema = z.object({
     }).positive({ message: "Price per unit must be a positive number." }).optional(),
   isListedPublicly: z.boolean().default(false),
   listingPrice: z.coerce.number().optional(),
-}).refine(data => {
+});
+
+const basePropertyFormSchema = basePropertyFormObject.refine(data => {
     // We only validate purchase price if it's not a draft (i.e., area and price/unit are entered)
     if (data.landDetails.area > 0 && (data.pricePerUnit ?? 0) > 0) {
         return data.purchasePrice > 0;
@@ -71,10 +73,18 @@ const basePropertyFormSchema = z.object({
 });
 
 
-export const editPropertyFormSchema = basePropertyFormSchema.extend({
+export const editPropertyFormSchema = basePropertyFormObject.extend({
   status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
   soldPrice: z.coerce.number().optional(),
   soldDate: z.date().optional(),
+}).refine(data => {
+    if (data.landDetails.area > 0 && (data.pricePerUnit ?? 0) > 0) {
+        return data.purchasePrice > 0;
+    }
+    return true;
+}, {
+    message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
+    path: ["purchasePrice"],
 }).refine(data => {
     if (data.status === 'Sold') {
         return data.soldPrice && data.soldPrice > 0 && data.soldDate;
