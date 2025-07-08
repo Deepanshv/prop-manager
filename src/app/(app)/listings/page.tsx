@@ -277,13 +277,13 @@ export default function InternalListingsPage() {
           }
       }}>
         <DialogContent className="sm:max-w-md">
-          {selectedProperty && (
+          {selectedProperty ? (
             <>
               <DialogHeader>
                 <DialogTitle>Mark Property as Sold</DialogTitle>
                 <DialogDescription>
                   Enter the final sale price and date for &quot;
-                  {selectedProperty?.name}
+                  {selectedProperty.name}
                   &quot;. This will move the property to Sales History.
                 </DialogDescription>
               </DialogHeader>
@@ -346,7 +346,7 @@ export default function InternalListingsPage() {
                 </form>
               </Form>
             </>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
 
