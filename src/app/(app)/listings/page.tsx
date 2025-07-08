@@ -270,74 +270,83 @@ export default function InternalListingsPage() {
         )}
       </main>
 
-      <Dialog open={isSoldModalOpen} onOpenChange={setIsSoldModalOpen}>
+      <Dialog open={isSoldModalOpen} onOpenChange={(open) => {
+          setIsSoldModalOpen(open);
+          if (!open) {
+              setSelectedProperty(null);
+          }
+      }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Mark Property as Sold</DialogTitle>
-            <DialogDescription>
-              Enter the final sale price and date for &quot;
-              {selectedProperty?.name}
-              &quot;. This will move the property to Sales History.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...soldForm}>
-            <form onSubmit={soldForm.handleSubmit(onSoldSubmit)} className="space-y-4 pt-4">
-              <FormField
-                control={soldForm.control}
-                name="soldPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Final Sale Price (₹)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="6500000"
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                        value={Number.isNaN(field.value) ? '' : field.value ?? ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={soldForm.control}
-                name="soldDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Sale Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+          {selectedProperty && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Mark Property as Sold</DialogTitle>
+                <DialogDescription>
+                  Enter the final sale price and date for &quot;
+                  {selectedProperty.name}
+                  &quot;. This will move the property to Sales History.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...soldForm}>
+                <form onSubmit={soldForm.handleSubmit(onSoldSubmit)} className="space-y-4 pt-4">
+                  <FormField
+                    control={soldForm.control}
+                    name="soldPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Final Sale Price (₹)</FormLabel>
                         <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                          >
-                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
+                          <Input
+                            type="number"
+                            placeholder="6500000"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                            value={Number.isNaN(field.value) ? '' : field.value ?? ''}
+                          />
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setIsSoldModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={soldForm.formState.isSubmitting}>
-                  {soldForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Confirm Sale
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={soldForm.control}
+                    name="soldDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Sale Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                              >
+                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <Button type="button" variant="ghost" onClick={() => setIsSoldModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={soldForm.formState.isSubmitting}>
+                      {soldForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Confirm Sale
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
