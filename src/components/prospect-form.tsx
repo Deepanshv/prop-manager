@@ -1,4 +1,3 @@
-
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,7 +9,7 @@ import * as z from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -60,44 +59,61 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Deal Information</h3>
-          <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
             <FormField control={form.control} name="dealName" render={({ field }) => (
-                <FormItem className="md:col-span-2"><FormLabel>Deal Name</FormLabel><FormControl><Input placeholder="e.g. South Mumbai Sea View Flat" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                <FormItem className="md:col-span-2">
+                    <FormLabel>Deal Name</FormLabel>
+                    <FormControl><Input placeholder="e.g. South Mumbai Sea View Flat" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormDescription>A descriptive name for this potential deal.</FormDescription>
+                    <FormMessage />
+                </FormItem>
             )} />
             <FormField control={form.control} name="source" render={({ field }) => (
-                <FormItem><FormLabel>Source</FormLabel><FormControl><Input placeholder="e.g. Real Estate Agent, Zillow" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                <FormItem>
+                    <FormLabel>Source</FormLabel>
+                    <FormControl><Input placeholder="e.g. Real Estate Agent, Zillow" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                </FormItem>
             )} />
              <FormField control={form.control} name="dateAdded" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Date Added</FormLabel>
-                <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                </FormControl></PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                </PopoverContent></Popover>
-                <FormMessage /></FormItem>
+                <FormItem className="flex flex-col">
+                    <FormLabel>Date Added</FormLabel>
+                    <Popover><PopoverTrigger asChild><FormControl>
+                        <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </FormControl></PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                    </PopoverContent></Popover>
+                    <FormMessage />
+                </FormItem>
             )} />
           </div>
         </div>
 
         <div className="space-y-4">
             <h3 className="text-lg font-medium">Status & Value</h3>
-            <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
                 <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem><FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.status}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {prospectStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage /></FormItem>
+                    <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.status}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {prospectStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
                 )} />
                 <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                    <FormItem><FormLabel>Estimated Value (₹)</FormLabel><FormControl><Input type="number" placeholder="10000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                        <FormLabel>Estimated Value (₹)</FormLabel>
+                        <FormControl><Input type="number" placeholder="10000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
                 )} />
             </div>
         </div>
