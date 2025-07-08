@@ -61,31 +61,40 @@ const basePropertyFormObject = z.object({
   listingPricePerUnit: z.coerce.number().optional(),
 });
 
-const addPropertyFormSchema = basePropertyFormObject.refine(data => {
-    // We only validate purchase price if it's not a draft (i.e., area and price/unit are entered)
+const purchasePriceRefinement = (data: z.infer<typeof basePropertyFormObject>) => {
     if (data.landDetails.area > 0 && (data.pricePerUnit ?? 0) > 0) {
         return data.purchasePrice > 0;
     }
-    // For initial state or legacy data, we don't block
     return true;
-}, {
-    message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
-    path: ["purchasePrice"],
-}).refine(data => {
-    if (data.isListedPublicly) {
+};
+
+const listingPriceRefinement = (data: z.infer<typeof basePropertyFormObject>) => {
+     if (data.isListedPublicly) {
         return data.listingPricePerUnit && data.listingPricePerUnit > 0;
     }
     return true;
-}, {
-    message: "A listing price per unit is required when a property is listed publicly.",
-    path: ["listingPricePerUnit"],
-});
+}
 
+const addPropertyFormSchema = basePropertyFormObject
+    .refine(purchasePriceRefinement, {
+        message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
+        path: ["purchasePrice"],
+    })
+    .refine(listingPriceRefinement, {
+        message: "A listing price per unit is required when a property is listed publicly.",
+        path: ["listingPricePerUnit"],
+    });
 
-export const editPropertyFormSchema = addPropertyFormSchema.extend({
+export const editPropertyFormSchema = basePropertyFormObject.extend({
   status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
   soldPrice: z.coerce.number().optional(),
   soldDate: z.date().optional(),
+}).refine(purchasePriceRefinement, {
+    message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
+    path: ["purchasePrice"],
+}).refine(listingPriceRefinement, {
+    message: "A listing price per unit is required when a property is listed publicly.",
+    path: ["listingPricePerUnit"],
 }).refine(data => {
     if (data.status === 'Sold') {
         return data.soldPrice && data.soldPrice > 0 && data.soldDate;
