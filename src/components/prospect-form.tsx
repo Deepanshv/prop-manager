@@ -1,3 +1,4 @@
+
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -75,7 +76,7 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                 </FormItem>
             )} />
              <FormField control={form.control} name="dateAdded" render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="flex flex-col space-y-2">
                     <FormLabel>Date Added</FormLabel>
                     <Popover><PopoverTrigger asChild><FormControl>
                         <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
