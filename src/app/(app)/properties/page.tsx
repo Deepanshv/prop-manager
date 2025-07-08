@@ -60,6 +60,7 @@ export interface Property {
   purchasePrice: number
   pricePerUnit?: number
   listingPrice?: number
+  listingPricePerUnit?: number
   isListedPublicly?: boolean
   status?: 'Owned' | 'For Sale' | 'Sold'
   soldPrice?: number
@@ -223,6 +224,7 @@ export default function PropertyManagerPage() {
           soldDate: null,
           pricePerUnit: data.pricePerUnit ?? null,
           listingPrice: data.isListedPublicly ? (data.listingPrice ?? null) : null,
+          listingPricePerUnit: data.isListedPublicly ? (data.listingPricePerUnit ?? null) : null,
           address: {
             ...data.address,
             landmark: data.address.landmark ?? null,

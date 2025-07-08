@@ -48,12 +48,18 @@ export default function PropertyDetailPage() {
           if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
             pricePerUnit = propData.purchasePrice / propData.landDetails.area;
           }
+          
+          let listingPricePerUnit = propData.listingPricePerUnit;
+          if (listingPricePerUnit === undefined && propData.listingPrice && propData.landDetails.area > 0) {
+            listingPricePerUnit = propData.listingPrice / propData.landDetails.area;
+          }
 
           setFormInitialData({
             ...propData,
             purchaseDate: propData.purchaseDate.toDate(),
             soldDate: propData.soldDate?.toDate(),
-            pricePerUnit: pricePerUnit
+            pricePerUnit: pricePerUnit,
+            listingPricePerUnit: listingPricePerUnit,
           });
         } else {
           toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
@@ -86,6 +92,7 @@ export default function PropertyDetailPage() {
       soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
       soldPrice: data.soldPrice ?? null,
       listingPrice: data.listingPrice ?? null,
+      listingPricePerUnit: data.listingPricePerUnit ?? null,
       address: {
         ...data.address,
         landmark: data.address.landmark ?? null,
@@ -102,6 +109,7 @@ export default function PropertyDetailPage() {
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
+        propertyData.listingPricePerUnit = null;
     } else {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
@@ -109,6 +117,7 @@ export default function PropertyDetailPage() {
 
     if (!data.isListedPublicly) {
         propertyData.listingPrice = null;
+        propertyData.listingPricePerUnit = null;
     }
 
     try {

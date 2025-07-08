@@ -58,9 +58,10 @@ const basePropertyFormObject = z.object({
     }).positive({ message: "Price per unit must be a positive number." }).optional(),
   isListedPublicly: z.boolean().default(false),
   listingPrice: z.coerce.number().optional(),
+  listingPricePerUnit: z.coerce.number().optional(),
 });
 
-const basePropertyFormSchema = basePropertyFormObject.refine(data => {
+const addPropertyFormSchema = basePropertyFormObject.refine(data => {
     // We only validate purchase price if it's not a draft (i.e., area and price/unit are entered)
     if (data.landDetails.area > 0 && (data.pricePerUnit ?? 0) > 0) {
         return data.purchasePrice > 0;
@@ -70,21 +71,21 @@ const basePropertyFormSchema = basePropertyFormObject.refine(data => {
 }, {
     message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
     path: ["purchasePrice"],
-});
-
-
-export const editPropertyFormSchema = basePropertyFormObject.extend({
-  status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
-  soldPrice: z.coerce.number().optional(),
-  soldDate: z.date().optional(),
 }).refine(data => {
-    if (data.landDetails.area > 0 && (data.pricePerUnit ?? 0) > 0) {
-        return data.purchasePrice > 0;
+    if (data.isListedPublicly) {
+        return data.listingPricePerUnit && data.listingPricePerUnit > 0;
     }
     return true;
 }, {
-    message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
-    path: ["purchasePrice"],
+    message: "A listing price per unit is required when a property is listed publicly.",
+    path: ["listingPricePerUnit"],
+});
+
+
+export const editPropertyFormSchema = addPropertyFormSchema.extend({
+  status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
+  soldPrice: z.coerce.number().optional(),
+  soldDate: z.date().optional(),
 }).refine(data => {
     if (data.status === 'Sold') {
         return data.soldPrice && data.soldPrice > 0 && data.soldDate;
@@ -93,14 +94,6 @@ export const editPropertyFormSchema = basePropertyFormObject.extend({
 }, {
     message: "Sold Price and Sold Date are required when status is 'Sold'.",
     path: ["status"],
-}).refine(data => {
-    if (data.isListedPublicly) {
-        return data.listingPrice && data.listingPrice > 0;
-    }
-    return true;
-}, {
-    message: "A listing price is required when a property is listed publicly.",
-    path: ["listingPrice"],
 });
 
 
@@ -125,7 +118,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
 
   const form = useForm<PropertyFormData>({
-    resolver: zodResolver(mode === 'edit' ? editPropertyFormSchema : basePropertyFormSchema),
+    resolver: zodResolver(mode === 'edit' ? editPropertyFormSchema : addPropertyFormSchema),
     defaultValues: mode === 'add' ? {
         status: 'Owned',
         isListedPublicly: false,
@@ -162,16 +155,33 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
   const watchedArea = form.watch('landDetails.area');
   const watchedPricePerUnit = form.watch('pricePerUnit');
   const watchedAreaUnit = form.watch('landDetails.areaUnit');
+  const watchedListingPricePerUnit = form.watch('listingPricePerUnit');
 
-  const calculatedValue = React.useMemo(() => {
+
+  const calculatedPurchaseValue = React.useMemo(() => {
     const area = Number(watchedArea) || 0;
     const price = Number(watchedPricePerUnit) || 0;
     return area * price;
   }, [watchedArea, watchedPricePerUnit]);
 
   React.useEffect(() => {
-    form.setValue('purchasePrice', calculatedValue, { shouldValidate: true });
-  }, [calculatedValue, form]);
+    form.setValue('purchasePrice', calculatedPurchaseValue, { shouldValidate: true });
+  }, [calculatedPurchaseValue, form]);
+
+  const calculatedListingPrice = React.useMemo(() => {
+    const area = Number(watchedArea) || 0;
+    const price = Number(watchedListingPricePerUnit) || 0;
+    return area * price;
+  }, [watchedArea, watchedListingPricePerUnit]);
+
+  React.useEffect(() => {
+    if (watchedIsListedPublicly) {
+        form.setValue('listingPrice', calculatedListingPrice, { shouldValidate: true });
+    } else {
+        form.setValue('listingPricePerUnit', undefined, { shouldValidate: false });
+        form.setValue('listingPrice', undefined, { shouldValidate: false });
+    }
+  }, [calculatedListingPrice, watchedIsListedPublicly, form]);
 
 
   React.useEffect(() => {
@@ -284,15 +294,27 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     }
   }, [form, toast]);
   
-  const listingPriceField = (
-      <FormField control={form.control} name="listingPrice" render={({ field }) => (
-          <FormItem>
-              <FormLabel>Listing Price (₹)</FormLabel>
-              <FormControl><Input type="number" placeholder="7500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
-              <FormDescription>The asking price for the property on public listings.</FormDescription>
-              <FormMessage />
-          </FormItem>
-      )}/>
+  const listingPriceSection = (
+    <div className="space-y-4 rounded-md border p-4">
+        <FormField
+            control={form.control}
+            name="listingPricePerUnit"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Listing Price per {watchedAreaUnit || 'Unit'} (₹)</FormLabel>
+                    <FormControl><Input type="number" placeholder="e.g. 6000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+        <div className="space-y-1">
+            <FormLabel>Calculated Listing Price</FormLabel>
+            <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
+                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedListingPrice)}
+            </div>
+            <FormDescription>This is the total asking price that will be shown on public listings. It is calculated from Land Area and Listing Price per Unit.</FormDescription>
+        </div>
+    </div>
   );
 
   return (
@@ -406,17 +428,18 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     </FormItem>
                 )}/>
                 <FormField control={form.control} name="purchaseDate" render={({ field }) => (
-                    <FormItem><FormLabel>Purchase Date</FormLabel>
-                    <Popover><PopoverTrigger asChild><FormControl>
-                        <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                    </FormControl></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent></Popover>
-                    <FormMessage />
+                    <FormItem className="flex flex-col pt-1.5">
+                        <FormLabel>Purchase Date</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl>
+                            <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl></PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                        </PopoverContent></Popover>
+                        <FormMessage />
                     </FormItem>
                 )}/>
 
@@ -446,7 +469,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                 <div className="md:col-span-2 space-y-1">
                     <FormLabel>Calculated Purchase Price</FormLabel>
                     <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
-                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedValue)}
+                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedPurchaseValue)}
                     </div>
                     <FormDescription>This value is calculated from Land Area and Price per Unit and will be saved.</FormDescription>
                     <FormMessage>{form.formState.errors.purchasePrice?.message}</FormMessage>
@@ -504,7 +527,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                               <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                               </FormItem>
                           )}/>
-                          {watchedIsListedPublicly && <div className="p-1">{listingPriceField}</div>}
+                          {watchedIsListedPublicly && <div className="p-1">{listingPriceSection}</div>}
                       </div>
                     )}
                 </div>
@@ -524,7 +547,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                       <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                       </FormItem>
                   )}/>
-                {watchedIsListedPublicly && <div className="p-1">{listingPriceField}</div>}
+                {watchedIsListedPublicly && listingPriceSection}
               </div>
            </div>
         )}
