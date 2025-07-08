@@ -1,7 +1,6 @@
 
 'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod'
 import {
   addDoc,
   collection,
@@ -15,7 +14,6 @@ import {
 } from 'firebase/firestore'
 import { format } from 'date-fns'
 import {
-    Calendar as CalendarIcon,
     CheckCircle,
     ChevronLeft,
     ChevronRight,
@@ -28,8 +26,6 @@ import {
     Trash2
 } from 'lucide-react'
 import * as React from 'react'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
 
 import {
   AlertDialog,
@@ -41,20 +37,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge, BadgeProps } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -69,16 +61,7 @@ import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
-
-const prospectSchema = z.object({
-  dealName: z.string().min(3, { message: "Deal name must be at least 3 characters." }),
-  source: z.string().min(2, { message: "Source is required." }),
-  status: z.enum(['New', 'Under Review', 'Offer Made', 'Rejected', 'Converted']),
-  estimatedValue: z.coerce.number().positive({ message: 'Must be a positive number' }).min(1),
-  dateAdded: z.date({ required_error: "A date is required."}),
-});
-
-type ProspectFormData = z.infer<typeof prospectSchema>
+import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 
 export interface Prospect {
   id: string
@@ -118,10 +101,8 @@ export default function ProspectManagerPage() {
 
     const [searchTerm, setSearchTerm] = React.useState('');
     const [currentPage, setCurrentPage] = React.useState(1);
-
-    const form = useForm<ProspectFormData>({
-        resolver: zodResolver(prospectSchema),
-    });
+    
+    const [formInitialData, setFormInitialData] = React.useState<Partial<ProspectFormData> | undefined>(undefined);
 
     React.useEffect(() => {
         if (!user || !db) {
@@ -168,7 +149,7 @@ export default function ProspectManagerPage() {
 
     const handleAddNew = () => {
         setSelectedProspect(null);
-        form.reset({
+        setFormInitialData({
           dealName: '',
           source: '',
           status: 'New',
@@ -180,7 +161,7 @@ export default function ProspectManagerPage() {
 
     const handleEdit = (prospect: Prospect) => {
         setSelectedProspect(prospect);
-        form.reset({
+        setFormInitialData({
             ...prospect,
             dateAdded: prospect.dateAdded.toDate(),
         });
@@ -334,56 +315,25 @@ export default function ProspectManagerPage() {
             </main>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>{selectedProspect ? 'Edit Prospect' : 'Add New Prospect'}</DialogTitle>
+                        <DialogDescription>
+                          {selectedProspect ? 'Update the details for this prospect.' : 'Fill in the details for a new prospect.'}
+                        </DialogDescription>
                     </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-                             <FormField control={form.control} name="dealName" render={({ field }) => (
-                                <FormItem><FormLabel>Deal Name</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                             <FormField control={form.control} name="source" render={({ field }) => (
-                                <FormItem><FormLabel>Source</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                             <FormField control={form.control} name="status" render={({ field }) => (
-                                <FormItem><FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {['New', 'Under Review', 'Offer Made', 'Rejected', 'Converted'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage /></FormItem>
-                            )} />
-                             <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                                <FormItem><FormLabel>Estimated Value (₹)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                             <FormField control={form.control} name="dateAdded" render={({ field }) => (
-                                <FormItem className="flex flex-col"><FormLabel>Date Added</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button variant="outline" className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage /></FormItem>
-                            )} />
-                            <DialogFooter>
-                                <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save changes
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
+                    <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
+                        {formInitialData && (
+                            <ProspectForm
+                                mode={selectedProspect ? 'edit' : 'add'}
+                                onSubmit={handleFormSubmit}
+                                isSaving={isSubmitting}
+                                initialData={formInitialData}
+                            >
+                                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                            </ProspectForm>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
 
