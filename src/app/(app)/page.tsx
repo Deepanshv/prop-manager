@@ -114,7 +114,7 @@ export default function DashboardPage() {
   }, [allProperties]);
 
   const kpis = [
-    { title: "Total Properties", value: activeProperties.length, icon: Building2, format: (v: number) => v.toLocaleString() },
+    { title: "Total Properties", value: allProperties.length, icon: Building2, format: (v: number) => v.toLocaleString() },
     { title: "Active Prospects", value: activeProspects, icon: Users, format: (v: number) => v.toLocaleString() },
     { title: "Portfolio Value", value: portfolioValue, icon: IndianRupee, format: (v: number) => `₹${(v / 10000000).toFixed(2)} Cr` },
   ]
