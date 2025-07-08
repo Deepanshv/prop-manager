@@ -101,7 +101,7 @@ export default function DashboardPage() {
   const activeProperties = React.useMemo(() => allProperties.filter(p => p.status !== 'Sold'), [allProperties]);
 
   const portfolioValue = activeProperties.reduce((sum, prop) => sum + (prop.purchasePrice || 0), 0)
-  const activeProspects = prospects.filter(p => p.status === 'New' || p.status === 'Under Review' || p.status === 'Offer Made').length
+  const activeProspects = prospects.filter(p => p.status !== 'Converted' && p.status !== 'Lost').length
   
   const recentActivity = React.useMemo(() => {
     return [...allProperties]

@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 export const prospectSchema = z.object({
   dealName: z.string().min(3, { message: "Deal name must be at least 3 characters." }),
   source: z.string().min(2, { message: "Source is required." }),
-  status: z.enum(['New', 'Under Review', 'Offer Made', 'Rejected', 'Converted']),
+  status: z.enum(['New', 'Contacted', 'Meeting Scheduled', 'Under Review', 'Offer Made', 'Negotiation', 'Converted', 'Lost']),
   estimatedValue: z.coerce.number().positive({ message: 'Must be a positive number' }).min(1),
   dateAdded: z.date({ required_error: "A date is required."}),
 });
@@ -53,6 +53,7 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
   }, [initialData, form]);
   
   const submitButtonText = mode === 'add' ? 'Add Prospect' : 'Save Changes';
+  const prospectStatuses = ['New', 'Contacted', 'Meeting Scheduled', 'Under Review', 'Offer Made', 'Negotiation', 'Converted', 'Lost'];
 
   return (
     <Form {...form}>
@@ -90,7 +91,7 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.status}>
                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                         <SelectContent>
-                            {['New', 'Under Review', 'Offer Made', 'Rejected', 'Converted'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            {prospectStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <FormMessage /></FormItem>

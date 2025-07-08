@@ -68,7 +68,7 @@ export interface Prospect {
   ownerUid: string
   dealName: string
   source: string
-  status: 'New' | 'Under Review' | 'Offer Made' | 'Rejected' | 'Converted'
+  status: 'New' | 'Contacted' | 'Meeting Scheduled' | 'Under Review' | 'Offer Made' | 'Negotiation' | 'Converted' | 'Lost'
   estimatedValue: number
   dateAdded: Timestamp
 }
@@ -76,10 +76,13 @@ export interface Prospect {
 const ProspectStatusBadge = ({ status }: { status: Prospect['status'] }) => {
     const statusClasses: Record<Prospect['status'], string> = {
         'New': 'bg-primary text-primary-foreground',
+        'Contacted': 'bg-accent text-accent-foreground',
+        'Meeting Scheduled': 'bg-chart-3 text-primary-foreground',
         'Under Review': 'bg-chart-4 text-primary-foreground',
         'Offer Made': 'bg-chart-5 text-primary-foreground',
+        'Negotiation': 'bg-chart-1 text-primary-foreground',
         'Converted': 'bg-chart-2 text-primary-foreground',
-        'Rejected': 'bg-destructive text-destructive-foreground',
+        'Lost': 'bg-destructive text-destructive-foreground',
     };
 
     return <Badge variant="default" className={cn(statusClasses[status])}>{status}</Badge>;
@@ -283,7 +286,7 @@ export default function ProspectManagerPage() {
                                         <TableCell>{format(prospect.dateAdded.toDate(), 'PP')}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-1">
-                                                {prospect.status !== 'Converted' && prospect.status !== 'Rejected' && (
+                                                {prospect.status !== 'Converted' && prospect.status !== 'Lost' && (
                                                     <Button variant="ghost" size="sm" onClick={() => handleConvert(prospect)} title="Convert to Property"><CheckCircle className="h-4 w-4"/></Button>
                                                 )}
                                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(prospect)} title="Edit Prospect"><Pencil className="h-4 w-4" /></Button>
