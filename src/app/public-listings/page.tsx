@@ -36,7 +36,7 @@ function PublicPropertyCard({ property }: { property: Property }) {
   if (!property.listingPrice) return null; // Don't show properties without a listing price
 
   return (
-    <Card className="flex flex-col border-t-4 border-primary">
+    <Card className="flex flex-col hover:shadow-lg transition-shadow">
         <div className="flex-grow flex flex-col rounded-t-lg">
             <CardHeader>
                 <CardTitle className="text-lg">{property.name}</CardTitle>

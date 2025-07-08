@@ -47,10 +47,7 @@ function SoldPropertyCard({ property, onDelete, onMarkAsUnsold }: { property: Pr
     const profitLoss = (property.soldPrice || 0) - property.purchasePrice
     
     return (
-        <Card className={cn(
-            "flex flex-col border-t-4",
-            profitLoss >= 0 ? 'border-chart-2' : 'border-destructive'
-        )}>
+        <Card className="flex flex-col hover:shadow-lg transition-shadow">
             <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
                     <CardTitle className="text-lg">{property.name}</CardTitle>

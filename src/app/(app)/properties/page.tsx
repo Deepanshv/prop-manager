@@ -69,10 +69,7 @@ const PropertyCard = ({ property, onDelete, onMarkAsSold }: { property: Property
     const router = useRouter();
 
     return (
-        <Card className={cn(
-            "flex flex-col border-t-4",
-            property.status === 'For Sale' ? 'border-primary' : 'border-transparent'
-        )}>
+        <Card className="flex flex-col hover:shadow-lg transition-shadow">
             <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
                     <CardTitle className="text-lg">{property.name}</CardTitle>
