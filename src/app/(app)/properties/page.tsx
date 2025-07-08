@@ -187,7 +187,7 @@ export default function PropertyManagerPage() {
   
   const handleMarkAsSold = React.useCallback((property: Property) => {
     setSelectedProperty(property);
-    soldForm.reset({ soldPrice: property.purchasePrice, soldDate: new Date() });
+    soldForm.reset({ soldPrice: property.listingPrice || property.purchasePrice, soldDate: new Date() });
     setIsSoldModalOpen(true);
   }, [soldForm]);
 
