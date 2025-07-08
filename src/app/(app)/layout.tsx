@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -102,7 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ user, handleLogout }}>
       <SidebarProvider>
         <Sidebar>
-          <SidebarHeader>
+          <SidebarHeader className="flex h-14 items-center border-b px-4">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Building2 className="h-5 w-5" />
@@ -110,7 +109,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <h1 className="text-xl font-semibold text-foreground">Property Manager</h1>
             </div>
           </SidebarHeader>
-          <SidebarSeparator className="my-4" />
           <SidebarContent>
             <SidebarMenu>
               {navItems.map((item) => (
