@@ -1,3 +1,4 @@
+
 'use client'
 
 import { onAuthStateChanged, signOut, User } from 'firebase/auth'
@@ -12,12 +13,13 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarSeparator,
   SidebarTrigger,
-  SidebarInset,
 } from '@/components/ui/sidebar'
 import { auth } from '@/lib/firebase'
 import { useToast } from '@/hooks/use-toast'
@@ -108,6 +110,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <h1 className="text-xl font-semibold text-foreground">Property Manager</h1>
             </div>
           </SidebarHeader>
+          <SidebarSeparator />
           <SidebarContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -144,7 +147,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex flex-col">
-            <header className="sticky top-0 z-[1000] flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
+            <header className="sticky top-0 z-[1001] flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
                 <SidebarTrigger className="md:hidden">
                     <PanelLeft />
                 </SidebarTrigger>
