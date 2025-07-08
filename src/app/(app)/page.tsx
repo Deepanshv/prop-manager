@@ -155,7 +155,7 @@ export default function DashboardPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Property</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-right">Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -165,8 +165,8 @@ export default function DashboardPage() {
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell className="text-center"><Skeleton className="h-6 w-24 rounded-full mx-auto" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-4 w-28" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
                   </TableRow>
                 ))
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                     }}
                   >
                     <TableCell className="font-medium">{activity.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge 
                         className={cn(
                           activity.status === 'For Sale' && 'bg-primary text-primary-foreground hover:bg-primary/80',
