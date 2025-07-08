@@ -102,7 +102,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ user, handleLogout }}>
       <SidebarProvider>
         <Sidebar>
-          <SidebarHeader className="flex h-14 items-center border-b px-4">
+          <SidebarHeader className="flex h-14 items-center justify-center border-b px-4">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Building2 className="h-5 w-5" />
