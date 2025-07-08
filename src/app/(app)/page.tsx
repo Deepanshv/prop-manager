@@ -2,7 +2,9 @@
 'use client'
 import * as React from 'react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { Badge } from "@/components/ui/badge"
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -23,6 +25,7 @@ import {
   Building2,
   IndianRupee,
   Users,
+  ExternalLink,
 } from "lucide-react"
 import { useAuth } from './layout'
 import { db } from '@/lib/firebase'
@@ -153,16 +156,18 @@ export default function DashboardPage() {
               <TableRow>
                 <TableHead>Property</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Date</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
                   </TableRow>
                 ))
               ) : recentActivity.length > 0 ? (
@@ -185,20 +190,31 @@ export default function DashboardPage() {
                     <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>
                       <Badge 
-                        variant={activity.status === 'For Sale' ? 'primary' : 'secondary'}
-                        className={cn(activity.status === 'Sold' && 'bg-chart-2 text-primary-foreground hover:bg-chart-2/80')}
+                        className={cn(
+                          activity.status === 'For Sale' && 'bg-primary hover:bg-primary/80',
+                          activity.status === 'Sold' && 'bg-chart-2 text-primary-foreground hover:bg-chart-2/80',
+                          (activity.status === 'Owned' || !activity.status) && 'bg-muted-foreground text-secondary-foreground hover:bg-muted-foreground/80'
+                        )}
                       >
                         {activity.status || 'Owned'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {format(activity.status === 'Sold' && activity.soldDate ? activity.soldDate.toDate() : activity.purchaseDate.toDate(), "PP")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} title="View Details">
+                            <Link href={`/properties/${activity.id}`}>
+                                <ExternalLink className="h-4 w-4" />
+                                <span className="sr-only">View Details</span>
+                            </Link>
+                        </Button>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">
+                    <TableCell colSpan={4} className="h-24 text-center">
                         No recent activity.
                     </TableCell>
                 </TableRow>
