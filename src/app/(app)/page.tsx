@@ -155,16 +155,20 @@ export default function DashboardPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Property</TableHead>
-                <TableHead className="w-[120px] text-center">Status</TableHead>
-                <TableHead className="w-[150px] text-right">Date</TableHead>
-                <TableHead className="w-[100px] text-right">Details</TableHead>
+                <TableHead>Area</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Date</TableHead>
+                <TableHead className="text-right">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell className="text-center"><Skeleton className="h-6 w-24 rounded-full mx-auto" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-4 w-28 ml-auto" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
@@ -188,6 +192,8 @@ export default function DashboardPage() {
                     }}
                   >
                     <TableCell className="font-medium">{activity.name}</TableCell>
+                    <TableCell>{`${activity.landDetails.area} ${activity.landDetails.areaUnit}`}</TableCell>
+                    <TableCell>{activity.address.city}</TableCell>
                     <TableCell className="text-center">
                       <Badge 
                         className={cn(
@@ -214,7 +220,7 @@ export default function DashboardPage() {
                 ))
               ) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                         No recent activity.
                     </TableCell>
                 </TableRow>
