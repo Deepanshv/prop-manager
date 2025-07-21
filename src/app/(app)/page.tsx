@@ -192,7 +192,7 @@ export default function DashboardPage() {
                     }}
                   >
                     <TableCell className="font-medium">{activity.name}</TableCell>
-                    <TableCell>{`${activity.landDetails.area} ${activity.landDetails.areaUnit}`}</TableCell>
+                    <TableCell>{activity.address.street}</TableCell>
                     <TableCell>{activity.address.city}</TableCell>
                     <TableCell className="text-center">
                       <Badge 
