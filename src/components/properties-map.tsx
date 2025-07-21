@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import L, { Map } from 'leaflet';
 import * as React from 'react';
 import type { Property } from '@/app/(app)/properties/page';
+import { useRouter } from 'next/navigation';
 
 // Leaflet icon workaround
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -49,6 +50,7 @@ const PropertiesMap = ({ properties, focusedPropertyId }: PropertiesMapProps) =>
     const mapContainerRef = React.useRef<HTMLDivElement>(null);
     const mapInstanceRef = React.useRef<Map | null>(null);
     const markersRef = React.useRef<L.Marker[]>([]);
+    const router = useRouter();
 
     React.useEffect(() => {
         // Initialize map only once
@@ -84,14 +86,40 @@ const PropertiesMap = ({ properties, focusedPropertyId }: PropertiesMapProps) =>
 
         if (propertiesWithCoords.length > 0) {
             propertiesWithCoords.forEach(property => {
+                 const popupContent = `
+                    <div style="font-size: 14px; line-height: 1.5;">
+                        <strong style="font-size: 16px;">${property.name}</strong>
+                        <br/>
+                        ${property.address.street}, ${property.address.city}
+                        <br/>
+                        <a href="/properties/${property.id}" 
+                           class="property-map-popup-link"
+                           style="color: hsl(var(--primary)); text-decoration: underline; font-weight: 500; margin-top: 4px; display: inline-block;">
+                           View Details
+                        </a>
+                    </div>
+                `;
+
                 const marker = L.marker([property.address.latitude!, property.address.longitude!], {
                     icon: getMarkerIcon(property.status)
                 })
                     .addTo(map)
-                    .bindPopup(`<strong>${property.name}</strong><br/>${property.address.street}, ${property.address.city}`);
+                    .bindPopup(popupContent);
                 markersRef.current.push(marker);
             });
         }
+        
+        // Use a delegate listener on the map to handle Next.js routing without page reloads
+        map.off('click'); // remove previous listener
+        map.on('click', (e: L.LeafletMouseEvent) => {
+            const target = e.originalEvent.target as HTMLElement;
+            if (target.classList.contains('property-map-popup-link')) {
+                const href = target.getAttribute('href');
+                if (href) {
+                    router.push(href);
+                }
+            }
+        });
         
         const propertyToFocus = propertiesWithCoords.find(p => p.id === focusedPropertyId);
 
@@ -117,7 +145,7 @@ const PropertiesMap = ({ properties, focusedPropertyId }: PropertiesMapProps) =>
             // Reset to default view if no properties have coordinates
             map.flyTo([20.5937, 78.9629], 5);
         }
-    }, [properties, focusedPropertyId]);
+    }, [properties, focusedPropertyId, router]);
 
     return <div ref={mapContainerRef} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }} />;
 };
