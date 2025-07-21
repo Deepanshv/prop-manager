@@ -339,7 +339,6 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormDescription>A unique name for easy identification.</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}/>
