@@ -40,8 +40,8 @@ const addressSchema = z.object({
 });
 
 const landDetailsSchema = z.object({
-    khasraNumber: z.string().optional(),
-    landbookNumber: z.string().optional(),
+    khasraNumber: z.string().min(1, "Khasra Number is required."),
+    landbookNumber: z.string().min(1, "Landbook Number is required."),
     area: z.coerce.number().min(1, "Land area must be greater than 0."),
     areaUnit: z.string({ required_error: "Please select a unit." }),
 });
@@ -85,11 +85,14 @@ const addPropertyFormSchema = basePropertyFormObject
         path: ["listingPricePerUnit"],
     });
 
-export const editPropertyFormSchema = basePropertyFormObject.extend({
+const editPropertyFormSchemaBase = basePropertyFormObject.extend({
   status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
   soldPrice: z.coerce.number().optional(),
   soldDate: z.date().optional(),
-}).refine(purchasePriceRefinement, {
+});
+
+export const editPropertyFormSchema = editPropertyFormSchemaBase
+.refine(purchasePriceRefinement, {
     message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
     path: ["purchasePrice"],
 }).refine(listingPriceRefinement, {
