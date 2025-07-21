@@ -544,25 +544,6 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                 </div>
             </div>
         )}
-        
-        {mode === 'add' && (
-          <div className="space-y-4">
-             <h3 className="text-lg font-medium">Public Listing</h3>
-              <div className="border p-4 rounded-md space-y-6">
-                <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                          <FormLabel>List Publicly</FormLabel>
-                          <FormDescription>Make this property visible on the public listings page upon creation.</FormDescription>
-                      </div>
-                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                      </FormItem>
-                  )}/>
-                {watchedIsListedPublicly && listingPriceSection}
-              </div>
-           </div>
-        )}
-
 
         <div className="flex justify-end gap-2">
             {children}
