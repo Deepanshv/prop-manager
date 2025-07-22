@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { Textarea } from './ui/textarea'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
@@ -59,6 +60,7 @@ const basePropertyFormObject = z.object({
   isListedPublicly: z.boolean().default(false),
   listingPrice: z.coerce.number().optional(),
   listingPricePerUnit: z.coerce.number().optional(),
+  remarks: z.string().optional(),
 });
 
 const purchasePriceRefinement = (data: z.infer<typeof basePropertyFormObject>) => {
@@ -146,7 +148,8 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
         landDetails: {
             khasraNumber: '',
             landbookNumber: '',
-        }
+        },
+        remarks: '',
     } : undefined
   })
   
@@ -544,6 +547,29 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                 </div>
             </div>
         )}
+        
+        <div className="space-y-4">
+            <h3 className="text-lg font-medium">Remarks</h3>
+            <div className="border p-4 rounded-md">
+                <FormField control={form.control} name="remarks" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Additional Notes</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                placeholder="Add any other relevant details about the property..."
+                                className="resize-y"
+                                {...field}
+                                value={field.value ?? ''}
+                            />
+                        </FormControl>
+                        <FormDescription>
+                            This field is for any extra information you want to keep with this property record.
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            </div>
+        </div>
 
         <div className="flex justify-end gap-2">
             {children}

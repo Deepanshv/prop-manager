@@ -65,6 +65,7 @@ export interface Property {
   status?: 'Owned' | 'For Sale' | 'Sold'
   soldPrice?: number
   soldDate?: Timestamp
+  remarks?: string
 }
 
 const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void }) => {
@@ -222,6 +223,7 @@ export default function PropertyManagerPage() {
           status: 'Owned' as const,
           soldPrice: null,
           soldDate: null,
+          remarks: data.remarks ?? null,
           pricePerUnit: data.pricePerUnit ?? null,
           listingPrice: data.isListedPublicly ? (data.listingPrice ?? null) : null,
           listingPricePerUnit: data.isListedPublicly ? (data.listingPricePerUnit ?? null) : null,

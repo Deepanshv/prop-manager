@@ -94,6 +94,7 @@ export default function PropertyDetailPage() {
       soldPrice: data.soldPrice ?? null,
       listingPrice: data.listingPrice ?? null,
       listingPricePerUnit: data.listingPricePerUnit ?? null,
+      remarks: data.remarks ?? null,
       address: {
         ...data.address,
         landmark: data.address.landmark ?? null,
