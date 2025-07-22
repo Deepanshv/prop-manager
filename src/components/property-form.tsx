@@ -318,7 +318,6 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
             <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
                 {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedListingPrice)}
             </div>
-            <FormDescription>This is the total asking price that will be shown on public listings. It is calculated from Land Area and Listing Price per Unit.</FormDescription>
         </div>
     </div>
   );
@@ -604,3 +603,5 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     </Form>
   )
 }
+
+    
