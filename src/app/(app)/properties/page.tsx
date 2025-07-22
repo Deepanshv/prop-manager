@@ -55,7 +55,7 @@ export interface Property {
     area: number
     areaUnit: 'Square Feet' | 'Acre'
   }
-  propertyType: 'Agricultural' | 'Commercial' | 'Residential' | 'Tribal'
+  propertyType: 'Open Land' | 'Flat' | 'Villa' | 'Commercial Complex Unit'
   purchaseDate: Timestamp
   purchasePrice: number
   pricePerUnit?: number

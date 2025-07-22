@@ -26,7 +26,7 @@ const InteractiveMap = dynamic(() => import('@/components/interactive-map').then
   loading: () => <Skeleton className="h-96 w-full rounded-md" />,
 });
 
-const propertyTypes = ['Agricultural', 'Commercial', 'Residential', 'Tribal'];
+const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit'];
 const landAreaUnits = ['Square Feet', 'Acre'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
@@ -456,7 +456,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                         <FormMessage />
                     </FormItem>
                 )}/>
-
+                
                 <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                     <FormItem><FormLabel>Area Unit</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landDetails?.areaUnit}>
@@ -582,7 +582,3 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     </Form>
   )
 }
-
-    
-
-    
