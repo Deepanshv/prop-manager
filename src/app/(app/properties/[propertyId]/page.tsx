@@ -22,7 +22,7 @@ import { MediaManager } from '@/components/media-manager'
 export default function PropertyDetailPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const params = useParams()
+  const params = useParams();
   const propertyId = params.propertyId as string;
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
@@ -85,7 +85,7 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
-    const propertyData = {
+    const propertyData: Record<string, any> = {
       ...data,
       ownerUid: user.uid,
       purchaseDate: Timestamp.fromDate(data.purchaseDate),
@@ -94,6 +94,7 @@ export default function PropertyDetailPage() {
       soldPrice: data.soldPrice ?? null,
       listingPrice: data.listingPrice ?? null,
       listingPricePerUnit: data.listingPricePerUnit ?? null,
+      remarks: data.remarks ?? null,
       address: {
         ...data.address,
         landmark: data.address.landmark ?? null,
@@ -107,6 +108,11 @@ export default function PropertyDetailPage() {
       },
     };
     
+    if (data.propertyType !== 'Open Land') {
+        propertyData.landType = null;
+        propertyData.isDiverted = null;
+    }
+
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;

@@ -66,6 +66,8 @@ export interface Property {
   soldPrice?: number
   soldDate?: Timestamp
   remarks?: string
+  landType?: 'Agricultural' | 'Residential' | 'Commercial' | 'Tribal'
+  isDiverted?: boolean
 }
 
 const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void }) => {
@@ -239,6 +241,11 @@ export default function PropertyManagerPage() {
             landbookNumber: data.landDetails.landbookNumber ?? null,
           },
         };
+
+        if (data.propertyType !== 'Open Land') {
+            delete (propertyData as any).landType;
+            delete (propertyData as any).isDiverted;
+        }
         
         await setDoc(newPropertyRef, propertyData);
         
