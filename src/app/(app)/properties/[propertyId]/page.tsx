@@ -22,7 +22,7 @@ import { MediaManager } from '@/components/media-manager'
 export default function PropertyDetailPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const params = useParams()
+  const params = React.use(useParams())
   const propertyId = params.propertyId as string;
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
