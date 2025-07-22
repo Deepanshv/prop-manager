@@ -41,9 +41,9 @@ export const useAuth = () => {
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/prospects", icon: Users, label: "Prospects" },
   { href: "/properties", icon: Building2, label: "Properties" },
   { href: "/sold-properties", icon: History, label: "Sold Properties" },
-  { href: "/prospects", icon: Users, label: "Prospects" },
   { href: "/listings", icon: Globe, label: "Public Listings" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ]
