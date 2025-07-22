@@ -68,7 +68,7 @@ export interface Prospect {
   dealName: string
   source: string
   status: 'New' | 'Converted'
-  estimatedValue: number
+  estimatedValue?: number
   dateAdded: Timestamp
 }
 
@@ -147,7 +147,6 @@ export default function ProspectManagerPage() {
         setFormInitialData({
           dealName: '',
           source: '',
-          estimatedValue: 0,
           dateAdded: new Date(),
           status: 'New',
         })

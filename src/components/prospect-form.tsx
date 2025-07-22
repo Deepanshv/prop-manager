@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils'
 export const prospectSchema = z.object({
   dealName: z.string().min(3, { message: "Deal name must be at least 3 characters." }),
   source: z.string().min(2, { message: "Source is required." }),
-  estimatedValue: z.coerce.number().positive({ message: 'Must be a positive number' }).min(1),
   dateAdded: z.date({ required_error: "A date is required."}),
   status: z.enum(['New', 'Converted']),
 });
@@ -40,7 +39,6 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
     defaultValues: initialData || {
       dealName: '',
       source: '',
-      estimatedValue: 0,
       dateAdded: new Date(),
       status: 'New',
     }
@@ -90,14 +88,7 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                     <FormMessage />
                 </FormItem>
             )} />
-             <FormField control={form.control} name="estimatedValue" render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                    <FormLabel>Estimated Value (₹)</FormLabel>
-                    <FormControl><Input type="number" placeholder="10000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                </FormItem>
-            )} />
-
+            
             {mode === 'edit' && (
                 <FormField
                     control={form.control}
