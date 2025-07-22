@@ -26,7 +26,7 @@ const InteractiveMap = dynamic(() => import('@/components/interactive-map').then
   loading: () => <Skeleton className="h-96 w-full rounded-md" />,
 });
 
-const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit'];
+const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment'];
 const landAreaUnits = ['Square Feet', 'Acre'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
@@ -318,6 +318,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
             <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
                 {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedListingPrice)}
             </div>
+            <FormMessage>{form.formState.errors.listingPrice?.message}</FormMessage>
         </div>
     </div>
   );

@@ -55,7 +55,7 @@ export interface Property {
     area: number
     areaUnit: 'Square Feet' | 'Acre'
   }
-  propertyType: 'Open Land' | 'Flat' | 'Villa' | 'Commercial Complex Unit'
+  propertyType: 'Open Land' | 'Flat' | 'Villa' | 'Commercial Complex Unit' | 'Apartment'
   purchaseDate: Timestamp
   purchasePrice: number
   pricePerUnit?: number
@@ -218,7 +218,7 @@ export default function PropertyManagerPage() {
     
     try {
         const newPropertyRef = doc(collection(db, 'properties'));
-        const propertyData = {
+        const propertyData: Record<string, any> = {
           ...data,
           purchaseDate: Timestamp.fromDate(data.purchaseDate),
           ownerUid: user.uid,
@@ -243,8 +243,8 @@ export default function PropertyManagerPage() {
         };
 
         if (data.propertyType !== 'Open Land') {
-            delete (propertyData as any).landType;
-            delete (propertyData as any).isDiverted;
+            propertyData.landType = null;
+            propertyData.isDiverted = null;
         }
         
         await setDoc(newPropertyRef, propertyData);
