@@ -68,8 +68,10 @@ export interface Prospect {
   dealName: string
   source: string
   status: 'New' | 'Converted'
-  estimatedValue?: number
   dateAdded: Timestamp
+  contactNumber?: string
+  email?: string
+  location?: string
 }
 
 const ProspectStatusBadge = ({ status }: { status: Prospect['status'] }) => {
@@ -149,6 +151,9 @@ export default function ProspectManagerPage() {
           source: '',
           dateAdded: new Date(),
           status: 'New',
+          contactNumber: '',
+          email: '',
+          location: '',
         })
         setIsModalOpen(true);
     };
@@ -188,7 +193,10 @@ export default function ProspectManagerPage() {
             if (selectedProspect) {
                 const updateData = {
                     ...data,
-                    dateAdded: Timestamp.fromDate(data.dateAdded)
+                    dateAdded: Timestamp.fromDate(data.dateAdded),
+                    contactNumber: data.contactNumber || null,
+                    email: data.email || null,
+                    location: data.location || null,
                 };
                 await updateDoc(doc(db, 'prospects', selectedProspect.id), updateData);
                 toast({ title: "Success", description: "Prospect updated successfully."});
@@ -197,6 +205,9 @@ export default function ProspectManagerPage() {
                     ...data, 
                     ownerUid: user.uid, 
                     dateAdded: Timestamp.fromDate(data.dateAdded),
+                    contactNumber: data.contactNumber || null,
+                    email: data.email || null,
+                    location: data.location || null,
                 };
                 await addDoc(collection(db, 'prospects'), submissionData);
                 toast({ title: "Success", description: "New prospect added."});

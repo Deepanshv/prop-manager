@@ -15,12 +15,16 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { Separator } from './ui/separator'
 
 export const prospectSchema = z.object({
   dealName: z.string().min(3, { message: "Deal name must be at least 3 characters." }),
   source: z.string().min(2, { message: "Source is required." }),
   dateAdded: z.date({ required_error: "A date is required."}),
   status: z.enum(['New', 'Converted']),
+  contactNumber: z.string().regex(/^\d{10}$/, { message: "Must be a 10-digit number."}).optional().or(z.literal('')),
+  email: z.string().email({ message: "Invalid email address."}).optional().or(z.literal('')),
+  location: z.string().optional(),
 });
 
 export type ProspectFormData = z.infer<typeof prospectSchema>
@@ -41,6 +45,9 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
       source: '',
       dateAdded: new Date(),
       status: 'New',
+      contactNumber: '',
+      email: '',
+      location: '',
     }
   });
 
@@ -88,32 +95,65 @@ export function ProspectForm({ onSubmit, initialData, isSaving, mode, children }
                     <FormMessage />
                 </FormItem>
             )} />
-            
-            {mode === 'edit' && (
-                <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                            <FormLabel>Prospect Status</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a status" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="New">New</SelectItem>
-                                    <SelectItem value="Converted">Converted</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            )}
           </div>
         </div>
+
+        <div className="space-y-4">
+            <h3 className="text-lg font-medium">Contact Information</h3>
+             <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                <FormField control={form.control} name="contactNumber" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Contact Number</FormLabel>
+                        <FormControl><Input placeholder="10-digit mobile number" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+                <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl><Input type="email" placeholder="prospect@example.com" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+                <FormField control={form.control} name="location" render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                        <FormLabel>Location</FormLabel>
+                        <FormControl><Input placeholder="e.g. Indore, Madhya Pradesh" {...field} value={field.value ?? ''} /></FormControl>
+                         <FormDescription>The city or general area where the prospect is located.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+             </div>
+        </div>
+
+        {mode === 'edit' && (
+             <div className="space-y-4">
+                <h3 className="text-lg font-medium">Status</h3>
+                <div className="border p-4 rounded-md">
+                    <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prospect Status</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a status" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="New">New</SelectItem>
+                                        <SelectItem value="Converted">Converted</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            </div>
+        )}
         
         <div className="flex justify-end gap-2">
           {children}
