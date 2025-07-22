@@ -457,9 +457,6 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     </FormItem>
                 )}/>
 
-                <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                    <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                )}/>
                 <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                     <FormItem><FormLabel>Area Unit</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landDetails?.areaUnit}>
@@ -470,6 +467,9 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     </Select>
                     <FormMessage />
                     </FormItem>
+                )}/>
+                <FormField control={form.control} name="landDetails.area" render={({ field }) => (
+                    <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )}/>
 
                 <FormField control={form.control} name="pricePerUnit" render={({ field }) => (
