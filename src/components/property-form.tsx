@@ -44,7 +44,7 @@ const addressSchema = z.object({
 const landDetailsSchema = z.object({
     khasraNumber: z.string().min(1, "Khasra Number is required."),
     landbookNumber: z.string().min(1, "Landbook Number is required."),
-    area: z.coerce.number().min(1, "Land area must be greater than 0."),
+    area: z.coerce.number().min(0.0001, "Land area must be greater than 0."),
     areaUnit: z.string({ required_error: "Please select a unit." }),
 });
 
@@ -66,13 +66,6 @@ const basePropertyFormObject = z.object({
   isDiverted: z.boolean().optional(),
 });
 
-const purchasePriceRefinement = (data: z.infer<typeof basePropertyFormObject>) => {
-    if (data.landDetails.area > 0 && (data.pricePerUnit ?? 0) > 0) {
-        return data.purchasePrice > 0;
-    }
-    return true;
-};
-
 const listingPriceRefinement = (data: z.infer<typeof basePropertyFormObject>) => {
      if (data.isListedPublicly) {
         return data.listingPricePerUnit && data.listingPricePerUnit > 0;
@@ -81,10 +74,6 @@ const listingPriceRefinement = (data: z.infer<typeof basePropertyFormObject>) =>
 }
 
 const addPropertyFormSchema = basePropertyFormObject
-    .refine(purchasePriceRefinement, {
-        message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
-        path: ["purchasePrice"],
-    })
     .refine(listingPriceRefinement, {
         message: "A listing price per unit is required when a property is listed publicly.",
         path: ["listingPricePerUnit"],
@@ -97,10 +86,7 @@ const editPropertyFormSchemaBase = basePropertyFormObject.extend({
 });
 
 export const editPropertyFormSchema = editPropertyFormSchemaBase
-.refine(purchasePriceRefinement, {
-    message: "Calculated purchase price must be greater than 0. Check Land Area and Price per Unit.",
-    path: ["purchasePrice"],
-}).refine(listingPriceRefinement, {
+.refine(listingPriceRefinement, {
     message: "A listing price per unit is required when a property is listed publicly.",
     path: ["listingPricePerUnit"],
 }).refine(data => {
