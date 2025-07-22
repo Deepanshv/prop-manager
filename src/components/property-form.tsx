@@ -481,7 +481,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                 )}/>
                 
                 <div className="md:col-span-2 space-y-1">
-                    <FormLabel>Calculated Purchase Price</FormLabel>
+                    <FormLabel>Purchase Price</FormLabel>
                     <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
                         {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedPurchaseValue)}
                     </div>
@@ -582,5 +582,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     </Form>
   )
 }
+
+    
 
     
