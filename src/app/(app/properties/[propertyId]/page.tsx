@@ -16,7 +16,6 @@ import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
 import type { Property } from '../page'
 import { PropertyForm, type PropertyFormData } from '@/components/property-form'
-import { MediaManager } from '@/components/media-manager'
 
 
 export default function PropertyDetailPage() {
@@ -189,7 +188,6 @@ export default function PropertyDetailPage() {
         </TabsContent>
         <TabsContent value="files">
             <div className="mt-4 space-y-6">
-                <MediaManager entityType="properties" entityId={property.id} />
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><FileQuestion className="text-muted-foreground" /> Recommended Documents</CardTitle>
