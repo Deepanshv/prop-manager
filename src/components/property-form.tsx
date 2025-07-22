@@ -54,7 +54,7 @@ const basePropertyFormObject = z.object({
   landDetails: landDetailsSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
-  purchasePrice: z.coerce.number(), // This is now a calculated field.
+  purchasePrice: z.coerce.number(), // This is a calculated field.
   pricePerUnit: z.coerce.number({
         invalid_type_error: "Price per unit must be a number."
     }).positive({ message: "Price per unit must be a positive number." }).optional(),
@@ -417,39 +417,8 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
              </div>
         </div>
         
-        {watchedPropertyType === 'Open Land' && (
-             <div className="space-y-4">
-                <h3 className="text-lg font-medium">Open Land Specifics</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 border p-4 rounded-md">
-                    <FormField control={form.control} name="landType" render={({ field }) => (
-                        <FormItem><FormLabel>Land Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landType}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="isDiverted" render={({ field }) => (
-                        <FormItem className="flex flex-col pt-1.5">
-                            <FormLabel>Diverted Land</FormLabel>
-                             <div className="flex items-center space-x-2 pt-2.5">
-                                <FormControl><Switch id="isDivertedSwitch" checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                <label htmlFor="isDivertedSwitch" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Is the land diverted?
-                                </label>
-                            </div>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                </div>
-            </div>
-        )}
-
         <div className="space-y-4">
-             <h3 className="text-lg font-medium">Property & Financial Details</h3>
+             <h3 className="text-lg font-medium">Property &amp; Financial Details</h3>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 border p-4 rounded-md">
                 <FormField control={form.control} name="propertyType" render={({ field }) => (
                     <FormItem><FormLabel>Property Type</FormLabel>
@@ -477,6 +446,34 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                         <FormMessage />
                     </FormItem>
                 )}/>
+
+                {watchedPropertyType === 'Open Land' && (
+                  <>
+                    <FormField control={form.control} name="landType" render={({ field }) => (
+                        <FormItem><FormLabel>Land Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landType}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={form.control} name="isDiverted" render={({ field }) => (
+                        <FormItem className="flex flex-col pt-1.5">
+                            <FormLabel>Diverted Land</FormLabel>
+                             <div className="flex items-center space-x-2 pt-2.5">
+                                <FormControl><Switch id="isDivertedSwitch" checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                <label htmlFor="isDivertedSwitch" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Is the land diverted?
+                                </label>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                  </>
+                )}
                 
                 <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                     <FormItem><FormLabel>Area Unit</FormLabel>
@@ -514,7 +511,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
         
         {mode === 'edit' && (
             <div className="space-y-4">
-                <h3 className="text-lg font-medium">Property Status & Listing</h3>
+                <h3 className="text-lg font-medium">Property Status &amp; Listing</h3>
                 <div className="border p-4 rounded-md space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField control={form.control} name="status" render={({ field }) => (
