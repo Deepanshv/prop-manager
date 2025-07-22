@@ -1,42 +1,38 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Users can only manage their own profile data
-    match /users/{userId} {
-      allow read, update: if request.auth.uid == userId;
-    }
-
-    // Properties can be read publicly if listed, but only written by the owner.
+    // Rules for the 'properties' collection
     match /properties/{propertyId} {
-      // Anyone can view a property if it's publicly listed.
-      allow get, list: if resource.data.isListedPublicly == true;
+      // Anyone can read a property that is publicly listed.
+      allow read: if resource.data.isListedPublicly == true;
       
-      // The owner can do anything with their own property documents.
-      // This includes reading private properties.
-      allow read, write, delete: if request.auth.uid == resource.data.ownerUid;
-      
-      // Rules for the 'files' subcollection within a property
+      // The owner can create, read, update, and delete their own properties.
+      allow create: if request.auth.uid == request.resource.data.ownerUid;
+      allow read, update, delete: if request.auth.uid == resource.data.ownerUid;
+
+      // Allow the owner to manage the files subcollection for their property.
       match /files/{fileId} {
-        // Only the owner of the parent property can access the files.
-        allow read, write, delete: if get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
+        allow read, write, delete: if request.auth.uid == get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid;
+      }
+      
+      // Allow the owner to manage the media subcollection for their property.
+      match /media/{mediaId} {
+        allow read, write, delete: if request.auth.uid == get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid;
       }
     }
 
-    // Prospects are strictly private and can only be accessed by their owner.
+    // Rules for the 'prospects' collection
     match /prospects/{prospectId} {
-      allow read, write, delete: if request.auth.uid == resource.data.ownerUid;
-
-      // Rules for the 'files' subcollection within a prospect
-      match /files/{fileId} {
-         // Only the owner of the parent prospect can access the files.
-        allow read, write, delete: if get(/databases/$(database)/documents/prospects/$(prospectId)).data.ownerUid == request.auth.uid;
-      }
+      // The owner can create, read, update, and delete their own prospects.
+      allow create: if request.auth.uid == request.resource.data.ownerUid;
+      allow read, update, delete: if request.auth.uid == resource.data.ownerUid;
     }
-
-    // Lock down all other documents by default
-    // This is not needed as rules are not inherited. A path not covered is implicitly denied.
+    
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // A user can read and write to their own user document.
+      allow read, write: if request.auth.uid == userId;
+    }
   }
 }
