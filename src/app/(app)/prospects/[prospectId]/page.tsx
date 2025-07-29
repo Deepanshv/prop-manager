@@ -4,6 +4,7 @@
 
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -14,12 +15,10 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '../../layout'
 import type { Prospect } from '../page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
-import { useRouter } from 'next/navigation'
 
-function ProspectDetailClientPage({ params }: { params: { prospectId: string } }) {
+function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   const { user } = useAuth()
   const router = useRouter()
-  const prospectId = params.prospectId;
   const [prospect, setProspect] = React.useState<Prospect | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
@@ -116,5 +115,5 @@ function ProspectDetailClientPage({ params }: { params: { prospectId: string } }
 }
 
 export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    return <ProspectDetailClientPage params={params} />;
+    return <ProspectDetailClientPage prospectId={params.prospectId} />;
 }

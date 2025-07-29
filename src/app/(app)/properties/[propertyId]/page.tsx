@@ -4,7 +4,7 @@
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { ArrowLeft, FileQuestion } from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
