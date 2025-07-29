@@ -278,23 +278,25 @@ export default function ProspectManagerPage() {
     }
     setIsSaving(true)
 
+    const prospectDataToSave = {
+        ...data,
+        contactInfo: data.contactInfo || null,
+    };
+
     try {
         if (editingProspect) {
              const prospectDocRef = doc(db, 'prospects', editingProspect.id);
-             await updateDoc(prospectDocRef, data);
+             await updateDoc(prospectDocRef, prospectDataToSave);
              toast({ title: 'Success', description: 'Prospect updated successfully.' });
         } else {
              const newProspectRef = doc(collection(db, 'prospects'));
-            const prospectData: Omit<Prospect, 'id' | 'dateAdded' | 'ownerUid' | 'status'> & { dateAdded: Timestamp; ownerUid: string; status: 'New' } = {
-                name: data.name,
-                address: data.address,
-                propertyType: data.propertyType,
+            const newProspectData = {
+                ...prospectDataToSave,
                 ownerUid: user.uid,
                 status: 'New' as const,
                 dateAdded: Timestamp.now(),
-                contactInfo: data.contactInfo,
             };
-             await setDoc(newProspectRef, prospectData);
+             await setDoc(newProspectRef, newProspectData);
              toast({ title: 'Success', description: 'Prospect added successfully.' });
         }
       setIsModalOpen(false)
