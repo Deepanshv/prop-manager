@@ -4,7 +4,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin, Edit } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -70,12 +70,10 @@ export interface Property {
   isDiverted?: boolean
 }
 
-const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void }) => {
-    const router = useRouter();
-
+const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void, onEdit: (p: Property) => void }) => {
     return (
         <Card className="flex flex-col hover:shadow-lg transition-shadow">
-            <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
+            <div onClick={() => onEdit(property)} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg cursor-pointer">
                 <CardHeader>
                     <CardTitle className="text-lg">{property.name}</CardTitle>
                     <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
@@ -89,7 +87,7 @@ const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold }: { propert
                         Purchased on {format(property.purchaseDate.toDate(), 'PPP')}
                      </div>
                 </CardContent>
-            </Link>
+            </div>
             <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
                 <div>
                     <p className="text-muted-foreground">Purchase Price</p>
@@ -113,12 +111,18 @@ const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold }: { propert
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => router.push(`/properties/${property.id}`)}>
-                            <View className="mr-2 h-4 w-4" /> View/Edit Details
+                          <DropdownMenuItem onClick={() => onEdit(property)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Details
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onMarkAsSold(property)}>
                             <CheckCircle className="mr-2 h-4 w-4" /> Mark as Sold
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                           <DropdownMenuItem asChild>
+                                <Link href={`/properties/${property.id}`}>
+                                    <View className="mr-2 h-4 w-4" /> View Full Page
+                                </Link>
+                            </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => onDelete(property)} className="text-destructive focus:text-destructive">
                             <Trash className="mr-2 h-4 w-4" /> Delete
@@ -134,9 +138,14 @@ PropertyCard.displayName = "PropertyCard";
 
 export default function PropertyManagerPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [properties, setProperties] = React.useState<Property[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [isModalOpen, setIsModalOpen] = React.useState(false)
+  
+  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false)
+  const [editingProperty, setEditingProperty] = React.useState<Property | null>(null);
+
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [isSoldModalOpen, setIsSoldModalOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
@@ -180,8 +189,30 @@ export default function PropertyManagerPage() {
   
   
   const handleAddProperty = () => {
-    setIsModalOpen(true)
+    setIsAddModalOpen(true)
   }
+  
+  const handleEditProperty = React.useCallback((property: Property) => {
+    let pricePerUnit = property.pricePerUnit;
+    if (pricePerUnit === undefined && property.purchasePrice && property.landDetails.area > 0) {
+      pricePerUnit = property.purchasePrice / property.landDetails.area;
+    }
+    
+    let listingPricePerUnit = property.listingPricePerUnit;
+    if (listingPricePerUnit === undefined && property.listingPrice && property.landDetails.area > 0) {
+      listingPricePerUnit = property.listingPrice / property.landDetails.area;
+    }
+
+    const initialData = {
+        ...property,
+        purchaseDate: property.purchaseDate.toDate(),
+        soldDate: property.soldDate?.toDate(),
+        pricePerUnit: pricePerUnit,
+        listingPricePerUnit: listingPricePerUnit,
+    };
+    setEditingProperty(initialData as any);
+    setIsEditModalOpen(true);
+  }, []);
 
   const handleDeleteProperty = React.useCallback((property: Property) => {
     setSelectedProperty(property)
@@ -209,7 +240,7 @@ export default function PropertyManagerPage() {
     }
   }
 
-  const onSubmit = async (data: PropertyFormData) => {
+  const onAddSubmit = async (data: PropertyFormData) => {
     if (!user || !db) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
@@ -250,13 +281,79 @@ export default function PropertyManagerPage() {
         await setDoc(newPropertyRef, propertyData);
         
         toast({ title: 'Success', description: 'Property added successfully. You can add documents in the edit screen.' });
-        setIsModalOpen(false);
+        setIsAddModalOpen(false);
 
     } catch (error: any) {
         console.error('Error during property creation: ', error);
         toast({ title: 'Error', description: error.message || 'Failed to save property. Please try again.', variant: 'destructive' });
     } finally {
         setIsSaving(false);
+    }
+  }
+
+  const onEditSubmit = async (data: PropertyFormData) => {
+    if (!user || !db || !editingProperty) {
+      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
+      return
+    }
+    setIsSaving(true)
+
+    const propertyData: Record<string, any> = {
+      ...data,
+      ownerUid: user.uid,
+      purchaseDate: Timestamp.fromDate(data.purchaseDate),
+      pricePerUnit: data.pricePerUnit ?? null,
+      soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
+      soldPrice: data.soldPrice ?? null,
+      listingPrice: data.listingPrice ?? null,
+      listingPricePerUnit: data.listingPricePerUnit ?? null,
+      remarks: data.remarks ?? null,
+      address: {
+        ...data.address,
+        landmark: data.address.landmark ?? null,
+        latitude: data.address.latitude ?? null,
+        longitude: data.address.longitude ?? null,
+      },
+      landDetails: {
+        ...data.landDetails,
+        khasraNumber: data.landDetails.khasraNumber ?? null,
+        landbookNumber: data.landDetails.landbookNumber ?? null,
+      },
+    };
+    
+    if (data.propertyType !== 'Open Land') {
+        propertyData.landType = null;
+        propertyData.isDiverted = null;
+    }
+
+    if (data.status === 'Sold') {
+        propertyData.isListedPublicly = false;
+        propertyData.listingPrice = null;
+        propertyData.listingPricePerUnit = null;
+    } else {
+        propertyData.soldDate = null;
+        propertyData.soldPrice = null;
+    }
+
+    if (!data.isListedPublicly) {
+        propertyData.listingPrice = null;
+        propertyData.listingPricePerUnit = null;
+    }
+
+    try {
+      const propDocRef = doc(db, 'properties', editingProperty.id)
+      await updateDoc(propDocRef, propertyData)
+      toast({ title: 'Success', description: 'Property updated successfully.' })
+       if (propertyData.status === 'Sold') {
+            router.push('/sold-properties')
+        }
+    } catch (error) {
+      console.error('Error updating document: ', error)
+      toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' })
+    } finally {
+        setIsSaving(false)
+        setIsEditModalOpen(false)
+        setEditingProperty(null)
     }
   }
 
@@ -319,7 +416,7 @@ export default function PropertyManagerPage() {
         {loading ? <PageSkeleton /> : properties.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {properties.map((prop) => (
-                    <PropertyCard key={prop.id} property={prop} onDelete={handleDeleteProperty} onMarkAsSold={handleMarkAsSold} />
+                    <PropertyCard key={prop.id} property={prop} onDelete={handleDeleteProperty} onMarkAsSold={handleMarkAsSold} onEdit={handleEditProperty} />
                 ))}
             </div>
         ) : (
@@ -332,7 +429,8 @@ export default function PropertyManagerPage() {
         )}
       </main>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      {/* Add Dialog */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader><DialogTitle>Add New Property</DialogTitle>
             <DialogDescription>Fill in the details to add a new property. Documents can be added after creation.</DialogDescription>
@@ -340,12 +438,37 @@ export default function PropertyManagerPage() {
           <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
             <PropertyForm
                 mode="add"
-                onSubmit={onSubmit}
+                onSubmit={onAddSubmit}
                 isSaving={isSaving}
                 submitButtonText="Save Property"
             >
-                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
             </PropertyForm>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+       {/* Edit Dialog */}
+       <Dialog open={isEditModalOpen} onOpenChange={(open) => {
+          if (!open) { setEditingProperty(null); }
+          setIsEditModalOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader><DialogTitle>Edit Property</DialogTitle>
+            <DialogDescription>Update the details for this property.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
+            {editingProperty ? (
+                <PropertyForm
+                    mode="edit"
+                    onSubmit={onEditSubmit}
+                    initialData={editingProperty}
+                    isSaving={isSaving}
+                    submitButtonText="Save Changes"
+                >
+                    <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                </PropertyForm>
+            ) : <Skeleton className="h-96 w-full" />}
           </div>
         </DialogContent>
       </Dialog>
