@@ -22,6 +22,7 @@ const InteractiveMap = dynamic(() => import('@/components/interactive-map').then
 });
 
 const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment'];
+const prospectStatuses = ['New', 'Converted', 'Rejected'];
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Area/Locality is required'),
@@ -38,6 +39,7 @@ export const prospectSchema = z.object({
   address: addressSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   contactInfo: z.string().optional(),
+  status: z.enum(['New', 'Converted', 'Rejected']).optional(),
 });
 
 export type ProspectFormData = z.infer<typeof prospectSchema>
@@ -48,9 +50,10 @@ interface ProspectFormProps {
     submitButtonText: string;
     initialData?: ProspectFormData;
     children?: React.ReactNode;
+    mode: 'add' | 'edit';
 }
 
-export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData, children }: ProspectFormProps) {
+export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData, children, mode }: ProspectFormProps) {
   const { toast } = useToast()
   
   const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
@@ -71,6 +74,7 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData
             zip: '',
         },
         contactInfo: '',
+        status: 'New',
     }
   });
 
@@ -205,7 +209,7 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData
             <h3 className="text-lg font-medium">Prospect Details</h3>
             <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem className="md:col-span-2">
+                    <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl><Input placeholder="e.g. South Mumbai Sea View Flat" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
@@ -222,6 +226,19 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData
                     <FormMessage />
                     </FormItem>
                 )}/>
+                {mode === 'edit' && (
+                  <FormField control={form.control} name="status" render={({ field }) => (
+                      <FormItem><FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              {prospectStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}/>
+                )}
             </div>
         </div>
 

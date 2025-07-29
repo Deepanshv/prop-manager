@@ -196,8 +196,8 @@ export default function ProspectManagerPage() {
 
   const handleEditProspect = React.useCallback((prospect: Prospect) => {
     setEditingProspect(prospect);
-    setIsModalOpen(true);
-  }, []);
+    router.push(`/prospects/${prospect.id}`);
+  }, [router]);
 
   const handleDeleteProspect = React.useCallback((prospect: Prospect) => {
     setSelectedProspect(prospect)
@@ -368,6 +368,7 @@ export default function ProspectManagerPage() {
           </DialogHeader>
           <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
             <ProspectForm
+              mode={editingProspect ? 'edit' : 'add'}
               onSubmit={onSubmit}
               isSaving={isSaving}
               initialData={editingProspect || undefined}
@@ -396,5 +397,3 @@ export default function ProspectManagerPage() {
     </>
   )
 }
-
-    
