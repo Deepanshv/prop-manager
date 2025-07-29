@@ -39,6 +39,7 @@ import type { Property } from '@/app/(app)/properties/page'
 import { ProspectForm, ProspectFormData } from '@/components/prospect-form'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 export interface Prospect extends Partial<Property> {
   id: string
@@ -64,9 +65,9 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange
 
   return (
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
-      <div 
+      <Link 
+        href={`/prospects/${prospect.id}`}
         className="flex-grow flex flex-col p-6 space-y-2 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg"
-        onClick={() => onEdit(prospect)}
       >
         <CardTitle className="text-lg">{prospect.name}</CardTitle>
         {prospect.address && (
@@ -79,7 +80,7 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange
                 <strong>Source:</strong> {prospect.sourceDetails}
             </p>
         )}
-      </div>
+      </Link>
       <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
         <div>
           <p className="text-muted-foreground">Status</p>

@@ -73,7 +73,7 @@ export interface Property {
 const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void, onEdit: (p: Property) => void }) => {
     return (
         <Card className="flex flex-col hover:shadow-lg transition-shadow">
-            <div onClick={() => onEdit(property)} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg cursor-pointer">
+            <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg cursor-pointer">
                 <CardHeader>
                     <CardTitle className="text-lg">{property.name}</CardTitle>
                     <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
@@ -87,7 +87,7 @@ const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: {
                         Purchased on {format(property.purchaseDate.toDate(), 'PPP')}
                      </div>
                 </CardContent>
-            </div>
+            </Link>
             <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
                 <div>
                     <p className="text-muted-foreground">Purchase Price</p>
@@ -117,12 +117,6 @@ const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: {
                           <DropdownMenuItem onClick={() => onMarkAsSold(property)}>
                             <CheckCircle className="mr-2 h-4 w-4" /> Mark as Sold
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                           <DropdownMenuItem asChild>
-                                <Link href={`/properties/${property.id}`}>
-                                    <View className="mr-2 h-4 w-4" /> View Full Page
-                                </Link>
-                            </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => onDelete(property)} className="text-destructive focus:text-destructive">
                             <Trash className="mr-2 h-4 w-4" /> Delete
