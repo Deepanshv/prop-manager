@@ -14,11 +14,14 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from './ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
   loading: () => <Skeleton className="h-96 w-full rounded-md" />,
 });
+
+const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment'];
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Area/Locality is required'),
@@ -33,7 +36,8 @@ const addressSchema = z.object({
 export const prospectSchema = z.object({
   name: z.string().min(3, 'A name for the prospect is required.'),
   address: addressSchema,
-  sourceDetails: z.string().optional(),
+  propertyType: z.string({ required_error: 'Please select a property type.' }),
+  contactInfo: z.string().optional(),
 });
 
 export type ProspectFormData = z.infer<typeof prospectSchema>
@@ -66,7 +70,7 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData
             state: '',
             zip: '',
         },
-        sourceDetails: '',
+        contactInfo: '',
     }
   });
 
@@ -198,13 +202,24 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="space-y-4">
-            <h3 className="text-lg font-medium">Prospect Name</h3>
-            <div className="border p-4 rounded-md space-y-4">
+            <h3 className="text-lg font-medium">Prospect Details</h3>
+            <div className="border p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                         <FormLabel>Name</FormLabel>
                         <FormControl><Input placeholder="e.g. South Mumbai Sea View Flat" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
+                    </FormItem>
+                )}/>
+                 <FormField control={form.control} name="propertyType" render={({ field }) => (
+                    <FormItem><FormLabel>Property Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.propertyType}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
                     </FormItem>
                 )}/>
             </div>
@@ -279,23 +294,23 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData
         </div>
         
         <div className="space-y-4">
-            <h3 className="text-lg font-medium">Source Details</h3>
+            <h3 className="text-lg font-medium">Contact Information</h3>
             <div className="border p-4 rounded-md">
                  <FormField
                     control={form.control}
-                    name="sourceDetails"
+                    name="contactInfo"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Source</FormLabel>
+                            <FormLabel>Contact Details</FormLabel>
                             <FormControl>
                                 <Textarea
-                                    placeholder="e.g. Referral from John Doe, Zillow listing, etc."
+                                    placeholder="e.g. Broker: John Doe (555-123-4567), Agent: Jane Smith (jane@example.com)"
                                     {...field}
                                     value={field.value ?? ''}
                                 />
                             </FormControl>
                             <FormDescription>
-                                Note how you learned about this prospect.
+                                Note the name, phone, or email of the broker, agent, or owner you are in contact with.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

@@ -46,7 +46,7 @@ export interface Prospect extends Partial<Property> {
   ownerUid: string
   status: 'New' | 'Converted' | 'Rejected'
   dateAdded: Timestamp
-  sourceDetails?: string
+  contactInfo?: string
 }
 
 const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange, onEdit }: { prospect: Prospect; onDelete: (p: Prospect) => void; onConvert: (p: Prospect) => void, onStatusChange: (p: Prospect, status: Prospect['status']) => void, onEdit: (p: Prospect) => void }) => {
@@ -75,9 +75,9 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange
              {prospect.address.city || prospect.address.state ? `${prospect.address.city}, ${prospect.address.state}` : 'Location not set'}
           </CardDescription>
         )}
-        {prospect.sourceDetails && (
+        {prospect.contactInfo && (
             <p className="text-sm text-muted-foreground pt-2">
-                <strong>Source:</strong> {prospect.sourceDetails}
+                <strong>Source:</strong> {prospect.contactInfo}
             </p>
         )}
       </Link>
@@ -227,7 +227,7 @@ export default function ProspectManagerPage() {
         purchaseDate: Timestamp.now(),
         purchasePrice: 0,
         status: 'Owned',
-        remarks: prospect.sourceDetails ? `Source: ${prospect.sourceDetails}` : '',
+        remarks: prospect.contactInfo ? `Contact Info: ${prospect.contactInfo}` : '',
       }
       
       await setDoc(newPropertyRef, newPropertyData)
@@ -285,13 +285,14 @@ export default function ProspectManagerPage() {
              toast({ title: 'Success', description: 'Prospect updated successfully.' });
         } else {
              const newProspectRef = doc(collection(db, 'prospects'));
-            const prospectData: Omit<Prospect, 'id'> = {
+            const prospectData: Omit<Prospect, 'id' | 'dateAdded' | 'ownerUid' | 'status'> & { dateAdded: Timestamp; ownerUid: string; status: 'New' } = {
                 name: data.name,
                 address: data.address,
+                propertyType: data.propertyType,
                 ownerUid: user.uid,
                 status: 'New' as const,
                 dateAdded: Timestamp.now(),
-                sourceDetails: data.sourceDetails,
+                contactInfo: data.contactInfo,
             };
              await setDoc(newProspectRef, prospectData);
              toast({ title: 'Success', description: 'Prospect added successfully.' });
