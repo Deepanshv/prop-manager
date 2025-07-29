@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
@@ -113,6 +114,6 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   )
 }
 
-export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    return <ProspectDetailClientPage prospectId={params.prospectId} />;
+export default function ProspectDetailPage({ params: { prospectId } }: { params: { prospectId: string } }) {
+    return <ProspectDetailClientPage prospectId={prospectId} />;
 }

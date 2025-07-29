@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -218,6 +219,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   )
 }
 
-export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    return <PropertyDetailClientPage propertyId={params.propertyId} />;
+export default function PropertyDetailPage({ params: { propertyId } }: { params: { propertyId: string } }) {
+    return <PropertyDetailClientPage propertyId={propertyId} />;
 }
