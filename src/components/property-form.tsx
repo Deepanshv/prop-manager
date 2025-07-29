@@ -352,6 +352,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                             className="pl-10 pr-10"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => suggestions.length > 0 && setSuggestions(suggestions)}
                             autoComplete="off"
                         />
                         <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleGetCurrentLocation} title="Use my current location">
