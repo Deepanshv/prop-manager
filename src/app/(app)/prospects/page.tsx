@@ -1,31 +1,9 @@
 
 'use client'
 
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  query,
-  Timestamp,
-  updateDoc,
-  where,
-} from 'firebase/firestore'
-import { format } from 'date-fns'
-import {
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
-    Loader2,
-    Pencil,
-    PlusCircle,
-    Search,
-    Trash2
-} from 'lucide-react'
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, Timestamp, where } from 'firebase/firestore'
+import { Building, Loader2, MapPin, MoreHorizontal, Plus, Trash, Undo2, View } from 'lucide-react'
 import * as React from 'react'
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,304 +14,291 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
-import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
-import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
+import type { Property } from '@/app/(app)/properties/page'
+import { ProspectForm, ProspectFormData } from '@/components/prospect-form'
 
-export interface Prospect {
+export interface Prospect extends Partial<Property> {
   id: string
   ownerUid: string
-  dealName: string
-  source: string
-  status: 'New' | 'Converted'
+  status: 'New'
   dateAdded: Timestamp
-  contactNumber?: string
-  email?: string
-  location?: string
 }
 
-const ProspectStatusBadge = ({ status }: { status: Prospect['status'] }) => {
-    const statusClasses: Record<Prospect['status'], string> = {
-        'New': 'bg-primary text-primary-foreground',
-        'Converted': 'bg-chart-2 text-primary-foreground',
-    };
+const ProspectCard = React.memo(({ prospect, onDelete, onConvert }: { prospect: Prospect; onDelete: (p: Prospect) => void; onConvert: (p: Prospect) => void }) => {
+  return (
+    <Card className="flex flex-col hover:shadow-lg transition-shadow">
+      <div className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg p-6 space-y-2">
+        <CardTitle className="text-lg">{prospect.name}</CardTitle>
+        {prospect.address && (
+          <CardDescription className="flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {prospect.address.city && prospect.address.state
+              ? `${prospect.address.city}, ${prospect.address.state}`
+              : 'Location not set'}
+          </CardDescription>
+        )}
+      </div>
+      <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
+        <div>
+          <p className="text-muted-foreground">Status</p>
+          <p className="font-semibold text-base">New Prospect</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onConvert(prospect)}>
+                <Undo2 className="mr-2 h-4 w-4" /> Convert to Property
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onDelete(prospect)} className="text-destructive focus:text-destructive">
+                <Trash className="mr-2 h-4 w-4" /> Delete Prospect
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardFooter>
+    </Card>
+  )
+})
+ProspectCard.displayName = 'ProspectCard'
 
-    return <Badge variant="default" className={cn(statusClasses[status])}>{status}</Badge>;
-}
-
-const PROSPECTS_PER_PAGE = 10;
+const PageSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {[...Array(3)].map((_, i) => (
+      <Card key={i} className="flex flex-col">
+        <div className="flex-grow p-6 space-y-4">
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        <CardFooter className="bg-muted/50 p-4 flex justify-between items-center border-t">
+          <div className="space-y-1">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-6 w-28" />
+          </div>
+          <Skeleton className="h-9 w-24" />
+        </CardFooter>
+      </Card>
+    ))}
+  </div>
+)
 
 export default function ProspectManagerPage() {
-    const { user } = useAuth();
-    const router = useRouter();
-    const [prospects, setProspects] = React.useState<Prospect[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [isModalOpen, setIsModalOpen] = React.useState(false);
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-    const [selectedProspect, setSelectedProspect] = React.useState<Prospect | null>(null);
-    const { toast } = useToast();
+  const { user } = useAuth()
+  const [prospects, setProspects] = React.useState<Prospect[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [isModalOpen, setIsModalOpen] = React.useState(false)
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
+  const [selectedProspect, setSelectedProspect] = React.useState<Prospect | null>(null)
+  const [isSaving, setIsSaving] = React.useState(false)
+  const { toast } = useToast()
+  const router = useRouter()
 
-    const [searchTerm, setSearchTerm] = React.useState('');
-    const [currentPage, setCurrentPage] = React.useState(1);
-    
-    const [formInitialData, setFormInitialData] = React.useState<Partial<ProspectFormData> | undefined>(undefined);
+  React.useEffect(() => {
+    if (!user || !db) {
+      setProspects([])
+      setLoading(false)
+      return
+    }
 
-    React.useEffect(() => {
-        if (!user || !db) {
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-        const prospectsCol = collection(db, 'prospects');
-        const q = query(prospectsCol, where('ownerUid', '==', user.uid));
-        
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const prospectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Prospect))
-                .sort((a, b) => b.dateAdded.toDate().getTime() - a.dateAdded.toDate().getTime());
-            setProspects(prospectsData);
-            setIsLoading(false);
-        }, (error) => {
-            console.error(error);
-            toast({ title: 'Error', description: 'Failed to fetch prospects.', variant: 'destructive'});
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [user, toast]);
-    
-    const filteredProspects = React.useMemo(() => {
-        return prospects.filter(prospect => 
-            prospect.dealName.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [prospects, searchTerm]);
-
-    const totalPages = Math.ceil(filteredProspects.length / PROSPECTS_PER_PAGE);
-
-    const paginatedProspects = React.useMemo(() => {
-        const startIndex = (currentPage - 1) * PROSPECTS_PER_PAGE;
-        const endIndex = startIndex + PROSPECTS_PER_PAGE;
-        return filteredProspects.slice(startIndex, endIndex);
-    }, [filteredProspects, currentPage]);
-    
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-        setCurrentPage(1); // Reset to first page on search
-    };
-
-    const handleAddNew = () => {
-        setSelectedProspect(null);
-        setFormInitialData({
-          dealName: '',
-          source: '',
-          dateAdded: new Date(),
-          status: 'New',
-          contactNumber: '',
-          email: '',
-          location: '',
+    setLoading(true)
+    const q = query(collection(db, 'prospects'), where('ownerUid', '==', user.uid))
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const props: Prospect[] = []
+        querySnapshot.forEach((doc) => {
+          props.push({ id: doc.id, ...doc.data() } as Prospect)
         })
-        setIsModalOpen(true);
-    };
+        setProspects(props.sort((a, b) => b.dateAdded.toDate().getTime() - a.dateAdded.toDate().getTime()))
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Error fetching prospects: ', error)
+        toast({ title: 'Error', description: 'Failed to fetch prospects.', variant: 'destructive' })
+        setLoading(false)
+      }
+    )
+    return () => unsubscribe()
+  }, [user, toast])
 
-    const handleEdit = (prospect: Prospect) => {
-        setSelectedProspect(prospect);
-        setFormInitialData({
-            ...prospect,
-            dateAdded: prospect.dateAdded.toDate(),
+  const handleAddProspect = () => {
+    setIsModalOpen(true)
+  }
+
+  const handleDeleteProspect = React.useCallback((prospect: Prospect) => {
+    setSelectedProspect(prospect)
+    setIsDeleteAlertOpen(true)
+  }, [])
+
+  const handleConvertProspect = React.useCallback(async (prospect: Prospect) => {
+    if (!user || !db) return;
+
+    const toastId = toast({
+      title: 'Converting Prospect...',
+      description: `Please wait while "${prospect.name}" is converted to a property.`,
+    });
+
+    try {
+      const newPropertyRef = doc(collection(db, 'properties'))
+
+      const newPropertyData: Omit<Property, 'id'> = {
+        name: prospect.name,
+        ownerUid: user.uid,
+        address: prospect.address || { street: '', city: '', state: '', zip: '' },
+        landDetails: { area: 0, areaUnit: 'Square Feet' },
+        propertyType: 'Open Land',
+        purchaseDate: Timestamp.now(),
+        purchasePrice: 0,
+        status: 'Owned',
+      }
+      
+      await setDoc(newPropertyRef, newPropertyData)
+      await deleteDoc(doc(db, 'prospects', prospect.id))
+
+      toastId.update({
+        id: toastId.id,
+        title: 'Conversion Successful',
+        description: `Prospect converted. You will now be redirected to the property details page.`,
+      })
+      
+      router.push(`/properties/${newPropertyRef.id}`)
+      
+    } catch(error: any) {
+        console.error('Error converting prospect:', error);
+        toastId.update({
+            id: toastId.id,
+            title: 'Conversion Failed',
+            description: 'Could not convert the prospect to a property.',
+            variant: 'destructive',
         });
-        setIsModalOpen(true);
-    };
+    }
 
-    const handleDelete = (prospect: Prospect) => {
-        setSelectedProspect(prospect);
-        setIsAlertOpen(true);
-    };
-    
-    const confirmDelete = async () => {
-        if (!selectedProspect || !db) return;
-        try {
-            await deleteDoc(doc(db, 'prospects', selectedProspect.id));
-            toast({ title: "Prospect deleted.", description: `"${selectedProspect.dealName}" was removed.`});
-        } catch (error) {
-            toast({ title: "Error", description: "Failed to delete prospect.", variant: 'destructive' });
-        } finally {
-            setIsAlertOpen(false);
-            setSelectedProspect(null);
-        }
-    };
-    
-    const handleFormSubmit = async (data: ProspectFormData) => {
-        if (!user || !db) return;
-        setIsSubmitting(true);
+  }, [user, db, toast, router]);
 
-        try {
-            if (selectedProspect) {
-                const updateData = {
-                    ...data,
-                    dateAdded: Timestamp.fromDate(data.dateAdded),
-                    contactNumber: data.contactNumber || null,
-                    email: data.email || null,
-                    location: data.location || null,
-                };
-                await updateDoc(doc(db, 'prospects', selectedProspect.id), updateData);
-                toast({ title: "Success", description: "Prospect updated successfully."});
-            } else {
-                const submissionData = { 
-                    ...data, 
-                    ownerUid: user.uid, 
-                    dateAdded: Timestamp.fromDate(data.dateAdded),
-                    contactNumber: data.contactNumber || null,
-                    email: data.email || null,
-                    location: data.location || null,
-                };
-                await addDoc(collection(db, 'prospects'), submissionData);
-                toast({ title: "Success", description: "New prospect added."});
-            }
-            setIsModalOpen(false);
-            setSelectedProspect(null);
-        } catch(error) {
-            toast({ title: "Error", description: "Failed to save prospect.", variant: 'destructive'});
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    
-    const TableSkeleton = () => (
-        <>
-            {[...Array(5)].map((_, i) => (
-                <TableRow key={i}>
-                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-28 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-24" /></TableCell>
-                </TableRow>
+  const confirmDelete = async () => {
+    if (!selectedProspect || !db) return
+
+    try {
+      await deleteDoc(doc(db, 'prospects', selectedProspect.id))
+      toast({ title: 'Success', description: 'Prospect deleted successfully.' })
+    } catch (error) {
+      console.error('Error deleting document: ', error)
+      toast({ title: 'Error', description: 'Failed to delete prospect.', variant: 'destructive' })
+    } finally {
+      setIsDeleteAlertOpen(false)
+      setSelectedProspect(null)
+    }
+  }
+
+  const onSubmit = async (data: ProspectFormData) => {
+    if (!user || !db) {
+      toast({ title: 'Error', description: 'Cannot save prospect.', variant: 'destructive' })
+      return
+    }
+    setIsSaving(true)
+
+    try {
+      const newProspectRef = doc(collection(db, 'prospects'))
+      const prospectData: Omit<Prospect, 'id'> = {
+        name: data.name,
+        address: data.address,
+        ownerUid: user.uid,
+        status: 'New' as const,
+        dateAdded: Timestamp.now(),
+      }
+
+      await setDoc(newProspectRef, prospectData)
+      toast({ title: 'Success', description: 'Prospect added successfully.' })
+      setIsModalOpen(false)
+    } catch (error: any) {
+      console.error('Error during prospect creation: ', error)
+      toast({ title: 'Error', description: error.message || 'Failed to save prospect. Please try again.', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Prospects</h1>
+          <Button onClick={handleAddProspect}>
+            <Plus className="mr-2 h-4 w-4" /> Add Prospect
+          </Button>
+        </div>
+
+        {loading ? (
+          <PageSkeleton />
+        ) : prospects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {prospects.map((prop) => (
+              <ProspectCard key={prop.id} prospect={prop} onDelete={handleDeleteProspect} onConvert={handleConvertProspect} />
             ))}
-        </>
-    );
+          </div>
+        ) : (
+          <div className="text-center py-16 border-2 border-dashed rounded-lg">
+            <h2 className="text-xl font-semibold text-muted-foreground">No Prospects Found</h2>
+            <p className="mt-2 text-muted-foreground">{db ? 'Add a new prospect to get started!' : 'Firebase not configured. Please check your environment.'}</p>
+          </div>
+        )}
+      </main>
 
-    return (
-        <>
-            <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold tracking-tight">Prospect Manager</h1>
-                    <Button onClick={handleAddNew}><PlusCircle className="mr-2" />Add Prospect</Button>
-                </div>
-                
-                <div className="border shadow-sm rounded-lg">
-                    <div className="p-4 border-b">
-                         <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search by deal name..." className="pl-10" value={searchTerm} onChange={handleSearchChange} />
-                        </div>
-                    </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Deal Name</TableHead>
-                                <TableHead>Source</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Date Added</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableSkeleton />
-                            ) : paginatedProspects.length === 0 ? (
-                                <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">{searchTerm ? 'No prospects match your search.' : 'No prospects found. Add one to get started!'}</TableCell></TableRow>
-                            ) : (
-                                paginatedProspects.map(prospect => (
-                                    <TableRow key={prospect.id}>
-                                        <TableCell className="font-medium">{prospect.dealName}</TableCell>
-                                        <TableCell>{prospect.source}</TableCell>
-                                        <TableCell><ProspectStatusBadge status={prospect.status} /></TableCell>
-                                        <TableCell>{format(prospect.dateAdded.toDate(), 'PP')}</TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button variant="ghost" size="sm" onClick={() => handleEdit(prospect)} title="Edit Prospect"><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(prospect)} className="text-destructive hover:text-destructive" title="Delete Prospect"><Trash2 className="h-4 w-4" /></Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                     <div className="p-4 border-t flex items-center justify-between text-sm">
-                        <div className="text-xs text-muted-foreground">
-                            Page <strong>{currentPage}</strong> of <strong>{totalPages > 0 ? totalPages : 1}</strong>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <span className="text-xs text-muted-foreground">
-                            Showing <strong>{paginatedProspects.length > 0 ? (currentPage - 1) * PROSPECTS_PER_PAGE + 1 : 0}-{(currentPage - 1) * PROSPECTS_PER_PAGE + paginatedProspects.length}</strong> of <strong>{filteredProspects.length}</strong>
-                           </span>
-                           <div className="flex gap-1">
-                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronsLeft className="h-4 w-4" /></Button>
-                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}><ChevronRight className="h-4 w-4" /></Button>
-                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || totalPages === 0}><ChevronsRight className="h-4 w-4" /></Button>
-                           </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add New Prospect</DialogTitle>
+            <DialogDescription>Fill in the basic details for a new prospect. More details can be added after converting it to a property.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
+            <ProspectForm
+              onSubmit={onSubmit}
+              isSaving={isSaving}
+              submitButtonText="Save Prospect"
+            >
+              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+            </ProspectForm>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>{selectedProspect ? 'Edit Prospect' : 'Add New Prospect'}</DialogTitle>
-                        <DialogDescription>
-                          {selectedProspect ? 'Update the details for this prospect.' : 'Fill in the details for a new prospect.'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
-                        {formInitialData && (
-                            <ProspectForm
-                                mode={selectedProspect ? 'edit' : 'add'}
-                                onSubmit={handleFormSubmit}
-                                isSaving={isSubmitting}
-                                initialData={formInitialData}
-                            >
-                                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                            </ProspectForm>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the prospect "{selectedProspect?.dealName}".</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setSelectedProspect(null)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete}>Delete Prospect</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
-    );
-};
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. This will permanently delete the prospect.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedProspect(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
