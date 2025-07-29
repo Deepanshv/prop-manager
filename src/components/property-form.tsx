@@ -119,6 +119,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
   const [isSearching, setIsSearching] = React.useState(false);
   const [isFindingOnMap, setIsFindingOnMap] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(mode === 'edit' ? editPropertyFormSchema : addPropertyFormSchema),
@@ -192,7 +193,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
-        if (searchQuery.length > 2) {
+        if (searchQuery.length > 2 && document.activeElement === searchInputRef.current) {
             setIsSearching(true);
             try {
                 const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&countrycodes=in&limit=5`);
@@ -225,6 +226,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     setMapCenter(newCenter);
     setSearchQuery(suggestion.display_name);
     setSuggestions([]);
+    searchInputRef.current?.blur();
   };
 
   const handleGetCurrentLocation = () => {
@@ -347,12 +349,18 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                     <FormDescription>Start here for the fastest results. You can manually correct the fields below if needed.</FormDescription>
                     <div className="relative mt-2">
                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
+                        <Input
+                            ref={searchInputRef}
                             placeholder="Start typing an address or pincode..." 
                             className="pl-10 pr-10"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onFocus={() => suggestions.length > 0 && setSuggestions(suggestions)}
+                            onFocus={() => {
+                                // Re-trigger search on focus if needed
+                                if (searchQuery.length > 2) {
+                                     // This logic is handled by the useEffect for searchQuery
+                                }
+                            }}
                             autoComplete="off"
                         />
                         <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleGetCurrentLocation} title="Use my current location">
@@ -602,5 +610,3 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     </Form>
   )
 }
-
-    
