@@ -115,5 +115,6 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 }
 
 export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    return <ProspectDetailClientPage prospectId={params.prospectId} />;
+    const { prospectId } = React.use(params);
+    return <ProspectDetailClientPage prospectId={prospectId} />;
 }
