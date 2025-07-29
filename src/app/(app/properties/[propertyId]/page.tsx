@@ -20,10 +20,9 @@ import { MediaManager } from '@/components/media-manager'
 import { useRouter } from 'next/navigation'
 
 
-function PropertyDetailClientPage({ params }: { params: { propertyId: string } }) {
+function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   const { user } = useAuth()
   const router = useRouter()
-  const propertyId = params.propertyId;
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
@@ -220,6 +219,6 @@ function PropertyDetailClientPage({ params }: { params: { propertyId: string } }
   )
 }
 
-export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    return <PropertyDetailClientPage params={params} />;
+export default function PropertyDetailPage({ params: { propertyId } }: { params: { propertyId: string } }) {
+    return <PropertyDetailClientPage propertyId={propertyId} />;
 }
