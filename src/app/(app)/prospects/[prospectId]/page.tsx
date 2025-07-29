@@ -114,6 +114,6 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   )
 }
 
-export default function ProspectDetailPage({ params: { prospectId } }: { params: { prospectId: string } }) {
-    return <ProspectDetailClientPage prospectId={prospectId} />;
+export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
+    return <ProspectDetailClientPage prospectId={params.prospectId} />;
 }

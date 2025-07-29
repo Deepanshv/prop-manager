@@ -4,6 +4,7 @@
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { ArrowLeft, FileQuestion } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,6 @@ import { useAuth } from '../../layout'
 import type { Property } from '../page'
 import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 import { MediaManager } from '@/components/media-manager'
-import { useRouter } from 'next/navigation'
 
 
 function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
@@ -219,6 +219,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   )
 }
 
-export default function PropertyDetailPage({ params: { propertyId } }: { params: { propertyId: string } }) {
-    return <PropertyDetailClientPage propertyId={propertyId} />;
+export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    return <PropertyDetailClientPage propertyId={params.propertyId} />;
 }
