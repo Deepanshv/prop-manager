@@ -23,7 +23,7 @@ export default function PropertyDetailPage() {
   const { user } = useAuth()
   const router = useRouter()
   const params = useParams();
-  const propertyId = params.propertyId as string;
+  const propertyId = String(params.propertyId);
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)

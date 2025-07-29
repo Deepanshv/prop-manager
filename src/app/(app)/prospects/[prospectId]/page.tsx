@@ -19,7 +19,7 @@ export default function ProspectDetailPage() {
   const { user } = useAuth()
   const router = useRouter()
   const params = useParams()
-  const prospectId = params.prospectId as string
+  const prospectId = String(params.prospectId);
   const [prospect, setProspect] = React.useState<Prospect | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
