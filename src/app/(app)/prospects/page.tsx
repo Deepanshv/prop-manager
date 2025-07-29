@@ -64,7 +64,10 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange
 
   return (
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
-      <div className="flex-grow flex flex-col p-6 space-y-2">
+      <div 
+        className="flex-grow flex flex-col p-6 space-y-2 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg"
+        onClick={() => onEdit(prospect)}
+      >
         <CardTitle className="text-lg">{prospect.name}</CardTitle>
         {prospect.address && (
           <CardDescription className="flex items-center gap-1">
