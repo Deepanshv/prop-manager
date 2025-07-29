@@ -3,7 +3,7 @@
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { ArrowLeft, FileQuestion } from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -19,11 +19,9 @@ import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 import { MediaManager } from '@/components/media-manager'
 
 
-export default function PropertyDetailPage() {
+function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   const { user } = useAuth()
   const router = useRouter()
-  const params = useParams();
-  const propertyId = params.propertyId as string;
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
@@ -218,4 +216,8 @@ export default function PropertyDetailPage() {
       </Tabs>
     </main>
   )
+}
+
+export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    return <PropertyDetailClientPage propertyId={params.propertyId} />;
 }

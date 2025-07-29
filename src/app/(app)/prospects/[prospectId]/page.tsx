@@ -1,9 +1,9 @@
 
 'use client'
 
-import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { ArrowLeft } from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -15,11 +15,9 @@ import { useAuth } from '../../layout'
 import type { Prospect } from '../page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 
-export default function ProspectDetailPage() {
+function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   const { user } = useAuth()
   const router = useRouter()
-  const params = useParams()
-  const prospectId = params.prospectId as string;
   const [prospect, setProspect] = React.useState<Prospect | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
@@ -113,4 +111,8 @@ export default function ProspectDetailPage() {
       </Card>
     </main>
   )
+}
+
+export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
+    return <ProspectDetailClientPage prospectId={params.prospectId} />;
 }

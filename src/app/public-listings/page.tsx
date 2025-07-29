@@ -19,7 +19,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import type { Property } from '@/app/(app)/properties/page';
 import { useToast } from '@/hooks/use-toast';
-import { useSearchParams } from 'next/navigation';
 
 const PublicPropertyCard = React.memo(({ property }: { property: Property }) => {
   const { toast } = useToast();
@@ -225,9 +224,8 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
 }
 
 
-export default function PublicListingsPage() {
-    const searchParams = useSearchParams();
-    const ownerId = searchParams.get('owner');
+export default function PublicListingsPage({ searchParams }: { searchParams: { owner?: string } }) {
+    const ownerId = searchParams?.owner || null;
 
     return (
         <React.Suspense fallback={<PageSkeleton />}>
@@ -235,3 +233,4 @@ export default function PublicListingsPage() {
         </React.Suspense>
     );
 }
+
