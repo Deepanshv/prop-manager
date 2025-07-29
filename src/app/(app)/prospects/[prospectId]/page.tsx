@@ -61,7 +61,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 
     const prospectDataToSave = {
       ...data,
-      contactInfo: data.contactInfo || null, // Ensure contactInfo is null, not undefined
+      contactInfo: data.contactInfo || null, 
     }
 
     try {
@@ -123,3 +123,5 @@ export default function ProspectDetailPage({ params }: { params: { prospectId: s
     const prospectId = React.use(params).prospectId;
     return <ProspectDetailClientPage prospectId={prospectId} />;
 }
+
+    

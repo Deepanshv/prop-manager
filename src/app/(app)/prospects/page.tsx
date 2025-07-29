@@ -49,7 +49,7 @@ export interface Prospect extends Partial<Property> {
   contactInfo?: string
 }
 
-const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange, onEdit }: { prospect: Prospect; onDelete: (p: Prospect) => void; onConvert: (p: Prospect) => void, onStatusChange: (p: Prospect, status: Prospect['status']) => void, onEdit: (p: Prospect) => void }) => {
+const ProspectCard = React.memo(({ prospect, onDelete, onStatusChange, onEdit }: { prospect: Prospect; onDelete: (p: Prospect) => void; onStatusChange: (p: Prospect, status: Prospect['status']) => void, onEdit: (p: Prospect) => void }) => {
   const getStatusBadgeClass = (status: Prospect['status']) => {
     switch (status) {
       case 'New':
@@ -116,9 +116,6 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange
                   </DropdownMenuRadioGroup>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuItem onClick={() => onConvert(prospect)} disabled={prospect.status === 'Converted'}>
-                <Undo2 className="mr-2 h-4 w-4" /> Convert to Property
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onDelete(prospect)} className="text-destructive focus:text-destructive">
                 <Trash className="mr-2 h-4 w-4" /> Delete Prospect
@@ -232,7 +229,6 @@ export default function ProspectManagerPage() {
       
       await setDoc(newPropertyRef, newPropertyData)
       
-      // Update prospect status instead of deleting
       const prospectDocRef = doc(db, 'prospects', prospect.id);
       await updateDoc(prospectDocRef, { status: 'Converted' });
 
@@ -310,6 +306,11 @@ export default function ProspectManagerPage() {
   }
   
   const handleStatusChange = async (prospect: Prospect, status: Prospect['status']) => {
+    if (status === 'Converted') {
+        handleConvertProspect(prospect);
+        return;
+    }
+    
     if (!db) return;
     try {
         const prospectDocRef = doc(db, 'prospects', prospect.id);
@@ -340,7 +341,6 @@ export default function ProspectManagerPage() {
                 key={prop.id}
                 prospect={prop}
                 onDelete={handleDeleteProspect}
-                onConvert={handleConvertProspect}
                 onStatusChange={handleStatusChange}
                 onEdit={handleEditProspect}
               />
@@ -396,3 +396,5 @@ export default function ProspectManagerPage() {
     </>
   )
 }
+
+    
