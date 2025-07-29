@@ -56,7 +56,7 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange
       case 'Converted':
         return 'bg-green-500 hover:bg-green-500/80 text-primary-foreground'
       case 'Rejected':
-        return 'bg-red-500 hover:bg-red-500/80 text-primary-foreground'
+        return 'bg-destructive hover:bg-destructive/80 text-destructive-foreground'
       default:
         return 'bg-muted text-muted-foreground'
     }
@@ -83,7 +83,7 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange
       <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
         <div>
           <p className="text-muted-foreground">Status</p>
-          <Badge className={cn("font-semibold text-base", getStatusBadgeClass(prospect.status))}>
+          <Badge className={cn("font-semibold", getStatusBadgeClass(prospect.status))}>
             {prospect.status}
           </Badge>
         </div>
