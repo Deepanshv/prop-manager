@@ -322,8 +322,6 @@ export default function PropertyManagerPage() {
 
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
-        propertyData.listingPrice = null;
-        propertyData.listingPricePerUnit = null;
     } else {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
