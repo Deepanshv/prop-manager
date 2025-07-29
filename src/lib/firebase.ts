@@ -5,7 +5,7 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyA5iKyqhZl-MW44GM_udwNthTBRbPIX9_o",
   authDomain: "property-manager-8f81f.firebaseapp.com",
   projectId: "property-manager-8f81f",
@@ -39,3 +39,5 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId) {
 }
 
 export { app, auth, db };
+
+    

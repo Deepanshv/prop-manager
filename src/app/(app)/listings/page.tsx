@@ -38,7 +38,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { db } from '@/lib/firebase'
+import { db, firebaseConfig } from '@/lib/firebase'
 import type { Property } from '@/app/(app)/properties/page'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -173,10 +173,12 @@ export default function InternalListingsPage() {
   }, [user, db, toast]);
 
   React.useEffect(() => {
-    if (user) {
-      setPublicUrl(`${window.location.origin}/public-listings?owner=${user.uid}`)
+    if (user && firebaseConfig.projectId) {
+      setPublicUrl(`https://${firebaseConfig.projectId}.web.app/public-listings?owner=${user.uid}`);
+    } else if (user) {
+      setPublicUrl(`${window.location.origin}/public-listings?owner=${user.uid}`);
     }
-  }, [user])
+  }, [user]);
 
   React.useEffect(() => {
     if (!db || !user) {
@@ -443,3 +445,5 @@ export default function InternalListingsPage() {
     </>
   )
 }
+
+    
