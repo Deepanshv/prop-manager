@@ -59,9 +59,14 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
     }
     setIsSaving(true)
 
+    const prospectDataToSave = {
+      ...data,
+      contactInfo: data.contactInfo || null, // Ensure contactInfo is null, not undefined
+    }
+
     try {
       const prospectDocRef = doc(db, 'prospects', prospectId)
-      await updateDoc(prospectDocRef, data)
+      await updateDoc(prospectDocRef, prospectDataToSave)
       toast({ title: 'Success', description: 'Prospect updated successfully.' })
     } catch (error) {
       console.error('Error updating document: ', error)
@@ -115,6 +120,6 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 }
 
 export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    const { prospectId } = React.use(params);
+    const prospectId = React.use(params).prospectId;
     return <ProspectDetailClientPage prospectId={prospectId} />;
 }
