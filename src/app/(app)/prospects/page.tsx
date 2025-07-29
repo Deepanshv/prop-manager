@@ -316,34 +316,6 @@ export default function ProspectManagerPage() {
         toast({ title: 'Error', description: 'Failed to update status.', variant: 'destructive' });
     }
   };
-  
-  const activeProspects = React.useMemo(() => prospects.filter(p => p.status === 'New'), [prospects]);
-  const convertedProspects = React.useMemo(() => prospects.filter(p => p.status === 'Converted'), [prospects]);
-  const rejectedProspects = React.useMemo(() => prospects.filter(p => p.status === 'Rejected'), [prospects]);
-
-  const renderProspectList = (list: Prospect[], title: string) => (
-    <div className="space-y-4">
-        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-        {list.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {list.map((prop) => (
-                    <ProspectCard 
-                        key={prop.id} 
-                        prospect={prop} 
-                        onDelete={handleDeleteProspect} 
-                        onConvert={handleConvertProspect}
-                        onStatusChange={handleStatusChange}
-                        onEdit={handleEditProspect}
-                    />
-                ))}
-            </div>
-        ) : (
-            <div className="text-center py-8 border-2 border-dashed rounded-lg">
-                <p className="text-muted-foreground">No prospects in this category.</p>
-            </div>
-        )}
-    </div>
-  );
 
   return (
     <>
@@ -358,11 +330,18 @@ export default function ProspectManagerPage() {
         {loading ? (
           <PageSkeleton />
         ) : prospects.length > 0 ? (
-            <div className="space-y-8">
-                {renderProspectList(activeProspects, 'New Prospects')}
-                {renderProspectList(convertedProspects, 'Converted Prospects')}
-                {renderProspectList(rejectedProspects, 'Rejected Prospects')}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {prospects.map((prop) => (
+              <ProspectCard
+                key={prop.id}
+                prospect={prop}
+                onDelete={handleDeleteProspect}
+                onConvert={handleConvertProspect}
+                onStatusChange={handleStatusChange}
+                onEdit={handleEditProspect}
+              />
+            ))}
+          </div>
         ) : (
           <div className="text-center py-16 border-2 border-dashed rounded-lg">
             <Users className="mx-auto h-12 w-12 text-muted-foreground" />
