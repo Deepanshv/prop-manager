@@ -5,7 +5,6 @@ import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/fire
 import { Building2, Globe, MapPin } from 'lucide-react';
 import * as React from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -89,10 +88,7 @@ const PageSkeleton = () => (
     </div>
 );
 
-function PublicListingsContent() {
-  const searchParams = useSearchParams();
-  const ownerId = searchParams.get('owner');
-
+function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
   const [properties, setProperties] = React.useState<Property[]>([]);
   const [pageState, setPageState] = React.useState<'loading' | 'enabled' | 'disabled' | 'invalid'>('loading');
   const [ownerName, setOwnerName] = React.useState('Property Manager');
@@ -228,10 +224,11 @@ function PublicListingsContent() {
 }
 
 
-export default function PublicListingsPage() {
+export default function PublicListingsPage({ searchParams }: { searchParams: { owner?: string } }) {
+    const ownerId = searchParams.owner || null;
     return (
         <React.Suspense fallback={<PageSkeleton />}>
-            <PublicListingsContent />
+            <PublicListingsContent ownerId={ownerId} />
         </React.Suspense>
     );
 }
