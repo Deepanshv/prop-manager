@@ -1,8 +1,8 @@
 
 'use client'
 
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, Timestamp, where } from 'firebase/firestore'
-import { Building, Loader2, MapPin, MoreHorizontal, Plus, Trash, Undo2, View } from 'lucide-react'
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore'
+import { Building, Edit, Loader2, MoreHorizontal, Plus, Trash, Undo2, Users } from 'lucide-react'
 import * as React from 'react'
 import {
   AlertDialog,
@@ -16,13 +16,18 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -32,32 +37,52 @@ import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
 import type { Property } from '@/app/(app)/properties/page'
 import { ProspectForm, ProspectFormData } from '@/components/prospect-form'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 export interface Prospect extends Partial<Property> {
   id: string
   ownerUid: string
-  status: 'New'
+  status: 'New' | 'Converted' | 'Rejected'
   dateAdded: Timestamp
+  sourceDetails?: string
 }
 
-const ProspectCard = React.memo(({ prospect, onDelete, onConvert }: { prospect: Prospect; onDelete: (p: Prospect) => void; onConvert: (p: Prospect) => void }) => {
+const ProspectCard = React.memo(({ prospect, onDelete, onConvert, onStatusChange, onEdit }: { prospect: Prospect; onDelete: (p: Prospect) => void; onConvert: (p: Prospect) => void, onStatusChange: (p: Prospect, status: Prospect['status']) => void, onEdit: (p: Prospect) => void }) => {
+  const getStatusBadgeClass = (status: Prospect['status']) => {
+    switch (status) {
+      case 'New':
+        return 'bg-blue-500 hover:bg-blue-500/80 text-primary-foreground'
+      case 'Converted':
+        return 'bg-green-500 hover:bg-green-500/80 text-primary-foreground'
+      case 'Rejected':
+        return 'bg-red-500 hover:bg-red-500/80 text-primary-foreground'
+      default:
+        return 'bg-muted text-muted-foreground'
+    }
+  }
+
   return (
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
-      <div className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg p-6 space-y-2">
+      <div className="flex-grow flex flex-col p-6 space-y-2">
         <CardTitle className="text-lg">{prospect.name}</CardTitle>
         {prospect.address && (
           <CardDescription className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            {prospect.address.city && prospect.address.state
-              ? `${prospect.address.city}, ${prospect.address.state}`
-              : 'Location not set'}
+             {prospect.address.city || prospect.address.state ? `${prospect.address.city}, ${prospect.address.state}` : 'Location not set'}
           </CardDescription>
+        )}
+        {prospect.sourceDetails && (
+            <p className="text-sm text-muted-foreground pt-2">
+                <strong>Source:</strong> {prospect.sourceDetails}
+            </p>
         )}
       </div>
       <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
         <div>
           <p className="text-muted-foreground">Status</p>
-          <p className="font-semibold text-base">New Prospect</p>
+          <Badge className={cn("font-semibold text-base", getStatusBadgeClass(prospect.status))}>
+            {prospect.status}
+          </Badge>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -69,7 +94,25 @@ const ProspectCard = React.memo(({ prospect, onDelete, onConvert }: { prospect: 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onConvert(prospect)}>
+              <DropdownMenuItem onClick={() => onEdit(prospect)}>
+                <Edit className="mr-2 h-4 w-4" /> Edit Details
+              </DropdownMenuItem>
+               <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <span>Change Status</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup
+                    value={prospect.status}
+                    onValueChange={(newStatus) => onStatusChange(prospect, newStatus as Prospect['status'])}
+                  >
+                    <DropdownMenuRadioItem value="New">New</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="Converted">Converted</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="Rejected">Rejected</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuItem onClick={() => onConvert(prospect)} disabled={prospect.status === 'Converted'}>
                 <Undo2 className="mr-2 h-4 w-4" /> Convert to Property
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -110,6 +153,7 @@ export default function ProspectManagerPage() {
   const [prospects, setProspects] = React.useState<Prospect[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
+  const [editingProspect, setEditingProspect] = React.useState<Prospect | null>(null)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [selectedProspect, setSelectedProspect] = React.useState<Prospect | null>(null)
   const [isSaving, setIsSaving] = React.useState(false)
@@ -143,10 +187,16 @@ export default function ProspectManagerPage() {
     )
     return () => unsubscribe()
   }, [user, toast])
-
+  
   const handleAddProspect = () => {
-    setIsModalOpen(true)
+    setEditingProspect(null);
+    setIsModalOpen(true);
   }
+
+  const handleEditProspect = React.useCallback((prospect: Prospect) => {
+    setEditingProspect(prospect);
+    setIsModalOpen(true);
+  }, []);
 
   const handleDeleteProspect = React.useCallback((prospect: Prospect) => {
     setSelectedProspect(prospect)
@@ -168,15 +218,19 @@ export default function ProspectManagerPage() {
         name: prospect.name,
         ownerUid: user.uid,
         address: prospect.address || { street: '', city: '', state: '', zip: '' },
-        landDetails: { area: 0, areaUnit: 'Square Feet' },
-        propertyType: 'Open Land',
+        landDetails: prospect.landDetails || { area: 0, areaUnit: 'Square Feet' },
+        propertyType: prospect.propertyType || 'Open Land',
         purchaseDate: Timestamp.now(),
         purchasePrice: 0,
         status: 'Owned',
+        remarks: prospect.sourceDetails ? `Source: ${prospect.sourceDetails}` : '',
       }
       
       await setDoc(newPropertyRef, newPropertyData)
-      await deleteDoc(doc(db, 'prospects', prospect.id))
+      
+      // Update prospect status instead of deleting
+      const prospectDocRef = doc(db, 'prospects', prospect.id);
+      await updateDoc(prospectDocRef, { status: 'Converted' });
 
       toastId.update({
         id: toastId.id,
@@ -221,25 +275,72 @@ export default function ProspectManagerPage() {
     setIsSaving(true)
 
     try {
-      const newProspectRef = doc(collection(db, 'prospects'))
-      const prospectData: Omit<Prospect, 'id'> = {
-        name: data.name,
-        address: data.address,
-        ownerUid: user.uid,
-        status: 'New' as const,
-        dateAdded: Timestamp.now(),
-      }
-
-      await setDoc(newProspectRef, prospectData)
-      toast({ title: 'Success', description: 'Prospect added successfully.' })
+        if (editingProspect) {
+             const prospectDocRef = doc(db, 'prospects', editingProspect.id);
+             await updateDoc(prospectDocRef, data);
+             toast({ title: 'Success', description: 'Prospect updated successfully.' });
+        } else {
+             const newProspectRef = doc(collection(db, 'prospects'));
+            const prospectData: Omit<Prospect, 'id'> = {
+                name: data.name,
+                address: data.address,
+                ownerUid: user.uid,
+                status: 'New' as const,
+                dateAdded: Timestamp.now(),
+                sourceDetails: data.sourceDetails,
+            };
+             await setDoc(newProspectRef, prospectData);
+             toast({ title: 'Success', description: 'Prospect added successfully.' });
+        }
       setIsModalOpen(false)
+      setEditingProspect(null)
     } catch (error: any) {
-      console.error('Error during prospect creation: ', error)
+      console.error('Error during prospect save: ', error)
       toast({ title: 'Error', description: error.message || 'Failed to save prospect. Please try again.', variant: 'destructive' })
     } finally {
       setIsSaving(false)
     }
   }
+  
+  const handleStatusChange = async (prospect: Prospect, status: Prospect['status']) => {
+    if (!db) return;
+    try {
+        const prospectDocRef = doc(db, 'prospects', prospect.id);
+        await updateDoc(prospectDocRef, { status });
+        toast({ title: 'Status Updated', description: `Prospect status changed to "${status}".` });
+    } catch (error) {
+        console.error('Error updating status:', error);
+        toast({ title: 'Error', description: 'Failed to update status.', variant: 'destructive' });
+    }
+  };
+  
+  const activeProspects = React.useMemo(() => prospects.filter(p => p.status === 'New'), [prospects]);
+  const convertedProspects = React.useMemo(() => prospects.filter(p => p.status === 'Converted'), [prospects]);
+  const rejectedProspects = React.useMemo(() => prospects.filter(p => p.status === 'Rejected'), [prospects]);
+
+  const renderProspectList = (list: Prospect[], title: string) => (
+    <div className="space-y-4">
+        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+        {list.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {list.map((prop) => (
+                    <ProspectCard 
+                        key={prop.id} 
+                        prospect={prop} 
+                        onDelete={handleDeleteProspect} 
+                        onConvert={handleConvertProspect}
+                        onStatusChange={handleStatusChange}
+                        onEdit={handleEditProspect}
+                    />
+                ))}
+            </div>
+        ) : (
+            <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                <p className="text-muted-foreground">No prospects in this category.</p>
+            </div>
+        )}
+    </div>
+  );
 
   return (
     <>
@@ -254,30 +355,37 @@ export default function ProspectManagerPage() {
         {loading ? (
           <PageSkeleton />
         ) : prospects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prospects.map((prop) => (
-              <ProspectCard key={prop.id} prospect={prop} onDelete={handleDeleteProspect} onConvert={handleConvertProspect} />
-            ))}
-          </div>
+            <div className="space-y-8">
+                {renderProspectList(activeProspects, 'New Prospects')}
+                {renderProspectList(convertedProspects, 'Converted Prospects')}
+                {renderProspectList(rejectedProspects, 'Rejected Prospects')}
+            </div>
         ) : (
           <div className="text-center py-16 border-2 border-dashed rounded-lg">
-            <h2 className="text-xl font-semibold text-muted-foreground">No Prospects Found</h2>
+            <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h2 className="mt-4 text-xl font-semibold text-muted-foreground">No Prospects Found</h2>
             <p className="mt-2 text-muted-foreground">{db ? 'Add a new prospect to get started!' : 'Firebase not configured. Please check your environment.'}</p>
           </div>
         )}
       </main>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={(open) => {
+          if (!open) {
+              setEditingProspect(null);
+          }
+          setIsModalOpen(open);
+      }}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Add New Prospect</DialogTitle>
-            <DialogDescription>Fill in the basic details for a new prospect. More details can be added after converting it to a property.</DialogDescription>
+            <DialogTitle>{editingProspect ? 'Edit Prospect' : 'Add New Prospect'}</DialogTitle>
+            <DialogDescription>{editingProspect ? 'Update the details for this prospect.' : 'Fill in the basic details for a new prospect.'}</DialogDescription>
           </DialogHeader>
           <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
             <ProspectForm
               onSubmit={onSubmit}
               isSaving={isSaving}
-              submitButtonText="Save Prospect"
+              initialData={editingProspect || undefined}
+              submitButtonText={editingProspect ? "Save Changes" : "Save Prospect"}
             >
               <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
                 Cancel

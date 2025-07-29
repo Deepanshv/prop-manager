@@ -13,6 +13,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
+import { Textarea } from './ui/textarea'
 
 const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
   ssr: false,
@@ -32,6 +33,7 @@ const addressSchema = z.object({
 export const prospectSchema = z.object({
   name: z.string().min(3, 'A name for the prospect is required.'),
   address: addressSchema,
+  sourceDetails: z.string().optional(),
 });
 
 export type ProspectFormData = z.infer<typeof prospectSchema>
@@ -40,10 +42,11 @@ interface ProspectFormProps {
     onSubmit: (data: ProspectFormData) => void;
     isSaving: boolean;
     submitButtonText: string;
+    initialData?: ProspectFormData;
     children?: React.ReactNode;
 }
 
-export function ProspectForm({ onSubmit, isSaving, submitButtonText, children }: ProspectFormProps) {
+export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData, children }: ProspectFormProps) {
   const { toast } = useToast()
   
   const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
@@ -55,7 +58,7 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, children }:
 
   const form = useForm<ProspectFormData>({
     resolver: zodResolver(prospectSchema),
-    defaultValues: {
+    defaultValues: initialData || {
         name: '',
         address: {
             street: '',
@@ -63,8 +66,21 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, children }:
             state: '',
             zip: '',
         },
+        sourceDetails: '',
     }
   });
+
+  React.useEffect(() => {
+    if (initialData) {
+        form.reset(initialData);
+        if (initialData.address) {
+            if (initialData.address.latitude && initialData.address.longitude) {
+                setMapCenter([initialData.address.latitude, initialData.address.longitude]);
+            }
+            setSearchQuery([initialData.address.street, initialData.address.city, initialData.address.state].filter(Boolean).join(', '));
+        }
+    }
+  }, [initialData, form]);
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
@@ -208,11 +224,6 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, children }:
                             className="pl-10 pr-10"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onFocus={() => {
-                                if (searchQuery.length > 2) {
-                                     // This logic is handled by the useEffect for searchQuery
-                                }
-                            }}
                             autoComplete="off"
                         />
                         <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleGetCurrentLocation} title="Use my current location">
@@ -264,6 +275,32 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, children }:
                     Drag the pin or click on the map to set the exact property location.
                 </p>
                 <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
+            </div>
+        </div>
+        
+        <div className="space-y-4">
+            <h3 className="text-lg font-medium">Source Details</h3>
+            <div className="border p-4 rounded-md">
+                 <FormField
+                    control={form.control}
+                    name="sourceDetails"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Source</FormLabel>
+                            <FormControl>
+                                <Textarea
+                                    placeholder="e.g. Referral from John Doe, Zillow listing, etc."
+                                    {...field}
+                                    value={field.value ?? ''}
+                                />
+                            </FormControl>
+                            <FormDescription>
+                                Note how you learned about this prospect.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
         </div>
 
