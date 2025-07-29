@@ -220,5 +220,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
 }
 
 export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    return <PropertyDetailClientPage propertyId={params.propertyId} />;
+    const { propertyId } = React.use(params);
+    return <PropertyDetailClientPage propertyId={propertyId} />;
 }
