@@ -152,7 +152,7 @@ export default function ProspectManagerPage() {
     const q = query(
       collection(db, 'prospects'), 
       where('ownerUid', '==', user.uid),
-      where('status', 'in', ['New', 'Converted'])
+      where('status', '==', 'New')
     )
     const unsubscribe = onSnapshot(
       q,
@@ -160,10 +160,7 @@ export default function ProspectManagerPage() {
         const props: Prospect[] = []
         querySnapshot.forEach((doc) => {
           const data = doc.data() as Omit<Prospect, 'id'>;
-          // Additionally filter on client-side to ensure converted ones are not shown if logic changes.
-          if (data.status !== 'Converted') {
-             props.push({ id: doc.id, ...data } as Prospect)
-          }
+          props.push({ id: doc.id, ...data } as Prospect)
         })
         setProspects(props.sort((a, b) => b.dateAdded.toDate().getTime() - a.dateAdded.toDate().getTime()))
         setLoading(false)
