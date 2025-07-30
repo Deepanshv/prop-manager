@@ -22,7 +22,7 @@ const InteractiveMap = dynamic(() => import('@/components/interactive-map').then
 });
 
 const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment'];
-const prospectStatuses = ['New', 'Converted', 'Rejected'];
+const prospectStatuses = ['New', 'Converted', 'Canceled'];
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Area/Locality is required'),
@@ -39,7 +39,7 @@ export const prospectSchema = z.object({
   address: addressSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   contactInfo: z.string().optional(),
-  status: z.enum(['New', 'Converted', 'Rejected']).optional(),
+  status: z.enum(['New', 'Converted', 'Canceled']).optional(),
 });
 
 export type ProspectFormData = z.infer<typeof prospectSchema>

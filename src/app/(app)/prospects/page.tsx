@@ -22,12 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -44,7 +39,7 @@ import Link from 'next/link'
 export interface Prospect extends Partial<Property> {
   id: string
   ownerUid: string
-  status: 'New' | 'Converted' | 'Rejected'
+  status: 'New' | 'Converted' | 'Canceled'
   dateAdded: Timestamp
   contactInfo?: string
 }
@@ -56,7 +51,7 @@ const ProspectCard = React.memo(({ prospect, onDelete, onEdit }: { prospect: Pro
         return 'bg-blue-500 hover:bg-blue-500/80 text-primary-foreground'
       case 'Converted':
         return 'bg-green-500 hover:bg-green-500/80 text-primary-foreground'
-      case 'Rejected':
+      case 'Canceled':
         return 'bg-destructive hover:bg-destructive/80 text-destructive-foreground'
       default:
         return 'bg-muted text-muted-foreground'
@@ -156,7 +151,8 @@ export default function ProspectManagerPage() {
     setLoading(true)
     const q = query(
       collection(db, 'prospects'), 
-      where('ownerUid', '==', user.uid)
+      where('ownerUid', '==', user.uid),
+      where('status', 'in', ['New', 'Converted'])
     )
     const unsubscribe = onSnapshot(
       q,
@@ -164,7 +160,10 @@ export default function ProspectManagerPage() {
         const props: Prospect[] = []
         querySnapshot.forEach((doc) => {
           const data = doc.data() as Omit<Prospect, 'id'>;
-          props.push({ id: doc.id, ...data } as Prospect)
+          // Additionally filter on client-side to ensure converted ones are not shown if logic changes.
+          if (data.status !== 'Converted') {
+             props.push({ id: doc.id, ...data } as Prospect)
+          }
         })
         setProspects(props.sort((a, b) => b.dateAdded.toDate().getTime() - a.dateAdded.toDate().getTime()))
         setLoading(false)
