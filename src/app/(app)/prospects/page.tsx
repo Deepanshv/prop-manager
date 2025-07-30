@@ -49,7 +49,7 @@ export interface Prospect extends Partial<Property> {
   contactInfo?: string
 }
 
-const ProspectCard = React.memo(({ prospect, onDelete, onStatusChange, onEdit }: { prospect: Prospect; onDelete: (p: Prospect) => void; onStatusChange: (p: Prospect, status: Prospect['status']) => void, onEdit: (p: Prospect) => void }) => {
+const ProspectCard = React.memo(({ prospect, onDelete, onEdit }: { prospect: Prospect; onDelete: (p: Prospect) => void; onEdit: (p: Prospect) => void }) => {
   const getStatusBadgeClass = (status: Prospect['status']) => {
     switch (status) {
       case 'New':
@@ -101,21 +101,6 @@ const ProspectCard = React.memo(({ prospect, onDelete, onStatusChange, onEdit }:
               <DropdownMenuItem onClick={() => onEdit(prospect)}>
                 <Edit className="mr-2 h-4 w-4" /> Edit Details
               </DropdownMenuItem>
-               <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <span>Change Status</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuRadioGroup
-                    value={prospect.status}
-                    onValueChange={(newStatus) => onStatusChange(prospect, newStatus as Prospect['status'])}
-                  >
-                    <DropdownMenuRadioItem value="New">New</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Converted">Converted</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Rejected">Rejected</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onDelete(prospect)} className="text-destructive focus:text-destructive">
                 <Trash className="mr-2 h-4 w-4" /> Delete Prospect
@@ -179,9 +164,7 @@ export default function ProspectManagerPage() {
         const props: Prospect[] = []
         querySnapshot.forEach((doc) => {
           const data = doc.data() as Omit<Prospect, 'id'>;
-          if (data.status !== 'Converted') {
-            props.push({ id: doc.id, ...data } as Prospect)
-          }
+          props.push({ id: doc.id, ...data } as Prospect)
         })
         setProspects(props.sort((a, b) => b.dateAdded.toDate().getTime() - a.dateAdded.toDate().getTime()))
         setLoading(false)
@@ -208,54 +191,6 @@ export default function ProspectManagerPage() {
     setSelectedProspect(prospect)
     setIsDeleteAlertOpen(true)
   }, [])
-
-  const handleConvertProspect = React.useCallback(async (prospect: Prospect) => {
-    if (!user || !db) return;
-
-    const toastId = toast({
-      title: 'Converting Prospect...',
-      description: `Please wait while "${prospect.name}" is converted to a property.`,
-    });
-
-    try {
-      const newPropertyRef = doc(collection(db, 'properties'))
-
-      const newPropertyData: Omit<Property, 'id'> = {
-        name: prospect.name,
-        ownerUid: user.uid,
-        address: prospect.address || { street: '', city: '', state: '', zip: '' },
-        landDetails: prospect.landDetails || { area: 0, areaUnit: 'Square Feet' },
-        propertyType: prospect.propertyType || 'Open Land',
-        purchaseDate: Timestamp.now(),
-        purchasePrice: 0,
-        status: 'Owned',
-        remarks: prospect.contactInfo ? `Contact Info: ${prospect.contactInfo}` : '',
-      }
-      
-      await setDoc(newPropertyRef, newPropertyData)
-      
-      const prospectDocRef = doc(db, 'prospects', prospect.id);
-      await updateDoc(prospectDocRef, { status: 'Converted' });
-
-      toastId.update({
-        id: toastId.id,
-        title: 'Conversion Successful',
-        description: `Prospect converted. You will now be redirected to the property details page.`,
-      })
-      
-      router.push(`/properties/${newPropertyRef.id}`)
-      
-    } catch(error: any) {
-        console.error('Error converting prospect:', error);
-        toastId.update({
-            id: toastId.id,
-            title: 'Conversion Failed',
-            description: 'Could not convert the prospect to a property.',
-            variant: 'destructive',
-        });
-    }
-
-  }, [user, db, toast, router]);
 
   const confirmDelete = async () => {
     if (!selectedProspect || !db) return
@@ -309,23 +244,6 @@ export default function ProspectManagerPage() {
       setIsSaving(false)
     }
   }
-  
-  const handleStatusChange = async (prospect: Prospect, status: Prospect['status']) => {
-    if (status === 'Converted') {
-        handleConvertProspect(prospect);
-        return;
-    }
-    
-    if (!db) return;
-    try {
-        const prospectDocRef = doc(db, 'prospects', prospect.id);
-        await updateDoc(prospectDocRef, { status });
-        toast({ title: 'Status Updated', description: `Prospect status changed to "${status}".` });
-    } catch (error) {
-        console.error('Error updating status:', error);
-        toast({ title: 'Error', description: 'Failed to update status.', variant: 'destructive' });
-    }
-  };
 
   return (
     <>
@@ -346,7 +264,6 @@ export default function ProspectManagerPage() {
                 key={prop.id}
                 prospect={prop}
                 onDelete={handleDeleteProspect}
-                onStatusChange={handleStatusChange}
                 onEdit={handleEditProspect}
               />
             ))}
@@ -402,5 +319,3 @@ export default function ProspectManagerPage() {
     </>
   )
 }
-
-    
