@@ -91,8 +91,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
       pricePerUnit: data.pricePerUnit ?? null,
       soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
       soldPrice: data.soldPrice ?? null,
-      listingPrice: data.listingPrice ?? null,
-      listingPricePerUnit: data.listingPricePerUnit ?? null,
       remarks: data.remarks ?? null,
       address: {
         ...data.address,
@@ -114,8 +112,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
 
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
-        propertyData.listingPrice = null;
-        propertyData.listingPricePerUnit = null;
     } else {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
@@ -124,6 +120,9 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
     if (!data.isListedPublicly) {
         propertyData.listingPrice = null;
         propertyData.listingPricePerUnit = null;
+    } else {
+        propertyData.listingPrice = data.listingPrice ?? null;
+        propertyData.listingPricePerUnit = data.listingPricePerUnit ?? null;
     }
 
     try {
@@ -220,6 +219,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
 }
 
 export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    const { propertyId } = React.use(params);
-    return <PropertyDetailClientPage propertyId={propertyId} />;
+    const resolvedParams = React.use(params);
+    return <PropertyDetailClientPage propertyId={resolvedParams.propertyId} />;
 }

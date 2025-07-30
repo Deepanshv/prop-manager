@@ -224,8 +224,9 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
 }
 
 
-export default function PublicListingsPage({ searchParams }: { searchParams: { owner?: string } }) {
-    const ownerId = searchParams?.owner || null;
+export default function PublicListingsPage({ searchParams }: { searchParams?: { owner?: string } }) {
+    const resolvedSearchParams = React.use(searchParams);
+    const ownerId = resolvedSearchParams?.owner || null;
 
     return (
         <React.Suspense fallback={<PageSkeleton />}>
