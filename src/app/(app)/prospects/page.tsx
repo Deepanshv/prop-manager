@@ -172,7 +172,7 @@ export default function ProspectManagerPage() {
     const q = query(
       collection(db, 'prospects'), 
       where('ownerUid', '==', user.uid),
-      where('status', 'in', ['New'])
+      where('status', '==', 'New')
     )
     const unsubscribe = onSnapshot(
       q,
@@ -400,5 +400,3 @@ export default function ProspectManagerPage() {
     </>
   )
 }
-
-    
