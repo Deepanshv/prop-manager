@@ -2,7 +2,7 @@
 'use client'
 
 import { addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore'
-import { Building, Edit, Loader2, MoreHorizontal, Plus, Trash, Undo2, Users } from 'lucide-react'
+import { Building, Edit, Loader2, MoreHorizontal, Plus, Trash, Undo2, Users, MapPin, Building2 } from 'lucide-react'
 import * as React from 'react'
 import {
   AlertDialog,
@@ -35,6 +35,7 @@ import { ProspectForm, ProspectFormData } from '@/components/prospect-form'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { format } from 'date-fns'
 
 export interface Prospect extends Partial<Property> {
   id: string
@@ -62,19 +63,31 @@ const ProspectCard = React.memo(({ prospect, onDelete, onEdit }: { prospect: Pro
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
       <Link 
         href={`/prospects/${prospect.id}`}
-        className="flex-grow flex flex-col p-6 space-y-2 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg"
+        className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg cursor-pointer"
       >
-        <CardTitle className="text-lg">{prospect.name}</CardTitle>
-        {prospect.address && (
-          <CardDescription className="flex items-center gap-1">
-             {prospect.address.city || prospect.address.state ? `${prospect.address.city}, ${prospect.address.state}` : 'Location not set'}
-          </CardDescription>
-        )}
-        {prospect.contactInfo && (
-            <p className="text-sm text-muted-foreground pt-2">
-                <strong>Source:</strong> {prospect.contactInfo}
-            </p>
-        )}
+        <CardHeader>
+          <CardTitle className="text-lg">{prospect.name}</CardTitle>
+          {prospect.address && (
+            <CardDescription className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {prospect.address.city || prospect.address.state ? `${prospect.address.city}, ${prospect.address.state}` : 'Location not set'}
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-2">
+            <div className="text-sm flex items-center gap-2 text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                <span>{prospect.propertyType}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+                Added on {format(prospect.dateAdded.toDate(), 'PPP')}
+            </div>
+            {prospect.contactInfo && (
+                <p className="text-sm text-muted-foreground pt-1 truncate">
+                    <strong>Source:</strong> {prospect.contactInfo}
+                </p>
+            )}
+        </CardContent>
       </Link>
       <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
         <div>
