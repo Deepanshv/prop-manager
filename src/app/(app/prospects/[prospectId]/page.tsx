@@ -179,6 +179,10 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 }
 
 export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    const { prospectId } = React.use(params);
+    // Unwrap the params promise-like object at the top of the server component.
+    const resolvedParams = React.use(params);
+    const { prospectId } = resolvedParams;
+
+    // Pass the resolved, primitive `prospectId` string as a prop.
     return <ProspectDetailClientPage prospectId={prospectId} />;
 }

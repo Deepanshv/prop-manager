@@ -218,7 +218,10 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
 }
 
 export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    // Unwrap the params promise-like object at the top of the server component.
     const resolvedParams = React.use(params);
     const { propertyId } = resolvedParams;
+
+    // Pass the resolved, primitive `propertyId` string as a prop.
     return <PropertyDetailClientPage propertyId={propertyId} />;
 }

@@ -226,9 +226,11 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
 
 
 export default function PublicListingsPage({ searchParams }: { searchParams?: { owner?: string } }) {
+    // Unwrap the searchParams promise-like object at the top of the server component.
     const resolvedSearchParams = React.use(searchParams);
     const ownerId = resolvedSearchParams?.owner || null;
 
+    // Pass the resolved, primitive `ownerId` string (or null) as a prop.
     return (
         <React.Suspense fallback={<PageSkeleton />}>
             <PublicListingsContent ownerId={ownerId} />
