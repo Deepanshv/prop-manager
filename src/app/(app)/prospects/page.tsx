@@ -171,15 +171,17 @@ export default function ProspectManagerPage() {
     setLoading(true)
     const q = query(
       collection(db, 'prospects'), 
-      where('ownerUid', '==', user.uid),
-      where('status', '==', 'New')
+      where('ownerUid', '==', user.uid)
     )
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
         const props: Prospect[] = []
         querySnapshot.forEach((doc) => {
-          props.push({ id: doc.id, ...doc.data() } as Prospect)
+          const data = doc.data() as Omit<Prospect, 'id'>;
+          if (data.status !== 'Converted') {
+            props.push({ id: doc.id, ...data } as Prospect)
+          }
         })
         setProspects(props.sort((a, b) => b.dateAdded.toDate().getTime() - a.dateAdded.toDate().getTime()))
         setLoading(false)
@@ -353,7 +355,7 @@ export default function ProspectManagerPage() {
           <div className="text-center py-16 border-2 border-dashed rounded-lg">
             <Users className="mx-auto h-12 w-12 text-muted-foreground" />
             <h2 className="mt-4 text-xl font-semibold text-muted-foreground">No Active Prospects Found</h2>
-            <p className="mt-2 text-muted-foreground">{db ? 'Add a new prospect or check your rejected list.' : 'Firebase not configured. Please check your environment.'}</p>
+            <p className="mt-2 text-muted-foreground">{db ? 'Add a new prospect to get started.' : 'Firebase not configured. Please check your environment.'}</p>
           </div>
         )}
       </main>
@@ -400,3 +402,5 @@ export default function ProspectManagerPage() {
     </>
   )
 }
+
+    
