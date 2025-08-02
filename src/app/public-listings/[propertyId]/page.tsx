@@ -7,10 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
-import { ArrowLeft, BadgeCheck, Building2, IndianRupee, MapPin, Phone, Square } from 'lucide-react';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { ArrowLeft, BadgeCheck, Building2, Phone, MapPin } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
@@ -51,9 +50,10 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
     });
   };
 
-  const formatAreaUnit = (unit: 'Square Feet' | 'Acre') => {
+  const formatAreaUnit = (unit?: 'Square Feet' | 'Acre') => {
     if (unit === 'Square Feet') return 'sq.ft.';
-    return unit;
+    if (unit) return unit;
+    return '';
   };
 
   if (loading) {
