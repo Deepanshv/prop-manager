@@ -51,6 +51,11 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
     });
   };
 
+  const formatAreaUnit = (unit: 'Square Feet' | 'Acre') => {
+    if (unit === 'Square Feet') return 'sq.ft.';
+    return unit;
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-4 lg:p-6 space-y-6">
@@ -104,7 +109,7 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
                 src="https://placehold.co/1200x800.png"
                 alt={`Photo of ${property.name}`}
                 fill
-                objectFit="cover"
+                style={{objectFit: 'cover'}}
                 className="transition-transform duration-300 group-hover:scale-105"
                 data-ai-hint="property exterior"
             />
@@ -123,7 +128,7 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
                         </div>
                         <div className="space-y-1 p-4 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground">Area</p>
-                            <p className="text-md font-medium flex items-center justify-center gap-1.5"><Square className="h-5 w-5 text-primary" />{property.landDetails.area} {property.landDetails.areaUnit}</p>
+                            <p className="text-md font-medium flex items-center justify-center gap-1.5">{property.landDetails.area} {formatAreaUnit(property.landDetails.areaUnit)}</p>
                         </div>
                         <div className="space-y-1 p-4 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground">Status</p>
