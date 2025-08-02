@@ -40,7 +40,7 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
 
 
   return (
-    <Link href={`/public-listings/${property.id}`} className="block">
+    <Link href={`/public-listings/${property.id}`} className="block h-full">
       <Card className="flex flex-col overflow-hidden group hover:shadow-lg transition-shadow duration-300 rounded-lg border h-full">
           <div className="relative">
               <Image 
@@ -83,7 +83,7 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
                       </p>
                       {pricePerUnit > 0 && (
                         <p className="text-sm text-muted-foreground">
-                            ({new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(pricePerUnit)}/sq.ft)
+                            ({new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(pricePerUnit)}/{formatAreaUnit(property.landDetails.areaUnit)})
                         </p>
                       )}
                   </div>
@@ -232,12 +232,12 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
     <div className="bg-background min-h-screen">
       <header className="bg-card border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
-           <Link href="#" className="flex items-center gap-2 text-xl font-semibold pointer-events-none">
+           <div className="flex items-center gap-2 text-xl font-semibold">
              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Building2 className="h-5 w-5" />
               </div>
               <span>{ownerName}</span>
-           </Link>
+           </div>
         </div>
       </header>
       <main className="container mx-auto p-4 lg:p-6 space-y-6">
@@ -258,11 +258,9 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
   );
 }
 
-
-export default function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
     // This is the correct pattern for resolving searchParams in Next.js 14.
-    const resolvedSearchParams = React.use(searchParams);
-    const ownerId = typeof resolvedSearchParams?.owner === 'string' ? resolvedSearchParams.owner : null;
+    const ownerId = typeof searchParams?.owner === 'string' ? searchParams.owner : null;
 
     return (
         <React.Suspense fallback={<PageSkeleton />}>
@@ -271,4 +269,17 @@ export default function PublicListingsPage({ searchParams }: { searchParams?: { 
     );
 }
 
-    
+export default function PublicListingsPageWrapper() {
+    const searchParams = React.use(React.cache(() => new Promise(resolve => {
+        // This is a placeholder for how you might get searchParams on the server
+        // In a real app, Next.js provides this. For storybook or testing, you might mock this.
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            resolve(Object.fromEntries(params.entries()));
+        } else {
+            resolve({});
+        }
+    }))());
+
+    return <PublicListingsPage searchParams={searchParams as any} />;
+}
