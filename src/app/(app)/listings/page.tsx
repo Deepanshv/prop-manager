@@ -38,7 +38,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { db, firebaseConfig } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import type { Property } from '@/app/(app)/properties/page'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -170,11 +170,11 @@ export default function InternalListingsPage() {
             setIsPublicSettingLoading(false);
         });
     }
-  }, [user, db, toast]);
+  }, [user, toast]);
 
   React.useEffect(() => {
-    if (user && firebaseConfig.projectId) {
-      setPublicUrl(`https://${firebaseConfig.projectId}.web.app/public-listings?owner=${user.uid}`);
+    if (user) {
+      setPublicUrl(`${window.location.origin}/public-listings?owner=${user.uid}`);
     }
   }, [user]);
 
@@ -443,3 +443,5 @@ export default function InternalListingsPage() {
     </>
   )
 }
+
+    
