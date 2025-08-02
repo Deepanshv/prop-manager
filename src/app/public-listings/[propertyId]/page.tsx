@@ -103,7 +103,7 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
             <Image 
                 src="https://placehold.co/1200x800.png"
                 alt={`Photo of ${property.name}`}
-                layout="fill"
+                fill
                 objectFit="cover"
                 className="transition-transform duration-300 group-hover:scale-105"
                 data-ai-hint="property exterior"
