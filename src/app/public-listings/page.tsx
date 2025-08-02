@@ -2,7 +2,7 @@
 'use client';
 
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
-import { Building2, Globe, MapPin, Square, IndianRupee, BadgeCheck, Phone } from 'lucide-react';
+import { Building2, Globe, MapPin, IndianRupee, BadgeCheck, Phone } from 'lucide-react';
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -33,6 +33,12 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
   
   const pricePerUnit = property.listingPricePerUnit || (property.landDetails.area > 0 ? (property.listingPrice / property.landDetails.area) : 0);
 
+  const formatAreaUnit = (unit?: 'Square Feet' | 'Acre') => {
+    if (unit === 'Square Feet') return 'sq.ft.';
+    return unit || '';
+  };
+
+
   return (
     <Link href={`/public-listings/${property.id}`} className="block">
       <Card className="flex flex-col overflow-hidden group hover:shadow-lg transition-shadow duration-300 rounded-lg border h-full">
@@ -53,7 +59,7 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
                   <h3 className="text-lg font-semibold text-foreground truncate">{property.name}</h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                       <MapPin className="h-4 w-4" />
-                      {property.address.street}, {property.address.city}, {property.address.state}
+                      {property.address.city}, {property.address.state}
                   </p>
 
                   <div className="mt-4 grid grid-cols-3 gap-2 text-center border-t border-b py-3">
@@ -63,7 +69,7 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
                       </div>
                       <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Area</p>
-                          <p className="text-sm font-medium flex items-center justify-center gap-1.5"><Square className="h-4 w-4" />{property.landDetails.area} {property.landDetails.areaUnit}</p>
+                          <p className="text-sm font-medium flex items-center justify-center gap-1.5">{property.landDetails.area} {formatAreaUnit(property.landDetails.areaUnit)}</p>
                       </div>
                       <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Status</p>
@@ -254,11 +260,10 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
 
 
 export default function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
-    // Unwrap the searchParams promise-like object at the top of the server component.
+    // This is the correct pattern for resolving searchParams in Next.js 14.
     const resolvedSearchParams = React.use(searchParams);
     const ownerId = typeof resolvedSearchParams?.owner === 'string' ? resolvedSearchParams.owner : null;
 
-    // Pass the resolved, primitive `ownerId` string (or null) as a prop.
     return (
         <React.Suspense fallback={<PageSkeleton />}>
             <PublicListingsContent ownerId={ownerId} />

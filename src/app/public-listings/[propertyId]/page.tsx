@@ -178,6 +178,7 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
 }
 
 export default function PublicPropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    // This is the correct pattern for resolving params in Next.js 14.
     const resolvedParams = React.use(params);
     const { propertyId } = resolvedParams;
 
