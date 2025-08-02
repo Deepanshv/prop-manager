@@ -175,8 +175,6 @@ export default function InternalListingsPage() {
   React.useEffect(() => {
     if (user && firebaseConfig.projectId) {
       setPublicUrl(`https://${firebaseConfig.projectId}.web.app/public-listings?owner=${user.uid}`);
-    } else if (user) {
-      setPublicUrl(`${window.location.origin}/public-listings?owner=${user.uid}`);
     }
   }, [user]);
 
@@ -445,5 +443,3 @@ export default function InternalListingsPage() {
     </>
   )
 }
-
-    
