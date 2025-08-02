@@ -1,25 +1,22 @@
 
-
 'use client';
 
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
-import { Building2, Globe, MapPin } from 'lucide-react';
+import { Building2, Globe, MapPin, Square, IndianRupee, BadgeCheck, Phone } from 'lucide-react';
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import type { Property } from '@/app/(app)/properties/page';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const PublicPropertyCard = React.memo(({ property }: { property: Property }) => {
   const { toast } = useToast();
@@ -32,33 +29,62 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
   };
 
   if (!property.listingPrice) return null;
+  
+  const pricePerUnit = property.listingPricePerUnit || (property.listingPrice / property.landDetails.area);
 
   return (
-    <Card className="flex flex-col hover:shadow-lg transition-shadow">
-        <div className="flex-grow flex flex-col rounded-t-lg">
-            <CardHeader>
-                <CardTitle className="text-lg">{property.name}</CardTitle>
-                <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-                <div className="text-sm flex items-center gap-2 text-muted-foreground">
-                    <Building2 className="h-4 w-4" />
-                    <span>{property.propertyType}</span>
-                </div>
-                 <div className="text-sm text-muted-foreground">
-                    Size: {`${property.landDetails.area} ${property.landDetails.areaUnit}`}
-                 </div>
-            </CardContent>
+    <Card className="flex flex-col overflow-hidden group hover:shadow-lg transition-shadow duration-300 rounded-lg border">
+        <div className="relative">
+             <Image 
+                src="https://placehold.co/600x400.png" 
+                alt={property.name} 
+                width={600} 
+                height={400} 
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                data-ai-hint="apartment building"
+            />
+             <Badge variant="secondary" className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm">For Sale</Badge>
         </div>
-        <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
+       
+        <CardContent className="p-4 flex-grow flex flex-col justify-between">
             <div>
-                <p className="text-muted-foreground">Asking Price</p>
-                <p className="font-semibold text-base">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(property.listingPrice)}</p>
+                <h3 className="text-lg font-semibold text-foreground truncate">{property.name}</h3>
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                    <MapPin className="h-4 w-4" />
+                    {property.address.street}, {property.address.city}, {property.address.state}
+                </p>
+
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center border-t border-b py-3">
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Property Type</p>
+                        <p className="text-sm font-medium flex items-center justify-center gap-1.5"><Building2 className="h-4 w-4" />{property.propertyType}</p>
+                    </div>
+                     <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Area</p>
+                        <p className="text-sm font-medium flex items-center justify-center gap-1.5"><Square className="h-4 w-4" />{property.landDetails.area} {property.landDetails.areaUnit}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <p className="text-sm font-medium flex items-center justify-center gap-1.5"><BadgeCheck className="h-4 w-4 text-green-500" />Ready</p>
+                    </div>
+                </div>
+
+                <div className="mt-4 flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-foreground">
+                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(property.listingPrice)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        ({new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(pricePerUnit)}/sq.ft)
+                    </p>
+                </div>
             </div>
-            <Button size="sm" onClick={handleContactAgent}>
-                Contact Agent
-            </Button>
-        </CardFooter>
+
+            <div className="mt-4">
+                <Button size="lg" className="w-full" onClick={handleContactAgent}>
+                    <Phone className="mr-2 h-4 w-4" /> Contact Agent
+                </Button>
+            </div>
+        </CardContent>
     </Card>
   );
 });
@@ -66,24 +92,21 @@ PublicPropertyCard.displayName = "PublicPropertyCard";
 
 
 const PageSkeleton = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {[...Array(8)].map((_, i) => (
-            <Card key={i} className="flex flex-col">
-                <div className="flex-grow p-6 space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => (
+            <Card key={i} className="flex flex-col overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <CardContent className="p-4 space-y-4">
                     <Skeleton className="h-5 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
-                    <div className="space-y-2 pt-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-5/6" />
+                    <div className="flex justify-between items-center border-t pt-4">
+                         <div className="space-y-2">
+                            <Skeleton className="h-6 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                         </div>
+                        <Skeleton className="h-10 w-32" />
                     </div>
-                </div>
-                <CardFooter className="bg-muted/50 p-4 flex justify-between items-center border-t">
-                    <div className="space-y-1">
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-6 w-28" />
-                    </div>
-                    <Skeleton className="h-9 w-24" />
-                </CardFooter>
+                </CardContent>
             </Card>
         ))}
     </div>
@@ -174,7 +197,7 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
         case 'enabled':
             if (properties.length > 0) {
                  return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
                         {properties.map((prop) => (
                         <PublicPropertyCard key={prop.id} property={prop} />
                         ))}
@@ -225,10 +248,10 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
 }
 
 
-export default function PublicListingsPage({ searchParams }: { searchParams?: { owner?: string } }) {
+export default function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
     // Unwrap the searchParams promise-like object at the top of the server component.
     const resolvedSearchParams = React.use(searchParams);
-    const ownerId = resolvedSearchParams?.owner || null;
+    const ownerId = typeof resolvedSearchParams?.owner === 'string' ? resolvedSearchParams.owner : null;
 
     // Pass the resolved, primitive `ownerId` string (or null) as a prop.
     return (
