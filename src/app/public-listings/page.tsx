@@ -21,7 +21,8 @@ import { Badge } from '@/components/ui/badge';
 const PublicPropertyCard = React.memo(({ property }: { property: Property }) => {
   const { toast } = useToast();
 
-  const handleContactAgent = () => {
+  const handleContactAgent = (e: React.MouseEvent) => {
+    e.preventDefault(); // prevent navigation
     toast({
       title: 'Contact Agent',
       description: 'Functionality to contact the agent would be implemented here.',
@@ -30,69 +31,73 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
 
   if (!property.listingPrice) return null;
   
-  const pricePerUnit = property.listingPricePerUnit || (property.listingPrice / property.landDetails.area);
+  const pricePerUnit = property.listingPricePerUnit || (property.landDetails.area > 0 ? (property.listingPrice / property.landDetails.area) : 0);
 
   return (
-    <Card className="flex flex-col overflow-hidden group hover:shadow-lg transition-shadow duration-300 rounded-lg border">
-        <div className="relative">
-             <Image 
-                src="https://placehold.co/600x400.png" 
-                alt={property.name} 
-                width={600} 
-                height={400} 
-                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                data-ai-hint="apartment building"
-            />
-             <Badge variant="secondary" className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm">For Sale</Badge>
-        </div>
-       
-        <CardContent className="p-4 flex-grow flex flex-col justify-between">
-            <div>
-                <h3 className="text-lg font-semibold text-foreground truncate">{property.name}</h3>
-                <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                    <MapPin className="h-4 w-4" />
-                    {property.address.street}, {property.address.city}, {property.address.state}
-                </p>
+    <Link href={`/public-listings/${property.id}`} className="block">
+      <Card className="flex flex-col overflow-hidden group hover:shadow-lg transition-shadow duration-300 rounded-lg border h-full">
+          <div className="relative">
+              <Image 
+                  src="https://placehold.co/600x400.png" 
+                  alt={property.name} 
+                  width={600} 
+                  height={400} 
+                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                  data-ai-hint="apartment building"
+              />
+              <Badge variant="secondary" className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm">For Sale</Badge>
+          </div>
+        
+          <CardContent className="p-4 flex-grow flex flex-col justify-between">
+              <div>
+                  <h3 className="text-lg font-semibold text-foreground truncate">{property.name}</h3>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                      <MapPin className="h-4 w-4" />
+                      {property.address.street}, {property.address.city}, {property.address.state}
+                  </p>
 
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center border-t border-b py-3">
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Property Type</p>
-                        <p className="text-sm font-medium flex items-center justify-center gap-1.5"><Building2 className="h-4 w-4" />{property.propertyType}</p>
-                    </div>
-                     <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Area</p>
-                        <p className="text-sm font-medium flex items-center justify-center gap-1.5"><Square className="h-4 w-4" />{property.landDetails.area} {property.landDetails.areaUnit}</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Status</p>
-                        <p className="text-sm font-medium flex items-center justify-center gap-1.5"><BadgeCheck className="h-4 w-4 text-green-500" />Ready</p>
-                    </div>
-                </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center border-t border-b py-3">
+                      <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Property Type</p>
+                          <p className="text-sm font-medium flex items-center justify-center gap-1.5"><Building2 className="h-4 w-4" />{property.propertyType}</p>
+                      </div>
+                      <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Area</p>
+                          <p className="text-sm font-medium flex items-center justify-center gap-1.5"><Square className="h-4 w-4" />{property.landDetails.area} {property.landDetails.areaUnit}</p>
+                      </div>
+                      <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Status</p>
+                          <p className="text-sm font-medium flex items-center justify-center gap-1.5"><BadgeCheck className="h-4 w-4 text-green-500" />Ready</p>
+                      </div>
+                  </div>
 
-                <div className="mt-4 flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-foreground">
-                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(property.listingPrice)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                        ({new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(pricePerUnit)}/sq.ft)
-                    </p>
-                </div>
-            </div>
+                  <div className="mt-4 flex items-baseline gap-2">
+                      <p className="text-2xl font-bold text-foreground">
+                          {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(property.listingPrice)}
+                      </p>
+                      {pricePerUnit > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            ({new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(pricePerUnit)}/sq.ft)
+                        </p>
+                      )}
+                  </div>
+              </div>
 
-            <div className="mt-4">
-                <Button size="lg" className="w-full" onClick={handleContactAgent}>
-                    <Phone className="mr-2 h-4 w-4" /> Contact Agent
-                </Button>
-            </div>
-        </CardContent>
-    </Card>
+              <div className="mt-4">
+                  <Button size="lg" className="w-full" onClick={handleContactAgent}>
+                      <Phone className="mr-2 h-4 w-4" /> Contact Agent
+                  </Button>
+              </div>
+          </CardContent>
+      </Card>
+    </Link>
   );
 });
 PublicPropertyCard.displayName = "PublicPropertyCard";
 
 
 const PageSkeleton = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
             <Card key={i} className="flex flex-col overflow-hidden">
                 <Skeleton className="h-48 w-full" />
@@ -197,9 +202,9 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
         case 'enabled':
             if (properties.length > 0) {
                  return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {properties.map((prop) => (
-                        <PublicPropertyCard key={prop.id} property={prop} />
+                          <PublicPropertyCard key={prop.id} property={prop} />
                         ))}
                     </div>
                 );
