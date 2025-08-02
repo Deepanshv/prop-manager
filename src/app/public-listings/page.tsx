@@ -258,8 +258,8 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
   );
 }
 
-function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
-    // This is the correct pattern for resolving searchParams in Next.js 14.
+// This is now a Server Component
+export default function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
     const ownerId = typeof searchParams?.owner === 'string' ? searchParams.owner : null;
 
     return (
@@ -267,19 +267,4 @@ function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: 
             <PublicListingsContent ownerId={ownerId} />
         </React.Suspense>
     );
-}
-
-export default function PublicListingsPageWrapper() {
-    const searchParams = React.use(React.cache(() => new Promise(resolve => {
-        // This is a placeholder for how you might get searchParams on the server
-        // In a real app, Next.js provides this. For storybook or testing, you might mock this.
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            resolve(Object.fromEntries(params.entries()));
-        } else {
-            resolve({});
-        }
-    }))());
-
-    return <PublicListingsPage searchParams={searchParams as any} />;
 }
