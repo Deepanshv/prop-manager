@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -134,7 +133,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 
   if (loading || !prospect) {
     return (
-      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
         <Card>
           <CardHeader>
@@ -144,12 +143,12 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
             <Skeleton className="h-64 w-full" />
           </CardContent>
         </Card>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
           <ArrowLeft className="h-4 w-4" />
@@ -174,7 +173,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
           </ProspectForm>
         </CardContent>
       </Card>
-    </main>
+    </div>
   )
 }
 

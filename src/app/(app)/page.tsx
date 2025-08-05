@@ -120,7 +120,7 @@ export default function DashboardPage() {
   ]
   
   return (
-    <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       </div>
@@ -229,6 +229,6 @@ export default function DashboardPage() {
           </Table>
         </CardContent>
       </Card>
-    </main>
+    </div>
   )
 }

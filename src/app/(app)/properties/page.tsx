@@ -397,7 +397,7 @@ export default function PropertyManagerPage() {
 
   return (
     <>
-      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Property Manager</h1>
           <Button onClick={handleAddProperty}>
@@ -419,7 +419,7 @@ export default function PropertyManagerPage() {
                 </p>
             </div>
         )}
-      </main>
+      </div>
 
       {/* Add Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>

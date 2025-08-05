@@ -255,7 +255,7 @@ export default function ProspectManagerPage() {
 
   return (
     <>
-      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Prospects</h1>
           <Button onClick={handleAddProspect}>
@@ -283,7 +283,7 @@ export default function ProspectManagerPage() {
             <p className="mt-2 text-muted-foreground">{db ? 'Add a new prospect to get started.' : 'Firebase not configured. Please check your environment.'}</p>
           </div>
         )}
-      </main>
+      </div>
 
       <Dialog open={isModalOpen} onOpenChange={(open) => {
           if (!open) {

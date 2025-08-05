@@ -280,7 +280,7 @@ export default function InternalListingsPage() {
 
   return (
     <>
-      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex-grow">
             <h1 className="text-3xl font-bold tracking-tight">Public Listings</h1>
@@ -344,7 +344,7 @@ export default function InternalListingsPage() {
             </p>
           </div>
         )}
-      </main>
+      </div>
 
       <Dialog open={isSoldModalOpen} onOpenChange={(open) => {
           setIsSoldModalOpen(open);
@@ -443,5 +443,3 @@ export default function InternalListingsPage() {
     </>
   )
 }
-
-    

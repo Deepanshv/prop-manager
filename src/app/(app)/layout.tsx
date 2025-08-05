@@ -145,13 +145,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="flex flex-col">
+        <SidebarInset>
             <header className="sticky top-0 z-[1001] flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
                 <SidebarTrigger className="md:hidden">
                     <PanelLeft />
                 </SidebarTrigger>
             </header>
-            {children}
+             <main className="flex-1 overflow-y-auto">
+                {children}
+            </main>
         </SidebarInset>
       </SidebarProvider>
     </AuthContext.Provider>

@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -141,26 +140,26 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
 
   if (loading || !formInitialData) {
     return (
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+        <div className="p-4 lg:p-6 space-y-6">
             <Skeleton className="h-8 w-48" />
             <div className="grid gap-6">
                 <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
                 <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
             </div>
-        </main>
+        </div>
     )
   }
 
   if (!property) {
     return (
-      <main className="flex-1 flex items-center justify-center p-4 lg:p-6">
+      <div className="flex-1 flex items-center justify-center p-4 lg:p-6">
         <p>Property not found.</p>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -213,15 +212,12 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
             </div>
         </TabsContent>
       </Tabs>
-    </main>
+    </div>
   )
 }
 
 export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    // Unwrap the params promise-like object at the top of the server component.
     const resolvedParams = React.use(params);
     const { propertyId } = resolvedParams;
-
-    // Pass the resolved, primitive `propertyId` string as a prop.
     return <PropertyDetailClientPage propertyId={propertyId} />;
 }

@@ -194,7 +194,7 @@ export default function SettingsPage() {
   
   if (!user) {
      return (
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+        <div className="p-4 lg:p-6 space-y-6">
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <Card>
                 <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
@@ -202,13 +202,13 @@ export default function SettingsPage() {
                     <Skeleton className="h-40 w-full" />
                 </CardContent>
             </Card>
-        </main>
+        </div>
     );
   }
 
   return (
     <>
-      <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         
         <Tabs defaultValue="profile" className="w-full">
@@ -365,7 +365,7 @@ export default function SettingsPage() {
             </div>
         </CardContent>
         </Card>
-      </main>
+      </div>
       
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>

@@ -324,7 +324,7 @@ export default function SoldPropertiesPage() {
 
   return (
     <>
-    <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Sold Properties</h1>
         <div className="flex items-center gap-2">
@@ -358,7 +358,7 @@ export default function SoldPropertiesPage() {
             )
         )}
       </div>
-    </main>
+    </div>
 
     <Dialog open={isEditModalOpen} onOpenChange={(open) => {
         if (!open) { setEditingProperty(null); }
