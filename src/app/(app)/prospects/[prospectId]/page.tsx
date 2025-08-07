@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -16,42 +17,25 @@ import type { Prospect } from '../page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 import type { Property } from '../../properties/page'
 
-function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
+function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: Prospect | null }) {
   const { user } = useAuth()
   const router = useRouter()
-  const [prospect, setProspect] = React.useState<Prospect | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  const [prospect, setProspect] = React.useState<Prospect | null>(initialProspect)
+  const [loading, setLoading] = React.useState(!initialProspect)
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
   React.useEffect(() => {
-    if (!user || !db || !prospectId) {
-      setLoading(false)
-      return
+    if (!initialProspect) {
+       toast({ title: 'Error', description: 'Prospect not found or you do not have access.', variant: 'destructive' })
+       router.push('/prospects')
     }
-
-    const fetchProspect = async () => {
-      setLoading(true);
-      try {
-        const prospectDocRef = doc(db, 'prospects', prospectId)
-        const docSnap = await getDoc(prospectDocRef)
-        if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
-          const prospectData = { id: docSnap.id, ...docSnap.data() } as Prospect
-          setProspect(prospectData)
-        } else {
-          toast({ title: 'Error', description: 'Prospect not found or you do not have access.', variant: 'destructive' })
-          router.push('/prospects')
-        }
-      } catch (error) {
-        console.error('Error fetching prospect:', error)
-        toast({ title: 'Error', description: 'Failed to fetch prospect data.', variant: 'destructive' })
-      } finally {
-        setLoading(false)
-      }
+    // We confirm the user has access on the client side
+    if (initialProspect && user && initialProspect.ownerUid !== user.uid) {
+        toast({ title: 'Error', description: 'You do not have access to this prospect.', variant: 'destructive' })
+        router.push('/prospects');
     }
-
-    fetchProspect()
-  }, [user, db, prospectId, router, toast])
+  }, [initialProspect, user, router, toast])
   
   const handleConvertProspect = React.useCallback(async (prospectData: ProspectFormData) => {
     if (!user || !db) return;
@@ -134,7 +118,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 
   if (loading || !prospect) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         <Skeleton className="h-8 w-48" />
         <Card>
           <CardHeader>
@@ -149,7 +133,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
           <ArrowLeft className="h-4 w-4" />
@@ -180,5 +164,23 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 
 export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
     const { prospectId } = params;
-    return <ProspectDetailClientPage prospectId={prospectId} />;
+
+    const fetchProspect = async (): Promise<Prospect | null> => {
+        if (!db || !prospectId) return null;
+        try {
+            const prospectDocRef = doc(db, 'prospects', prospectId);
+            const docSnap = await getDoc(prospectDocRef);
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() } as Prospect;
+            }
+            return null;
+        } catch (error) {
+            console.error("Failed to fetch prospect on server:", error);
+            return null;
+        }
+    };
+
+    const initialProspect = React.use(fetchProspect());
+
+    return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;
 }

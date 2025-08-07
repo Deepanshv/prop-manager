@@ -151,9 +151,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <PanelLeft />
                 </SidebarTrigger>
             </header>
-             <main className="flex-1 overflow-y-auto">
+             <div className="flex-1 overflow-y-auto">
                 {children}
-            </main>
+            </div>
         </SidebarInset>
       </SidebarProvider>
     </AuthContext.Provider>
