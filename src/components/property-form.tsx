@@ -60,6 +60,33 @@ const propertyFormSchema = z.object({
   listingPricePerUnit: z.coerce.number().positive().optional(),
   soldPrice: z.coerce.number().positive().optional(),
   soldDate: z.date().optional(),
+}).refine((data) => {
+    // If status is 'For Sale' and it's listed publicly, listingPricePerUnit is required.
+    if (data.status === 'For Sale' && data.isListedPublicly) {
+        return !!data.listingPricePerUnit && data.listingPricePerUnit > 0;
+    }
+    return true;
+}, {
+    message: "A listing price is required when property is public.",
+    path: ["listingPricePerUnit"],
+}).refine((data) => {
+    // If status is 'Sold', soldPrice is required.
+    if (data.status === 'Sold') {
+        return !!data.soldPrice && data.soldPrice > 0;
+    }
+    return true;
+}, {
+    message: "A valid sold price is required.",
+    path: ["soldPrice"],
+}).refine((data) => {
+    // If status is 'Sold', soldDate is required.
+    if (data.status === 'Sold') {
+        return !!data.soldDate;
+    }
+    return true;
+}, {
+    message: "A sold date is required.",
+    path: ["soldDate"],
 });
 
 
@@ -93,6 +120,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
   const form = useForm<FormValues>({
     resolver: zodResolver(propertyFormSchema),
+    mode: 'onChange', // Validate on change to enable/disable button
     defaultValues: mode === 'add' ? {
         name: '',
         address: { street: '', city: '', state: '', zip: '', landmark: '' },
@@ -131,39 +159,6 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
   }, [watchedValues.landDetails?.area, watchedValues.listingPricePerUnit]);
 
   const handleFormSubmit = (data: FormValues) => {
-    // --- Manual Validation with Toasts ---
-    if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
-        form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
-        toast({
-            title: "Missing Information",
-            description: "Please provide a Listing Price when making a property public.",
-            variant: "destructive",
-        });
-        return; // Stop submission
-    }
-    
-    if (data.status === 'Sold') {
-        let isValid = true;
-        if (!data.soldPrice || data.soldPrice <= 0) {
-            form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
-            isValid = false;
-        }
-        if (!data.soldDate) {
-            form.setError("soldDate", { type: "manual", message: "A sold date is required." });
-            isValid = false;
-        }
-        if (!isValid) {
-            toast({
-                title: "Missing Information",
-                description: "Please provide a valid Sold Price and Sold Date.",
-                variant: "destructive",
-            });
-            return; // Stop submission
-        }
-    }
-    
-    // --- End Manual Validation ---
-
     const finalData: PropertyFormData = {
         ...data,
         purchasePrice: calculatedPurchaseValue,
@@ -576,7 +571,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
         <div className="flex justify-end gap-2">
             {children}
-            <Button type="submit" disabled={isSaving}>
+            <Button type="submit" disabled={isSaving || !form.formState.isValid}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                  {submitButtonText}
             </Button>
