@@ -1,152 +1,138 @@
+// This is the top of your file: app/(app/properties/[propertyId]/page.tsx)
 
-'use client';
+// --- The Client Component ---
+// This part contains all your interactive logic.
+// Notice the 'use client' directive is here.
+'use client'
 
-import type { Property } from '@/app/(app)/properties/page';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileManager } from '@/components/file-manager';
-import { MediaManager } from '@/components/media-manager';
-import { PropertyForm, type PropertyFormData } from '@/components/property-form';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, onSnapshot, Timestamp, updateDoc } from 'firebase/firestore';
-import { ArrowLeft, FileQuestion, IndianRupee, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import * as React from 'react';
-import { useAuth } from '../../layout';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
+import { ArrowLeft, FileQuestion } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import * as React from 'react'
 
-function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useToast } from '@/hooks/use-toast'
+import { db } from '@/lib/firebase'
+import { FileManager } from '@/components/file-manager'
+import { useAuth } from '../../layout' // Assuming this path is correct
+import type { Property } from '../page'
+import { PropertyForm, type PropertyFormData } from '@/components/property-form'
+import { MediaManager } from '@/components/media-manager'
 
-  const [property, setProperty] = React.useState<Property | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [isListingLoading, setIsListingLoading] = React.useState(false);
 
-  // Separate state for listing details to manage them outside the main form
-  const [isListedPublicly, setIsListedPublicly] = React.useState(false);
-  const [listingPricePerUnit, setListingPricePerUnit] = React.useState<number | undefined>(undefined);
+// We've renamed your original component to "PropertyDetailClientPage"
+// It now receives the simple 'propertyId' string as a prop.
+function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId: string, initialProperty: Property | null }) {
+  const { user } = useAuth()
+  const router = useRouter()
+  const [property, setProperty] = React.useState<Property | null>(initialProperty)
+  const [loading, setLoading] = React.useState(false) // No longer loading initially since data is passed in
+  const [isSaving, setIsSaving] = React.useState(false)
+  const { toast } = useToast()
 
   React.useEffect(() => {
-    if (!propertyId) {
-      setLoading(false);
-      return;
+    if (!initialProperty) {
+       toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
+       router.push('/properties')
     }
-    const unsub = onSnapshot(doc(db, 'properties', propertyId), (doc) => {
-      if (doc.exists()) {
-        const data = { id: doc.id, ...doc.data() } as Property;
-        setProperty(data);
-        setIsListedPublicly(data.isListedPublicly || false);
-        setListingPricePerUnit(data.listingPricePerUnit);
-      } else {
-        toast({ title: 'Error', description: 'Property not found.', variant: 'destructive' });
-        router.push('/properties');
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error(error);
-      toast({ title: 'Error', description: 'Failed to fetch property details.', variant: 'destructive' });
-      setLoading(false);
-    });
-
-    return () => unsub();
-  }, [propertyId, router, toast]);
+  }, [initialProperty, router, toast])
 
   const formInitialData = React.useMemo(() => {
-    if (!property) return undefined;
+    if (!initialProperty) return undefined;
     
-    let pricePerUnit = property.pricePerUnit;
-    if (pricePerUnit === undefined && property.purchasePrice && property.landDetails.area > 0) {
-      pricePerUnit = property.purchasePrice / property.landDetails.area;
+    let pricePerUnit = initialProperty.pricePerUnit;
+    if (pricePerUnit === undefined && initialProperty.purchasePrice && initialProperty.landDetails.area > 0) {
+      pricePerUnit = initialProperty.purchasePrice / initialProperty.landDetails.area;
+    }
+    
+    let listingPricePerUnit = initialProperty.listingPricePerUnit;
+    if (listingPricePerUnit === undefined && initialProperty.listingPrice && initialProperty.landDetails.area > 0) {
+      listingPricePerUnit = initialProperty.listingPrice / initialProperty.landDetails.area;
     }
 
     return {
-      ...property,
-      purchaseDate: property.purchaseDate.toDate(),
+      ...initialProperty,
+      purchaseDate: initialProperty.purchaseDate.toDate(),
+      soldDate: initialProperty.soldDate?.toDate(),
       pricePerUnit: pricePerUnit,
+      listingPricePerUnit: listingPricePerUnit,
     };
-  }, [property]);
+  }, [initialProperty]);
 
-  const handleCoreDetailsSubmit = async (data: PropertyFormData) => {
-    if (!user || !db || !property) {
-      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' });
-      return;
+  const onSubmit = async (data: PropertyFormData) => {
+    if (!user || !propertyId) {
+      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
+      return
     }
-    setIsSaving(true);
+    setIsSaving(true)
 
+    // Prepare data for Firestore, converting JS Dates back to Timestamps
     const propertyData: Record<string, any> = {
       ...data,
-      purchaseDate: Timestamp.fromDate(data.purchaseDate),
       ownerUid: user.uid,
+      purchaseDate: Timestamp.fromDate(data.purchaseDate),
       pricePerUnit: data.pricePerUnit ?? null,
+      soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
+      soldPrice: data.soldPrice ?? null,
+      listingPrice: data.listingPrice ?? null,
+      listingPricePerUnit: data.listingPricePerUnit ?? null,
       remarks: data.remarks ?? null,
-      address: { ...data.address },
-      landDetails: { ...data.landDetails },
+      address: {
+        ...data.address,
+        landmark: data.address.landmark ?? null,
+        latitude: data.address.latitude ?? null,
+        longitude: data.address.longitude ?? null,
+      },
+      landDetails: {
+        ...data.landDetails,
+        khasraNumber: data.landDetails.khasraNumber ?? null,
+        landbookNumber: data.landDetails.landbookNumber ?? null,
+      },
     };
     
+    // Conditional logic based on form data
     if (data.propertyType !== 'Open Land') {
-      propertyData.landType = null;
-      propertyData.isDiverted = null;
+        propertyData.landType = null;
+        propertyData.isDiverted = null;
+    }
+    if (data.status === 'Sold') {
+        propertyData.isListedPublicly = false;
+    } else {
+        propertyData.soldDate = null;
+        propertyData.soldPrice = null;
+    }
+    if (!data.isListedPublicly) {
+        propertyData.listingPrice = null;
+        propertyData.listingPricePerUnit = null;
     }
 
     try {
-      const propDocRef = doc(db, 'properties', property.id);
-      await updateDoc(propDocRef, propertyData);
-      toast({ title: 'Success', description: 'Property details updated successfully.' });
+      const propDocRef = doc(db, 'properties', propertyId)
+      await updateDoc(propDocRef, propertyData)
+      toast({ title: 'Success', description: 'Property updated successfully.' })
+        if (propertyData.status === 'Sold') {
+            router.push('/sold-properties')
+        } else {
+            // Re-fetch or update local state if needed
+             const docSnap = await getDoc(propDocRef);
+             if (docSnap.exists()) {
+                const updatedPropData = { id: docSnap.id, ...docSnap.data() } as Property;
+                setProperty(updatedPropData); // Update the local property state to reflect changes
+             }
+        }
     } catch (error) {
-      console.error('Error updating document: ', error);
-      toast({ title: 'Error', description: 'Failed to update property details.', variant: 'destructive' });
+      console.error('Error updating document: ', error)
+      toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' })
     } finally {
-      setIsSaving(false);
+        setIsSaving(false)
     }
-  };
-
-  const handleListingToggle = async (checked: boolean) => {
-      setIsListedPublicly(checked);
-      // If un-listing, save immediately.
-      if (!checked) {
-          handleListingUpdate();
-      }
   }
 
-  const handleListingUpdate = async () => {
-    if (!property) return;
-
-    if (isListedPublicly && (!listingPricePerUnit || listingPricePerUnit <= 0)) {
-        toast({ title: "Missing Information", description: "Please provide a valid listing price.", variant: "destructive" });
-        return;
-    }
-
-    setIsListingLoading(true);
-    try {
-        const area = property.landDetails.area || 0;
-        const finalListingPrice = isListedPublicly ? (listingPricePerUnit || 0) * area : null;
-        const finalListingPricePerUnit = isListedPublicly ? (listingPricePerUnit || null) : null;
-        
-        const propDocRef = doc(db, 'properties', property.id);
-        await updateDoc(propDocRef, {
-            isListedPublicly: isListedPublicly,
-            status: isListedPublicly ? 'For Sale' : 'Owned',
-            listingPrice: finalListingPrice,
-            listingPricePerUnit: finalListingPricePerUnit,
-        });
-        toast({ title: 'Success', description: 'Listing status updated successfully.' });
-    } catch (error) {
-        console.error('Error updating listing status: ', error);
-        toast({ title: 'Error', description: 'Failed to update listing status.', variant: 'destructive' });
-    } finally {
-        setIsListingLoading(false);
-    }
-  };
-
-  if (loading) {
+  // Loading state UI
+  if (loading || !formInitialData) {
     return (
         <div className="p-6 space-y-6">
             <Skeleton className="h-8 w-48" />
@@ -158,6 +144,7 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
     )
   }
 
+  // Not found state UI
   if (!property) {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
@@ -165,8 +152,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
       </div>
     )
   }
-
-  const calculatedListingPrice = (listingPricePerUnit || 0) * (property.landDetails.area || 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -183,70 +168,21 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
           <TabsTrigger value="files">Files</TabsTrigger>
         </TabsList>
         <TabsContent value="details">
-            <div className="mt-4 space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Edit Property Details</CardTitle>
-                        <CardDescription>Update the core information for this property. Selling or listing the property are separate actions.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {formInitialData ? (
-                            <PropertyForm 
-                                mode="edit"
-                                onSubmit={handleCoreDetailsSubmit}
-                                initialData={formInitialData}
-                                isSaving={isSaving}
-                                submitButtonText="Save Changes"
-                            />
-                        ) : <Skeleton className="h-64 w-full" />}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Public Listing Status</CardTitle>
-                        <CardDescription>Make this property visible on the public listings page.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                           <Switch
-                                id="public-listing-switch"
-                                checked={isListedPublicly}
-                                onCheckedChange={handleListingToggle}
-                            />
-                            <Label htmlFor="public-listing-switch">List this property publicly</Label>
-                        </div>
-
-                        {isListedPublicly && (
-                             <div className="space-y-4 rounded-md border p-4">
-                                <div className="space-y-1">
-                                    <Label htmlFor="listing-price-unit">Listing Price per {property.landDetails.areaUnit} (₹)</Label>
-                                    <Input
-                                        id="listing-price-unit"
-                                        type="number"
-                                        placeholder="e.g. 6000"
-                                        value={listingPricePerUnit || ''}
-                                        onChange={(e) => setListingPricePerUnit(e.target.valueAsNumber)}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label>Calculated Listing Price</Label>
-                                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
-                                        <IndianRupee className="h-5 w-5 text-muted-foreground" />
-                                        <span className="text-2xl font-bold">
-                                            {new Intl.NumberFormat('en-IN').format(calculatedListingPrice)}
-                                        </span>
-                                    </div>
-                                </div>
-                                <Button onClick={handleListingUpdate} disabled={isListingLoading}>
-                                    {isListingLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Update Listing Price
-                                </Button>
-                             </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+            <Card className="mt-4">
+                <CardHeader>
+                    <CardTitle>Edit Property Details</CardTitle>
+                    <CardDescription>Update the information for this property.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <PropertyForm 
+                        mode="edit"
+                        onSubmit={onSubmit}
+                        initialData={formInitialData}
+                        isSaving={isSaving}
+                        submitButtonText="Save Changes"
+                    />
+                </CardContent>
+            </Card>
         </TabsContent>
         <TabsContent value="files">
             <div className="mt-4 space-y-6">
@@ -255,7 +191,7 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><FileQuestion className="text-muted-foreground" /> Recommended Documents</CardTitle>
                         <CardDescription>
-                           For a complete record, you can upload documents using the file manager below.
+                            For a complete record, you can upload documents using the file manager below.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -275,12 +211,34 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   )
 }
 
-// This is a Server Component responsible for fetching initial data.
-export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    // SECURITY NOTE: In a real-world production app, a server-side ownership check
-    // would be critical here before rendering the page. This would involve
-    // checking the user's session and comparing their ID to the property's `ownerUid`.
-    return <PropertyDetailClientPage propertyId={params.propertyId} />;
-}
 
+// --- The Server Component ---
+// This is the default export for the page. It is NOT a client component.
+// Its only job is to handle the server-side `params` object.
+export default async function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    // SECURITY NOTE: In a real-world production app, a server-side ownership check
+    // would be critical here before fetching the data. This would involve
+    // checking the user's session cookie and comparing their ID to the `ownerUid`
+    // of the property document *before* sending any data to the client.
+
+    const fetchProperty = async (id: string): Promise<Property | null> => {
+        if (!db || !id) return null;
+        try {
+            const propDocRef = doc(db, 'properties', id);
+            const docSnap = await getDoc(propDocRef);
+            if (docSnap.exists()) {
+                // The ownership check should happen here on the server
+                return { id: docSnap.id, ...docSnap.data() } as Property;
+            }
+            return null;
+        } catch (error) {
+            console.error("Failed to fetch property on server:", error);
+            return null;
+        }
+    };
     
+    const resolvedParams = React.use(params);
+    const initialProperty = await fetchProperty(resolvedParams.propertyId);
+    
+    return <PropertyDetailClientPage propertyId={resolvedParams.propertyId} initialProperty={initialProperty} />;
+}

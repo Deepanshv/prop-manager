@@ -1,7 +1,11 @@
+// This is the top of your file: app/(app/prospects/[prospectId]/page.tsx)
 
+// --- The Client Component ---
+// This part contains all your interactive logic.
+// Notice the 'use client' directive is here.
 'use client'
 
-import { collection, doc, getDoc, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, writeBatch, Timestamp, updateDoc, getDoc } from 'firebase/firestore'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
@@ -16,6 +20,8 @@ import type { Prospect } from '../page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 import type { Property } from '../../properties/page'
 
+// We've renamed your original component to "ProspectDetailClientPage"
+// It now receives the simple 'prospectId' and initial data as props.
 function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: Prospect | null }) {
   const { user } = useAuth()
   const router = useRouter()
@@ -23,11 +29,11 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   const { toast } = useToast()
 
   React.useEffect(() => {
+    // We check for user and prospect on the client side for robustness
     if (!initialProspect) {
        toast({ title: 'Error', description: 'Prospect not found or you do not have access.', variant: 'destructive' })
        router.push('/prospects')
     }
-    // We confirm the user has access on the client side
     if (initialProspect && user && initialProspect.ownerUid !== user.uid) {
         toast({ title: 'Error', description: 'You do not have access to this prospect.', variant: 'destructive' })
         router.push('/prospects');
@@ -35,7 +41,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   }, [initialProspect, user, router, toast])
   
   const handleConvertProspect = React.useCallback(async (prospectData: ProspectFormData) => {
-    if (!user || !db) return;
+    if (!user || !db || !initialProspect) return;
 
     const toastId = toast({
       title: 'Converting Prospect...',
@@ -43,11 +49,14 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
     });
 
     try {
+      // Use a batch for atomic writes
       const batch = writeBatch(db);
       
       const newPropertyRef = doc(collection(db, 'properties'))
-      const prospectDocRef = doc(db, 'prospects', prospectId);
+      const prospectDocRef = doc(db, 'prospects', initialProspect.id);
 
+      // This is a security risk if not validated server-side.
+      // For this app, we trust the client data, but a real app should re-validate.
       const newPropertyData: Omit<Property, 'id'> = {
         name: prospectData.name,
         ownerUid: user.uid,
@@ -55,9 +64,9 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
         landDetails: { area: 0, areaUnit: 'Square Feet' }, // Default value
         propertyType: prospectData.propertyType as Property['propertyType'] || 'Open Land',
         purchaseDate: Timestamp.now(),
-        purchasePrice: 0,
+        purchasePrice: 0, // Default value
         status: 'Owned',
-        remarks: prospectData.contactInfo ? `Contact Info: ${prospectData.contactInfo}` : '',
+        remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
       }
       
       batch.set(newPropertyRef, newPropertyData);
@@ -83,7 +92,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
         });
     }
 
-  }, [user, db, toast, router, prospectId]);
+  }, [user, db, toast, router, initialProspect]);
 
   const onSubmit = async (data: ProspectFormData) => {
     if (!user || !db || !prospectId) {
@@ -116,9 +125,10 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
     }
   }
 
+  // Initial render with skeleton if data is still coming
   if (!initialProspect) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
         <Card>
           <CardHeader>
@@ -133,7 +143,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
           <ArrowLeft className="h-4 w-4" />
@@ -162,7 +172,9 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   )
 }
 
-// This is a Server Component responsible for fetching initial data.
+// --- The Server Component ---
+// This is the default export for the page. It is NOT a client component.
+// Its only job is to handle the server-side `params` object.
 export default async function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
 
     const fetchProspect = async (id: string): Promise<Prospect | null> => {
@@ -185,7 +197,8 @@ export default async function ProspectDetailPage({ params }: { params: { prospec
         }
     };
 
-    const initialProspect = await fetchProspect(params.prospectId);
+    const resolvedParams = React.use(params);
+    const initialProspect = await fetchProspect(resolvedParams.prospectId);
 
-    return <ProspectDetailClientPage prospectId={params.prospectId} initialProspect={initialProspect} />;
+    return <ProspectDetailClientPage prospectId={resolvedParams.prospectId} initialProspect={initialProspect} />;
 }
