@@ -147,16 +147,34 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     // Manual validation for conditional fields, which is more reliable
     if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
         form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
+        toast({
+            title: "Missing Information",
+            description: "Please provide a Listing Price when making a property public.",
+            variant: "destructive",
+        });
         return;
     }
-    if (data.status === 'Sold' && (!data.soldPrice || data.soldPrice <= 0)) {
-        form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
-        return;
+    
+    if (data.status === 'Sold') {
+        let soldIsValid = true;
+        if (!data.soldPrice || data.soldPrice <= 0) {
+            form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
+            soldIsValid = false;
+        }
+        if (!data.soldDate) {
+            form.setError("soldDate", { type: "manual", message: "A sold date is required." });
+            soldIsValid = false;
+        }
+        if (!soldIsValid) {
+            toast({
+                title: "Missing Information",
+                description: "Please provide a valid Sold Price and Sold Date.",
+                variant: "destructive",
+            });
+            return;
+        }
     }
-    if (data.status === 'Sold' && !data.soldDate) {
-        form.setError("soldDate", { type: "manual", message: "A sold date is required." });
-        return;
-    }
+
 
     // Add the calculated values to the data object right before submission
     const finalData: PropertyFormData = {
@@ -590,3 +608,4 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 }
 
     
+
