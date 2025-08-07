@@ -1,7 +1,8 @@
+// This is the top of your file: app/properties/[propertyId]/page.tsx
 
-// --- 1. The Client Component ---
+// --- The Client Component ---
 // This part contains all your interactive logic.
-// It starts with 'use client'.
+// Notice the 'use client' directive is here.
 'use client'
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -24,51 +25,76 @@ import { MediaManager } from '@/components/media-manager'
 
 // We've renamed your original component to "PropertyDetailClientPage"
 // It now receives the simple 'propertyId' string as a prop.
-function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId: string, initialProperty: Property | null }) {
+function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   const { user } = useAuth()
   const router = useRouter()
-  const [property, setProperty] = React.useState<Property | null>(initialProperty)
+  const [property, setProperty] = React.useState<Property | null>(null)
+  const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
-  const formInitialData = React.useMemo(() => {
-    if (!initialProperty) return undefined;
-    
-    // This logic ensures that if pricePerUnit is missing, it gets calculated for the form.
-    let pricePerUnit = initialProperty.pricePerUnit;
-    if (pricePerUnit === undefined && initialProperty.purchasePrice && initialProperty.landDetails.area > 0) {
-      pricePerUnit = initialProperty.purchasePrice / initialProperty.landDetails.area;
-    }
-    
-    let listingPricePerUnit = initialProperty.listingPricePerUnit;
-    if (listingPricePerUnit === undefined && initialProperty.listingPrice && initialProperty.landDetails.area > 0) {
-      listingPricePerUnit = initialProperty.listingPrice / initialProperty.landDetails.area;
-    }
-
-    return {
-      ...initialProperty,
-      purchaseDate: initialProperty.purchaseDate.toDate(),
-      soldDate: initialProperty.soldDate?.toDate(),
-      pricePerUnit: pricePerUnit,
-      listingPricePerUnit: listingPricePerUnit,
-    };
-  }, [initialProperty]);
+  const [formInitialData, setFormInitialData] = React.useState<Partial<PropertyFormData> | undefined>(undefined);
 
   React.useEffect(() => {
-    if (!initialProperty) {
-      toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
-      router.push('/properties')
+    // We check for user and propertyId before fetching
+    if (!user || !propertyId) {
+      setLoading(false)
+      return
     }
-  }, [initialProperty, router, toast]);
+
+    const fetchProperty = async () => {
+      try {
+        const propDocRef = doc(db, 'properties', propertyId)
+        const docSnap = await getDoc(propDocRef)
+        
+        // Security Check: Ensure the document exists and belongs to the current user.
+        if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+          const propData = { id: docSnap.id, ...docSnap.data() } as Property
+          setProperty(propData)
+          
+          // Pre-calculation logic for the form
+          let pricePerUnit = propData.pricePerUnit;
+          if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
+            pricePerUnit = propData.purchasePrice / propData.landDetails.area;
+          }
+          
+          let listingPricePerUnit = propData.listingPricePerUnit;
+          if (listingPricePerUnit === undefined && propData.listingPrice && propData.landDetails.area > 0) {
+            listingPricePerUnit = propData.listingPrice / propData.landDetails.area;
+          }
+
+          // Set the initial data for the form, converting Timestamps to JS Dates
+          setFormInitialData({
+            ...propData,
+            purchaseDate: propData.purchaseDate.toDate(),
+            soldDate: propData.soldDate?.toDate(),
+            pricePerUnit: pricePerUnit,
+            listingPricePerUnit: listingPricePerUnit,
+          });
+        } else {
+          toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
+          router.push('/properties')
+        }
+      } catch (error) {
+        console.error('Error fetching property:', error)
+        toast({ title: 'Error', description: 'Failed to fetch property data.', variant: 'destructive' })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProperty()
+  }, [user, propertyId, router, toast])
 
 
   const onSubmit = async (data: PropertyFormData) => {
-    if (!user || !db || !propertyId) {
+    if (!user || !propertyId) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
     }
     setIsSaving(true)
 
+    // Prepare data for Firestore, converting JS Dates back to Timestamps
     const propertyData: Record<string, any> = {
       ...data,
       ownerUid: user.uid,
@@ -92,18 +118,17 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
       },
     };
     
+    // Conditional logic based on form data
     if (data.propertyType !== 'Open Land') {
         propertyData.landType = null;
         propertyData.isDiverted = null;
     }
-
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
     } else {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
     }
-
     if (!data.isListedPublicly) {
         propertyData.listingPrice = null;
         propertyData.listingPricePerUnit = null;
@@ -113,14 +138,8 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
       const propDocRef = doc(db, 'properties', propertyId)
       await updateDoc(propDocRef, propertyData)
       toast({ title: 'Success', description: 'Property updated successfully.' })
-       if (propertyData.status === 'Sold') {
+        if (propertyData.status === 'Sold') {
             router.push('/sold-properties')
-        } else {
-          // Re-fetch or update local state if needed
-          const docSnap = await getDoc(propDocRef);
-          if (docSnap.exists()) {
-             setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
-          }
         }
     } catch (error) {
       console.error('Error updating document: ', error)
@@ -130,7 +149,8 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
     }
   }
 
-  if (!formInitialData) {
+  // Loading state UI
+  if (loading || !formInitialData) {
     return (
         <div className="p-6 space-y-6">
             <Skeleton className="h-8 w-48" />
@@ -142,6 +162,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
     )
   }
 
+  // Not found state UI
   if (!property) {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
@@ -188,7 +209,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><FileQuestion className="text-muted-foreground" /> Recommended Documents</CardTitle>
                         <CardDescription>
-                           For a complete record, you can upload documents using the file manager below.
+                            For a complete record, you can upload documents using the file manager below.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -208,30 +229,15 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
   )
 }
 
-// This is a Server Component responsible for fetching initial data.
-export default async function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    
-    const fetchProperty = async (id: string): Promise<Property | null> => {
-        if (!db || !id) return null;
-        try {
-            const propDocRef = doc(db, 'properties', id);
-            const docSnap = await getDoc(propDocRef);
-            if (docSnap.exists()) {
-                // SECURITY NOTE: In a production app, a server-side ownership check
-                // is critical here. Before returning the data, you must verify
-                // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
-                // Without this, any logged-in user could access any other user's property
-                // data by guessing the URL.
-                return { id: docSnap.id, ...docSnap.data() } as Property;
-            }
-            return null;
-        } catch (error) {
-            console.error("Failed to fetch property on server:", error);
-            return null;
-        }
-    };
 
-    const initialProperty = await fetchProperty(params.propertyId);
-    
-    return <PropertyDetailClientPage propertyId={params.propertyId} initialProperty={initialProperty} />;
+// --- The Server Component ---
+// This is the default export for the page. It is NOT a client component.
+// Its only job is to handle the server-side `params` object.
+export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    // 1. Pass the params promise to React.use() to unwrap it.
+    const resolvedParams = React.use(params);
+    const { propertyId } = resolvedParams;
+
+    // 2. Pass the resolved, primitive `propertyId` string as a prop to the Client Component.
+    return <PropertyDetailClientPage propertyId={propertyId} />;
 }
