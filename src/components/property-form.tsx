@@ -31,49 +31,43 @@ const landAreaUnits = ['Square Feet', 'Acre'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 
-const addressSchema = z.object({
-  street: z.string().min(1, 'Area/Locality is required'),
-  city: z.string().min(1, 'City is required.'),
-  state: z.string().min(1, 'State is required.'),
-  zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
-  landmark: z.string().optional(),
-  latitude: z.coerce.number().min(-90).max(90).optional(),
-  longitude: z.coerce.number().min(-180).max(180).optional(),
-});
-
-const landDetailsSchema = z.object({
-    khasraNumber: z.string().optional(),
-    landbookNumber: z.string().optional(),
-    area: z.coerce.number().min(0.0001, "Land area must be greater than 0."),
-    areaUnit: z.string({ required_error: "Please select a unit." }),
-});
-
+// This schema ONLY includes fields the user directly edits.
 const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
-  address: addressSchema,
-  landDetails: landDetailsSchema,
+  address: z.object({
+    street: z.string().min(1, 'Area/Locality is required'),
+    city: z.string().min(1, 'City is required.'),
+    state: z.string().min(1, 'State is required.'),
+    zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
+    landmark: z.string().optional(),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
+  }),
+  landDetails: z.object({
+      khasraNumber: z.string().optional(),
+      landbookNumber: z.string().optional(),
+      area: z.coerce.number({invalid_type_error: "Area must be a number"}).min(0.0001, "Land area must be greater than 0."),
+      areaUnit: z.string({ required_error: "Please select a unit." }),
+  }),
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
-  pricePerUnit: z.coerce.number({
-        invalid_type_error: "Price per unit must be a number."
-    }).positive({ message: "Price per unit must be a positive number." }).optional(),
-  
+  pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }).optional(),
   isListedPublicly: z.boolean().default(false),
   listingPricePerUnit: z.coerce.number().optional(),
-  
   remarks: z.string().optional(),
-  
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
-  
   status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
   soldPrice: z.coerce.number().optional(),
   soldDate: z.date().optional(),
 });
 
 
-// The final data type includes the calculated fields
-export type PropertyFormData = z.infer<typeof propertyFormSchema> & {
+// This is the data type for what the form manages.
+type FormValues = z.infer<typeof propertyFormSchema>;
+
+// This is the final data type that gets submitted, including calculated fields.
+export type PropertyFormData = FormValues & {
     purchasePrice: number,
     listingPrice?: number,
 };
@@ -97,23 +91,14 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
-  const form = useForm<z.infer<typeof propertyFormSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: mode === 'add' ? {
         status: 'Owned',
         isListedPublicly: false,
         name: '',
-        address: {
-            street: '',
-            city: '',
-            state: '',
-            zip: '',
-            landmark: '',
-        },
-        landDetails: {
-            khasraNumber: '',
-            landbookNumber: '',
-        },
+        address: { street: '', city: '', state: '', zip: '', landmark: '' },
+        landDetails: { khasraNumber: '', landbookNumber: '' },
         remarks: '',
         isDiverted: false,
     } : initialData,
@@ -131,64 +116,49 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     }
   }, [initialData, form]);
 
-  const watchedStatus = form.watch('status');
-  const watchedIsListedPublicly = form.watch('isListedPublicly');
-  const watchedArea = form.watch('landDetails.area');
-  const watchedPricePerUnit = form.watch('pricePerUnit');
-  const watchedAreaUnit = form.watch('landDetails.areaUnit');
-  const watchedListingPricePerUnit = form.watch('listingPricePerUnit');
-  const watchedPropertyType = form.watch('propertyType');
+  const watchedValues = form.watch();
 
   const calculatedPurchaseValue = React.useMemo(() => {
-    const area = Number(watchedArea) || 0;
-    const price = Number(watchedPricePerUnit) || 0;
+    const area = Number(watchedValues.landDetails?.area) || 0;
+    const price = Number(watchedValues.pricePerUnit) || 0;
     return area * price;
-  }, [watchedArea, watchedPricePerUnit]);
+  }, [watchedValues.landDetails?.area, watchedValues.pricePerUnit]);
 
   const calculatedListingPrice = React.useMemo(() => {
-    const area = Number(watchedArea) || 0;
-    const price = Number(watchedListingPricePerUnit) || 0;
+    const area = Number(watchedValues.landDetails?.area) || 0;
+    const price = Number(watchedValues.listingPricePerUnit) || 0;
     return area * price;
-  }, [watchedArea, watchedListingPricePerUnit]);
+  }, [watchedValues.landDetails?.area, watchedValues.listingPricePerUnit]);
 
-  // When 'isListedPublicly' is toggled, clear the listing price if it's turned off
-  React.useEffect(() => {
-    if (!watchedIsListedPublicly) {
-        form.setValue('listingPricePerUnit', undefined);
-    }
-  }, [watchedIsListedPublicly, form]);
 
-  // When status is changed to anything other than 'Sold', clear sold fields
+  // Clean up dependent fields when a toggle changes
   React.useEffect(() => {
-    if (watchedStatus !== 'Sold') {
-        form.setValue('soldDate', undefined);
-        form.setValue('soldPrice', undefined);
+    if (!watchedValues.isListedPublicly) {
+        form.setValue('listingPricePerUnit', undefined, { shouldValidate: true });
     }
-  }, [watchedStatus, form]);
+    if (watchedValues.status !== 'Sold') {
+        form.setValue('soldDate', undefined, { shouldValidate: true });
+        form.setValue('soldPrice', undefined, { shouldValidate: true });
+    }
+  }, [watchedValues.isListedPublicly, watchedValues.status, form]);
   
   
-  const handleFormSubmit = (data: z.infer<typeof propertyFormSchema>) => {
-    
-    // Manual validation for conditional fields
+  const handleFormSubmit = (data: FormValues) => {
+    // Manual validation for conditional fields, which is more reliable
     if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
         form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
-        return; // Stop submission
+        return;
     }
     if (data.status === 'Sold' && (!data.soldPrice || data.soldPrice <= 0)) {
         form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
-        return; // Stop submission
+        return;
     }
     if (data.status === 'Sold' && !data.soldDate) {
         form.setError("soldDate", { type: "manual", message: "A sold date is required." });
-        return; // Stop submission
-    }
-    if (data.propertyType === 'Open Land' && (!data.landDetails.khasraNumber || !data.landDetails.landbookNumber)) {
-        form.setError("landDetails.khasraNumber", { type: "manual", message: "Khasra and Landbook numbers are required for Open Land." });
-        form.setError("landDetails.landbookNumber", { type: "manual", message: "Khasra and Landbook numbers are required for Open Land." });
         return;
     }
 
-
+    // Add the calculated values to the data object right before submission
     const finalData: PropertyFormData = {
         ...data,
         purchasePrice: calculatedPurchaseValue,
@@ -214,7 +184,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         } else {
             setSuggestions([]);
         }
-    }, 500); // Debounce search
+    }, 500);
 
     return () => clearTimeout(handler);
   }, [searchQuery, toast]);
@@ -316,7 +286,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
             name="listingPricePerUnit"
             render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Listing Price per {watchedAreaUnit || 'Unit'} (₹)</FormLabel>
+                    <FormLabel>Listing Price per {watchedValues.landDetails?.areaUnit || 'Unit'} (₹)</FormLabel>
                     <FormControl><Input type="number" placeholder="e.g. 6000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
                     <FormMessage />
                 </FormItem>
@@ -421,7 +391,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
             </div>
         </div>
 
-        {watchedPropertyType === 'Open Land' && (
+        {watchedValues.propertyType === 'Open Land' && (
             <div className="space-y-4">
                 <h3 className="text-lg font-medium">Land Details</h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
@@ -465,7 +435,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                     </FormItem>
                 )}/>
 
-                {watchedPropertyType === 'Open Land' && (
+                {watchedValues.propertyType === 'Open Land' && (
                   <>
                     <FormField control={form.control} name="landType" render={({ field }) => (
                         <FormItem><FormLabel>Land Type</FormLabel>
@@ -510,7 +480,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
                 <FormField control={form.control} name="pricePerUnit" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Price per {watchedAreaUnit || 'Unit'} (₹)</FormLabel>
+                        <FormLabel>Price per {watchedValues.landDetails?.areaUnit || 'Unit'} (₹)</FormLabel>
                         <FormControl><Input type="number" placeholder="e.g. 5000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
@@ -543,7 +513,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                           <FormMessage />
                           </FormItem>
                       )}/>
-                      {watchedStatus === 'Sold' && (
+                      {watchedValues.status === 'Sold' && (
                       <>
                           <FormField control={form.control} name="soldPrice" render={({ field }) => (
                               <FormItem><FormLabel>Sold Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
@@ -566,7 +536,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                       )}
                     </div>
 
-                    {watchedStatus !== 'Sold' && (
+                    {watchedValues.status !== 'Sold' && (
                       <div className="space-y-4">
                            <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
                               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -577,7 +547,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                               <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                               </FormItem>
                           )}/>
-                          {watchedIsListedPublicly && <div className="p-1">{listingPriceSection}</div>}
+                          {watchedValues.isListedPublicly && <div className="p-1">{listingPriceSection}</div>}
                       </div>
                     )}
                 </div>
@@ -618,3 +588,5 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     </Form>
   )
 }
+
+    
