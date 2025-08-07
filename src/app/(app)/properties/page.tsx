@@ -71,9 +71,13 @@ export interface Property {
 }
 
 const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void, onEdit: (p: Property) => void }) => {
+    const router = useRouter();
     return (
-        <Card className="flex flex-col hover:shadow-lg transition-shadow">
-            <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg cursor-pointer">
+        <Card 
+            className="flex flex-col hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => router.push(`/properties/${property.id}`)}
+        >
+            <div className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
                     <CardTitle className="text-lg">{property.name}</CardTitle>
                     <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
@@ -87,7 +91,7 @@ const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: {
                         Purchased on {format(property.purchaseDate.toDate(), 'PPP')}
                      </div>
                 </CardContent>
-            </Link>
+            </div>
             <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
                 <div>
                     <p className="text-muted-foreground">Purchase Price</p>
@@ -103,13 +107,13 @@ const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: {
                         {property.status || 'Owned'}
                     </Badge>
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" className="h-8 w-8 p-0">
                             <span className="sr-only">Open menu</span>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => onEdit(property)}>
                             <Edit className="mr-2 h-4 w-4" /> Edit Details

@@ -38,6 +38,7 @@ import type { Property } from '../properties/page'
 import { Badge } from '@/components/ui/badge'
 
 const SoldPropertyCard = React.memo(({ property, onDelete, onMarkAsUnsold, onViewDetails }: { property: Property, onDelete: (property: Property) => void, onMarkAsUnsold: (property: Property) => void, onViewDetails: (property: Property) => void }) => {
+    const router = useRouter();
     const formatCurrency = (amount?: number) => {
         if (typeof amount !== 'number') return 'N/A'
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
@@ -45,8 +46,11 @@ const SoldPropertyCard = React.memo(({ property, onDelete, onMarkAsUnsold, onVie
     const profitLoss = (property.soldPrice || 0) - property.purchasePrice
     
     return (
-        <Card className="flex flex-col hover:shadow-lg transition-shadow">
-            <Link href={`/properties/${property.id}`} className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
+        <Card 
+            className="flex flex-col hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => router.push(`/properties/${property.id}`)}
+        >
+            <div className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
                     <CardTitle className="text-lg">{property.name}</CardTitle>
                     <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
@@ -67,7 +71,7 @@ const SoldPropertyCard = React.memo(({ property, onDelete, onMarkAsUnsold, onVie
                         </div>
                     </div>
                 </CardContent>
-            </Link>
+            </div>
             <CardFooter className="bg-muted/50 p-4 flex justify-between items-center text-sm border-t">
                  <div className="flex items-center gap-4">
                      <div>
@@ -92,13 +96,13 @@ const SoldPropertyCard = React.memo(({ property, onDelete, onMarkAsUnsold, onVie
                         </p>
                     </div>
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" className="h-8 w-8 p-0">
                                 <span className="sr-only">Open menu</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => onViewDetails(property)}>
                                 <Edit className="mr-2 h-4 w-4" /> View/Edit Details
