@@ -32,6 +32,7 @@ const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 
 // This schema ONLY includes fields the user directly edits.
+// All conditional logic and calculations are handled in the component.
 const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
@@ -134,11 +135,11 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
   // Clean up dependent fields when a toggle changes
   React.useEffect(() => {
     if (!watchedValues.isListedPublicly) {
-        form.setValue('listingPricePerUnit', undefined, { shouldValidate: true });
+        form.setValue('listingPricePerUnit', undefined);
     }
     if (watchedValues.status !== 'Sold') {
-        form.setValue('soldDate', undefined, { shouldValidate: true });
-        form.setValue('soldPrice', undefined, { shouldValidate: true });
+        form.setValue('soldDate', undefined);
+        form.setValue('soldPrice', undefined);
     }
   }, [watchedValues.isListedPublicly, watchedValues.status, form]);
   
@@ -606,6 +607,3 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     </Form>
   )
 }
-
-    
-
