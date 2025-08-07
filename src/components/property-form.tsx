@@ -26,11 +26,12 @@ const InteractiveMap = dynamic(() => import('@/components/interactive-map').then
   loading: () => <Skeleton className="h-96 w-full rounded-md" />,
 });
 
-const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment'];
+const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment', 'Residential'];
 const landAreaUnits = ['Square Feet', 'Acre'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
+// This is the data type for what the form manages.
 const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
@@ -54,43 +55,15 @@ const propertyFormSchema = z.object({
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
-  // Fields for listing and selling
+  // Fields for listing and selling - validation will be handled manually
   status: z.string().optional(),
   isListedPublicly: z.boolean().optional(),
   listingPricePerUnit: z.coerce.number().positive().optional(),
   soldPrice: z.coerce.number().positive().optional(),
   soldDate: z.date().optional(),
-}).refine((data) => {
-    // If status is 'For Sale' and it's listed publicly, listingPricePerUnit is required.
-    if (data.status === 'For Sale' && data.isListedPublicly) {
-        return !!data.listingPricePerUnit && data.listingPricePerUnit > 0;
-    }
-    return true;
-}, {
-    message: "A listing price is required when property is public.",
-    path: ["listingPricePerUnit"],
-}).refine((data) => {
-    // If status is 'Sold', soldPrice is required.
-    if (data.status === 'Sold') {
-        return !!data.soldPrice && data.soldPrice > 0;
-    }
-    return true;
-}, {
-    message: "A valid sold price is required.",
-    path: ["soldPrice"],
-}).refine((data) => {
-    // If status is 'Sold', soldDate is required.
-    if (data.status === 'Sold') {
-        return !!data.soldDate;
-    }
-    return true;
-}, {
-    message: "A sold date is required.",
-    path: ["soldDate"],
 });
 
 
-// This is the data type for what the form manages.
 type FormValues = z.infer<typeof propertyFormSchema>;
 
 // This is the final data type that gets submitted, including calculated fields.
@@ -120,7 +93,6 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
   const form = useForm<FormValues>({
     resolver: zodResolver(propertyFormSchema),
-    mode: 'onChange', // Validate on change to enable/disable button
     defaultValues: mode === 'add' ? {
         name: '',
         address: { street: '', city: '', state: '', zip: '', landmark: '' },
@@ -158,11 +130,44 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     return area * price;
   }, [watchedValues.landDetails?.area, watchedValues.listingPricePerUnit]);
 
+
   const handleFormSubmit = (data: FormValues) => {
+    
+    // Manual Validation
+    if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
+        form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
+        toast({
+            title: "Missing Information",
+            description: "Please provide a Listing Price when making a property public.",
+            variant: "destructive",
+        });
+        return; // Stop submission
+    }
+
+    if (data.status === 'Sold') {
+        let isValid = true;
+        if (!data.soldPrice || data.soldPrice <= 0) {
+            form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
+            isValid = false;
+        }
+        if (!data.soldDate) {
+            form.setError("soldDate", { type: "manual", message: "A sold date is required." });
+            isValid = false;
+        }
+        if (!isValid) {
+            toast({
+                title: "Missing Information",
+                description: "Please provide a valid Sold Price and Sold Date.",
+                variant: "destructive",
+            });
+            return; // Stop submission
+        }
+    }
+    
     const finalData: PropertyFormData = {
         ...data,
         purchasePrice: calculatedPurchaseValue,
-        listingPrice: calculatedListingValue,
+        listingPrice: calculatedListingValue > 0 ? calculatedListingValue : undefined,
     };
     parentOnSubmit(finalData);
   }
@@ -514,7 +519,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                                         <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
                                             <IndianRupee className="h-5 w-5 text-muted-foreground" />
                                             <span className="text-2xl font-bold">
-                                                {new Intl.NumberFormat('en-IN').format(calculatedListingValue)}
+                                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(calculatedListingValue)}
                                             </span>
                                         </div>
                                     </div>
@@ -571,7 +576,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
         <div className="flex justify-end gap-2">
             {children}
-            <Button type="submit" disabled={isSaving || !form.formState.isValid}>
+            <Button type="submit" disabled={isSaving}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                  {submitButtonText}
             </Button>
@@ -580,3 +585,5 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     </Form>
   )
 }
+
+    
