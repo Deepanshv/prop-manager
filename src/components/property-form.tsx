@@ -54,12 +54,10 @@ const basePropertyFormObject = z.object({
   landDetails: landDetailsSchema,
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
-  purchasePrice: z.coerce.number(), // This is a calculated field.
   pricePerUnit: z.coerce.number({
         invalid_type_error: "Price per unit must be a number."
     }).positive({ message: "Price per unit must be a positive number." }).optional(),
   isListedPublicly: z.boolean().default(false),
-  listingPrice: z.coerce.number().optional(),
   listingPricePerUnit: z.coerce.number().optional(),
   remarks: z.string().optional(),
   landType: z.string().optional(),
@@ -100,7 +98,11 @@ export const editPropertyFormSchema = editPropertyFormSchemaBase
 });
 
 
-export type PropertyFormData = z.infer<typeof editPropertyFormSchema>
+// The final data type includes the calculated fields
+export type PropertyFormData = z.infer<typeof editPropertyFormSchema> & {
+    purchasePrice: number,
+    listingPrice?: number,
+};
 
 interface PropertyFormProps {
     onSubmit: (data: PropertyFormData) => void;
@@ -111,7 +113,7 @@ interface PropertyFormProps {
     children?: React.ReactNode;
 }
 
-export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText, mode, children }: PropertyFormProps) {
+export function PropertyForm({ initialData, isSaving, submitButtonText, mode, children, onSubmit: parentOnSubmit }: PropertyFormProps) {
   const { toast } = useToast()
   
   const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
@@ -121,13 +123,12 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
-  const form = useForm<PropertyFormData>({
+  const form = useForm<z.infer<typeof editPropertyFormSchema>>({
     resolver: zodResolver(mode === 'edit' ? editPropertyFormSchema : addPropertyFormSchema),
     defaultValues: mode === 'add' ? {
         status: 'Owned',
         isListedPublicly: false,
         name: '',
-        purchasePrice: 0,
         address: {
             street: '',
             city: '',
@@ -164,32 +165,32 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
   const watchedListingPricePerUnit = form.watch('listingPricePerUnit');
   const watchedPropertyType = form.watch('propertyType');
 
-
   const calculatedPurchaseValue = React.useMemo(() => {
     const area = Number(watchedArea) || 0;
     const price = Number(watchedPricePerUnit) || 0;
     return area * price;
   }, [watchedArea, watchedPricePerUnit]);
 
-  React.useEffect(() => {
-    form.setValue('purchasePrice', calculatedPurchaseValue, { shouldValidate: true });
-  }, [calculatedPurchaseValue, form]);
-
   const calculatedListingPrice = React.useMemo(() => {
     const area = Number(watchedArea) || 0;
     const price = Number(watchedListingPricePerUnit) || 0;
     return area * price;
   }, [watchedArea, watchedListingPricePerUnit]);
-
-  React.useEffect(() => {
-    if (watchedIsListedPublicly) {
-        form.setValue('listingPrice', calculatedListingPrice, { shouldValidate: true });
-    } else {
-        form.setValue('listingPricePerUnit', undefined, { shouldValidate: false });
-        form.setValue('listingPrice', undefined, { shouldValidate: false });
+  
+  const handleFormSubmit = (data: z.infer<typeof editPropertyFormSchema>) => {
+    const finalData: PropertyFormData = {
+        ...data,
+        purchasePrice: calculatedPurchaseValue,
+        listingPrice: watchedIsListedPublicly ? calculatedListingPrice : undefined,
+    };
+    
+    // Clear listing price if not public
+    if (!finalData.isListedPublicly) {
+        finalData.listingPricePerUnit = undefined;
     }
-  }, [calculatedListingPrice, watchedIsListedPublicly, form]);
 
+    parentOnSubmit(finalData);
+  }
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
@@ -327,7 +328,7 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
         <div className="space-y-4">
             <h3 className="text-lg font-medium">Property Name</h3>
             <div className="border p-4 rounded-md space-y-4">
@@ -356,7 +357,6 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onFocus={() => {
-                                // Re-trigger search on focus if needed
                                 if (searchQuery.length > 2) {
                                      // This logic is handled by the useEffect for searchQuery
                                 }
@@ -610,3 +610,5 @@ export function PropertyForm({ onSubmit, initialData, isSaving, submitButtonText
     </Form>
   )
 }
+
+    
