@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -32,6 +31,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
     }
 
     const fetchProspect = async () => {
+      setLoading(true);
       try {
         const prospectDocRef = doc(db, 'prospects', prospectId)
         const docSnap = await getDoc(prospectDocRef)
@@ -134,7 +134,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 
   if (loading || !prospect) {
     return (
-      <div className="p-4 lg:p-6 space-y-6">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
         <Card>
           <CardHeader>
@@ -149,7 +149,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   }
 
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
           <ArrowLeft className="h-4 w-4" />

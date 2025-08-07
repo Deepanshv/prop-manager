@@ -137,8 +137,6 @@ export default function PropertyManagerPage() {
   const [loading, setLoading] = React.useState(true)
   
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false)
-  const [editingProperty, setEditingProperty] = React.useState<Property | null>(null);
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [isSoldModalOpen, setIsSoldModalOpen] = React.useState(false)
@@ -187,26 +185,8 @@ export default function PropertyManagerPage() {
   }
   
   const handleEditProperty = React.useCallback((property: Property) => {
-    let pricePerUnit = property.pricePerUnit;
-    if (pricePerUnit === undefined && property.purchasePrice && property.landDetails.area > 0) {
-      pricePerUnit = property.purchasePrice / property.landDetails.area;
-    }
-    
-    let listingPricePerUnit = property.listingPricePerUnit;
-    if (listingPricePerUnit === undefined && property.listingPrice && property.landDetails.area > 0) {
-      listingPricePerUnit = property.listingPrice / property.landDetails.area;
-    }
-
-    const initialData = {
-        ...property,
-        purchaseDate: property.purchaseDate.toDate(),
-        soldDate: property.soldDate?.toDate(),
-        pricePerUnit: pricePerUnit,
-        listingPricePerUnit: listingPricePerUnit,
-    };
-    setEditingProperty(initialData as any);
-    setIsEditModalOpen(true);
-  }, []);
+    router.push(`/properties/${property.id}`);
+  }, [router]);
 
   const handleDeleteProperty = React.useCallback((property: Property) => {
     setSelectedProperty(property)
@@ -285,70 +265,6 @@ export default function PropertyManagerPage() {
     }
   }
 
-  const onEditSubmit = async (data: PropertyFormData) => {
-    if (!user || !db || !editingProperty) {
-      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
-      return
-    }
-    setIsSaving(true)
-
-    const propertyData: Record<string, any> = {
-      ...data,
-      ownerUid: user.uid,
-      purchaseDate: Timestamp.fromDate(data.purchaseDate),
-      pricePerUnit: data.pricePerUnit ?? null,
-      soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
-      soldPrice: data.soldPrice ?? null,
-      listingPrice: data.listingPrice ?? null,
-      listingPricePerUnit: data.listingPricePerUnit ?? null,
-      remarks: data.remarks ?? null,
-      address: {
-        ...data.address,
-        landmark: data.address.landmark ?? null,
-        latitude: data.address.latitude ?? null,
-        longitude: data.address.longitude ?? null,
-      },
-      landDetails: {
-        ...data.landDetails,
-        khasraNumber: data.landDetails.khasraNumber ?? null,
-        landbookNumber: data.landDetails.landbookNumber ?? null,
-      },
-    };
-    
-    if (data.propertyType !== 'Open Land') {
-        propertyData.landType = null;
-        propertyData.isDiverted = null;
-    }
-
-    if (data.status === 'Sold') {
-        propertyData.isListedPublicly = false;
-    } else {
-        propertyData.soldDate = null;
-        propertyData.soldPrice = null;
-    }
-
-    if (!data.isListedPublicly) {
-        propertyData.listingPrice = null;
-        propertyData.listingPricePerUnit = null;
-    }
-
-    try {
-      const propDocRef = doc(db, 'properties', editingProperty.id)
-      await updateDoc(propDocRef, propertyData)
-      toast({ title: 'Success', description: 'Property updated successfully.' })
-       if (propertyData.status === 'Sold') {
-            router.push('/sold-properties')
-        }
-    } catch (error) {
-      console.error('Error updating document: ', error)
-      toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' })
-    } finally {
-        setIsSaving(false)
-        setIsEditModalOpen(false)
-        setEditingProperty(null)
-    }
-  }
-
   const onSoldSubmit = async (data: MarkAsSoldFormData) => {
     if (!selectedProperty || !db || !user) {
         toast({ title: 'Error', description: 'Cannot update property.', variant: 'destructive' });
@@ -397,7 +313,7 @@ export default function PropertyManagerPage() {
 
   return (
     <>
-      <div className="p-4 lg:p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Property Manager</h1>
           <Button onClick={handleAddProperty}>
@@ -436,31 +352,6 @@ export default function PropertyManagerPage() {
             >
                 <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
             </PropertyForm>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-       {/* Edit Dialog */}
-       <Dialog open={isEditModalOpen} onOpenChange={(open) => {
-          if (!open) { setEditingProperty(null); }
-          setIsEditModalOpen(open);
-      }}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader><DialogTitle>Edit Property</DialogTitle>
-            <DialogDescription>Update the details for this property.</DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
-            {editingProperty ? (
-                <PropertyForm
-                    mode="edit"
-                    onSubmit={onEditSubmit}
-                    initialData={editingProperty}
-                    isSaving={isSaving}
-                    submitButtonText="Save Changes"
-                >
-                    <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                </PropertyForm>
-            ) : <Skeleton className="h-96 w-full" />}
           </div>
         </DialogContent>
       </Dialog>

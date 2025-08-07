@@ -36,6 +36,7 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
     }
 
     const fetchProperty = async () => {
+      setLoading(true);
       try {
         const propDocRef = doc(db, 'properties', propertyId)
         const docSnap = await getDoc(propDocRef)
@@ -140,7 +141,7 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
 
   if (loading || !formInitialData) {
     return (
-        <div className="p-4 lg:p-6 space-y-6">
+        <div className="space-y-6">
             <Skeleton className="h-8 w-48" />
             <div className="grid gap-6">
                 <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
@@ -152,14 +153,14 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
 
   if (!property) {
     return (
-      <div className="flex-1 flex items-center justify-center p-4 lg:p-6">
+      <div className="flex-1 flex items-center justify-center">
         <p>Property not found.</p>
       </div>
     )
   }
 
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -216,8 +217,8 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   )
 }
 
+// This is now a standard Client Component that receives params from the URL.
 export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    const resolvedParams = React.use(params);
-    const { propertyId } = resolvedParams;
+    const { propertyId } = params;
     return <PropertyDetailClientPage propertyId={propertyId} />;
 }

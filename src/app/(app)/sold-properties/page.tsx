@@ -2,7 +2,7 @@
 'use client'
 
 import * as React from 'react'
-import { collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore'
+import { collection, deleteDoc, doc, onSnapshot, query, updateDoc, where, Timestamp } from 'firebase/firestore'
 import { format } from 'date-fns'
 import { Building, MapPin, MoreHorizontal, Trash, Undo2, View, Edit } from 'lucide-react'
 import Link from 'next/link'
@@ -36,12 +36,8 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import type { Property } from '../properties/page'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { PropertyForm } from '@/components/property-form'
-
 
 const SoldPropertyCard = React.memo(({ property, onDelete, onMarkAsUnsold, onViewDetails }: { property: Property, onDelete: (property: Property) => void, onMarkAsUnsold: (property: Property) => void, onViewDetails: (property: Property) => void }) => {
-    const router = useRouter();
     const formatCurrency = (amount?: number) => {
         if (typeof amount !== 'number') return 'N/A'
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
@@ -160,9 +156,6 @@ export default function SoldPropertiesPage() {
   const [isUnsoldAlertOpen, setIsUnsoldAlertOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
   const [selectedYear, setSelectedYear] = React.useState('all');
-  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
-  const [editingProperty, setEditingProperty] = React.useState<Property | null>(null);
-  const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -238,37 +231,6 @@ export default function SoldPropertiesPage() {
     router.push(`/properties/${property.id}`);
   }, [router]);
 
-  const onEditSubmit = async (data: any) => {
-    if (!user || !db || !editingProperty) {
-      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
-      return
-    }
-    setIsSaving(true)
-
-    const propertyData: Record<string, any> = {
-      ...data,
-      ownerUid: user.uid,
-      purchaseDate: data.purchaseDate ? Timestamp.fromDate(data.purchaseDate) : null,
-      pricePerUnit: data.pricePerUnit ?? null,
-      soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
-      soldPrice: data.soldPrice ?? null,
-    };
-    
-    try {
-      const propDocRef = doc(db, 'properties', editingProperty.id)
-      await updateDoc(propDocRef, propertyData)
-      toast({ title: 'Success', description: 'Property updated successfully.' })
-    } catch (error) {
-      console.error('Error updating document: ', error)
-      toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' })
-    } finally {
-        setIsSaving(false)
-        setIsEditModalOpen(false)
-        setEditingProperty(null)
-    }
-  }
-
-
   const confirmDelete = async () => {
     if (!selectedProperty || !db) return;
 
@@ -341,32 +303,6 @@ export default function SoldPropertiesPage() {
         )}
       </div>
     </div>
-
-    <Dialog open={isEditModalOpen} onOpenChange={(open) => {
-        if (!open) { setEditingProperty(null); }
-        setIsEditModalOpen(open);
-    }}>
-        <DialogContent className="sm:max-w-3xl">
-            <DialogHeader>
-                <DialogTitle>View/Edit Property</DialogTitle>
-                <DialogDescription>View or update the details for this property.</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
-                {editingProperty ? (
-                    <PropertyForm
-                        mode="edit"
-                        onSubmit={onEditSubmit}
-                        initialData={editingProperty}
-                        isSaving={isSaving}
-                        submitButtonText="Save Changes"
-                    >
-                        <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                    </PropertyForm>
-                ) : <Skeleton className="h-96 w-full" />}
-            </div>
-        </DialogContent>
-    </Dialog>
-
 
     <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
