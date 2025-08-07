@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -118,59 +117,64 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
 
   if (loading || !prospect) {
     return (
-      <div className="space-y-6 p-6">
-        <Skeleton className="h-8 w-48" />
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-1/3" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
+      <div className="flex-1 p-6">
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-48" />
+            <Card>
+            <CardHeader>
+                <Skeleton className="h-6 w-1/3" />
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-64 w-full" />
+            </CardContent>
+            </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{prospect.name}</h1>
-      </div>
+    <div className="flex-1 p-6">
+        <div className="space-y-6">
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
+            <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold tracking-tight">{prospect.name}</h1>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Prospect Details</CardTitle>
-          <CardDescription>Update the information for this prospect.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ProspectForm
-            mode="edit"
-            onSubmit={onSubmit}
-            isSaving={isSaving}
-            initialData={prospect}
-            submitButtonText="Save Changes"
-          >
-             <Button type="button" variant="ghost" onClick={() => router.push('/prospects')}>Cancel</Button>
-          </ProspectForm>
-        </CardContent>
-      </Card>
+        <Card>
+            <CardHeader>
+            <CardTitle>Edit Prospect Details</CardTitle>
+            <CardDescription>Update the information for this prospect.</CardDescription>
+            </CardHeader>
+            <CardContent>
+            <ProspectForm
+                mode="edit"
+                onSubmit={onSubmit}
+                isSaving={isSaving}
+                initialData={prospect}
+                submitButtonText="Save Changes"
+            >
+                <Button type="button" variant="ghost" onClick={() => router.push('/prospects')}>Cancel</Button>
+            </ProspectForm>
+            </CardContent>
+        </Card>
+        </div>
     </div>
   )
 }
 
-export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    const { prospectId } = params;
+export default async function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
 
-    const fetchProspect = async (): Promise<Prospect | null> => {
+    const fetchProspect = async (prospectId: string): Promise<Prospect | null> => {
         if (!db || !prospectId) return null;
         try {
             const prospectDocRef = doc(db, 'prospects', prospectId);
             const docSnap = await getDoc(prospectDocRef);
             if (docSnap.exists()) {
+                 // NOTE: In a real app, you must also check if the currently
+                // logged-in user has permission to view this prospect.
                 return { id: docSnap.id, ...docSnap.data() } as Prospect;
             }
             return null;
@@ -180,7 +184,7 @@ export default function ProspectDetailPage({ params }: { params: { prospectId: s
         }
     };
 
-    const initialProspect = React.use(fetchProspect());
+    const initialProspect = await fetchProspect(params.prospectId);
 
-    return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;
+    return <ProspectDetailClientPage prospectId={params.prospectId} initialProspect={initialProspect} />;
 }
