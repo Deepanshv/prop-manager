@@ -24,7 +24,6 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
   const { user } = useAuth()
   const router = useRouter()
   const [property, setProperty] = React.useState<Property | null>(initialProperty)
-  const [loading, setLoading] = React.useState(!initialProperty)
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
@@ -111,6 +110,12 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
       toast({ title: 'Success', description: 'Property updated successfully.' })
        if (propertyData.status === 'Sold') {
             router.push('/sold-properties')
+        } else {
+          // Re-fetch or update local state if needed
+          const docSnap = await getDoc(propDocRef);
+          if (docSnap.exists()) {
+             setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+          }
         }
     } catch (error) {
       console.error('Error updating document: ', error)
@@ -120,7 +125,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
     }
   }
 
-  if (loading || !formInitialData) {
+  if (!formInitialData) {
     return (
         <div className="space-y-6">
             <Skeleton className="h-8 w-48" />
@@ -198,22 +203,17 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
   )
 }
 
-// This is now a Server Component responsible for fetching initial data.
-export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    const { propertyId } = params;
-
-    // We can't use the useAuth hook here as it's a server component.
-    // Auth-based redirection will be handled on the client side for now.
-    // A more robust solution might involve server-side auth checks.
-    const fetchProperty = async (): Promise<Property | null> => {
-        if (!db || !propertyId) return null;
+// This is a Server Component responsible for fetching initial data.
+export default async function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    
+    const fetchProperty = async (id: string): Promise<Property | null> => {
+        if (!db || !id) return null;
         try {
-            const propDocRef = doc(db, 'properties', propertyId);
+            const propDocRef = doc(db, 'properties', id);
             const docSnap = await getDoc(propDocRef);
             if (docSnap.exists()) {
-                // Here you would normally check ownerUid against the current user.
-                // Since we can't get the user here easily without a dedicated library,
-                // the client component will do a final check.
+                // NOTE: In a real app, you must also check if the currently
+                // logged-in user has permission to view this property.
                 return { id: docSnap.id, ...docSnap.data() } as Property;
             }
             return null;
@@ -223,8 +223,7 @@ export default function PropertyDetailPage({ params }: { params: { propertyId: s
         }
     };
 
-    // The use of `await` here is what makes this a true async Server Component.
-    const initialProperty = React.use(fetchProperty());
+    const initialProperty = await fetchProperty(params.propertyId);
     
-    return <PropertyDetailClientPage propertyId={propertyId} initialProperty={initialProperty} />;
+    return <PropertyDetailClientPage propertyId={params.propertyId} initialProperty={initialProperty} />;
 }

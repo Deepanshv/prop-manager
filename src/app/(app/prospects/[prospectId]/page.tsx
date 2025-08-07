@@ -20,8 +20,6 @@ import type { Property } from '../../properties/page'
 function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: Prospect | null }) {
   const { user } = useAuth()
   const router = useRouter()
-  const [prospect, setProspect] = React.useState<Prospect | null>(initialProspect)
-  const [loading, setLoading] = React.useState(!initialProspect)
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
@@ -116,7 +114,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
     }
   }
 
-  if (loading || !prospect) {
+  if (!initialProspect) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -138,7 +136,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
         <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{prospect.name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{initialProspect.name}</h1>
       </div>
 
       <Card>
@@ -151,7 +149,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
             mode="edit"
             onSubmit={onSubmit}
             isSaving={isSaving}
-            initialData={prospect}
+            initialData={initialProspect}
             submitButtonText="Save Changes"
           >
              <Button type="button" variant="ghost" onClick={() => router.push('/prospects')}>Cancel</Button>
@@ -162,15 +160,17 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   )
 }
 
-export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    const { prospectId } = params;
+// This is a Server Component responsible for fetching initial data.
+export default async function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
 
-    const fetchProspect = async (): Promise<Prospect | null> => {
-        if (!db || !prospectId) return null;
+    const fetchProspect = async (id: string): Promise<Prospect | null> => {
+        if (!db || !id) return null;
         try {
-            const prospectDocRef = doc(db, 'prospects', prospectId);
+            const prospectDocRef = doc(db, 'prospects', id);
             const docSnap = await getDoc(prospectDocRef);
             if (docSnap.exists()) {
+                 // NOTE: In a real app, you must also check if the currently
+                // logged-in user has permission to view this prospect.
                 return { id: docSnap.id, ...docSnap.data() } as Prospect;
             }
             return null;
@@ -180,7 +180,7 @@ export default function ProspectDetailPage({ params }: { params: { prospectId: s
         }
     };
 
-    const initialProspect = React.use(fetchProspect());
+    const initialProspect = await fetchProspect(params.prospectId);
 
-    return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;
+    return <ProspectDetailClientPage prospectId={params.prospectId} initialProspect={initialProspect} />;
 }
