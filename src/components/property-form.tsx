@@ -133,7 +133,6 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
   const handleFormSubmit = (data: FormValues) => {
     
-    // Manual Validation
     if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
         form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
         toast({
@@ -143,7 +142,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         });
         return; // Stop submission
     }
-
+    
     if (data.status === 'Sold') {
         let isValid = true;
         if (!data.soldPrice || data.soldPrice <= 0) {
@@ -585,5 +584,3 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     </Form>
   )
 }
-
-    
