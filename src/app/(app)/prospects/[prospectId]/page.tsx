@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -178,7 +179,6 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 }
 
 export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-    const resolvedParams = React.use(params);
-    const { prospectId } = resolvedParams;
+    const { prospectId } = params;
     return <ProspectDetailClientPage prospectId={prospectId} />;
 }
