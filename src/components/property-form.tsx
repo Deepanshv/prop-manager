@@ -131,45 +131,52 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
   }, [watchedValues.landDetails?.area, watchedValues.listingPricePerUnit]);
 
 
-  const handleFormSubmit = (data: FormValues) => {
-    
+  // --- REPLACEMENT for handleFormSubmit function in PropertyForm ---
+
+const handleFormSubmit = (data: FormValues) => {
+    // A list to hold all validation error messages.
+    const validationErrors: string[] = [];
+
+    // --- Validation Check 1: Listing Price ---
     if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
         form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
-        toast({
-            title: "Missing Information",
-            description: "Please provide a Listing Price when making a property public.",
-            variant: "destructive",
-        });
-        return; // Stop submission
+        validationErrors.push("A Listing Price is required when 'List Publicly' is on.");
     }
-    
+
+    // --- Validation Check 2: Sold Information ---
     if (data.status === 'Sold') {
-        let isValid = true;
         if (!data.soldPrice || data.soldPrice <= 0) {
             form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
-            isValid = false;
+            validationErrors.push("A valid Sold Price is required.");
         }
         if (!data.soldDate) {
             form.setError("soldDate", { type: "manual", message: "A sold date is required." });
-            isValid = false;
-        }
-        if (!isValid) {
-            toast({
-                title: "Missing Information",
-                description: "Please provide a valid Sold Price and Sold Date.",
-                variant: "destructive",
-            });
-            return; // Stop submission
+            validationErrors.push("A Sold Date is required.");
         }
     }
-    
+
+    // --- Final Check ---
+    // If there are any errors in our list, show a single toast and stop.
+    if (validationErrors.length > 0) {
+        toast({
+            title: "Missing Information",
+            // Join all the error messages into a clear list for the user.
+            description: `Please correct the following: ${validationErrors.join(' ')}`,
+            variant: "destructive",
+        });
+        return; // Stop the submission
+    }
+
+    // If all validation passes, proceed with the submission.
     const finalData: PropertyFormData = {
         ...data,
         purchasePrice: calculatedPurchaseValue,
         listingPrice: calculatedListingValue > 0 ? calculatedListingValue : undefined,
     };
+    
+    // Call the parent function to save the data to Firebase.
     parentOnSubmit(finalData);
-  }
+}
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
