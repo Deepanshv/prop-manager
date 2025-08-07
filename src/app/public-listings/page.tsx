@@ -1,7 +1,7 @@
 
 'use client';
 
-import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { Building2, Globe, MapPin, IndianRupee, BadgeCheck, Phone } from 'lucide-react';
 import * as React from 'react';
 import Link from 'next/link';
@@ -18,7 +18,11 @@ import type { Property } from '@/app/(app)/properties/page';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
-const PublicPropertyCard = React.memo(({ property }: { property: Property }) => {
+interface PublicProperty extends Property {
+    media?: { url: string; contentType: string }[];
+}
+
+const PublicPropertyCard = React.memo(({ property }: { property: PublicProperty }) => {
   const { toast } = useToast();
 
   const handleContactAgent = (e: React.MouseEvent) => {
@@ -37,6 +41,9 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
     if (unit === 'Square Feet') return 'sq.ft.';
     return unit || '';
   };
+  
+  const imageUrl = property.media?.[0]?.url || 'https://placehold.co/600x400.png';
+  const imageHint = property.media?.[0]?.url ? 'property exterior' : 'apartment building';
 
 
   return (
@@ -44,12 +51,12 @@ const PublicPropertyCard = React.memo(({ property }: { property: Property }) => 
       <Card className="flex flex-col overflow-hidden group hover:shadow-lg transition-shadow duration-300 rounded-lg border h-full">
           <div className="relative">
               <Image 
-                  src="https://placehold.co/600x400.png" 
+                  src={imageUrl} 
                   alt={property.name} 
                   width={600} 
                   height={400} 
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  data-ai-hint="apartment building"
+                  data-ai-hint={imageHint}
               />
               <Badge variant="secondary" className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm">For Sale</Badge>
           </div>
@@ -124,7 +131,7 @@ const PageSkeleton = () => (
 );
 
 function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
-  const [properties, setProperties] = React.useState<Property[]>([]);
+  const [properties, setProperties] = React.useState<PublicProperty[]>([]);
   const [pageState, setPageState] = React.useState<'loading' | 'enabled' | 'disabled' | 'invalid'>('loading');
   const [ownerName, setOwnerName] = React.useState('Property Manager');
 
@@ -141,31 +148,36 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
     const userDocRef = doc(db, 'users', ownerId);
     let unsubscribeProperties: (() => void) | undefined;
 
+    const fetchPropertiesAndMedia = async () => {
+        const q = query(
+            collection(db, 'properties'),
+            where('ownerUid', '==', ownerId),
+            where('isListedPublicly', '==', true)
+        );
+
+        unsubscribeProperties = onSnapshot(q, async (querySnapshot) => {
+            const propsPromises = querySnapshot.docs.map(async (doc) => {
+                const propertyData = { id: doc.id, ...doc.data() } as Property;
+                const mediaCollectionRef = collection(db, 'properties', doc.id, 'media');
+                const mediaSnapshot = await getDocs(query(mediaCollectionRef));
+                const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
+                return { ...propertyData, media };
+            });
+
+            const props = await Promise.all(propsPromises);
+            setProperties(props);
+        }, (error) => {
+            console.error('Error fetching public properties: ', error);
+            setPageState('disabled');
+        });
+    };
+
+
     getDoc(userDocRef).then(userDoc => {
       if (userDoc.exists() && userDoc.data().publicListingsEnabled) {
         setPageState('enabled');
         setOwnerName(userDoc.data().displayName || 'Property Manager');
-
-        const q = query(
-          collection(db, 'properties'),
-          where('ownerUid', '==', ownerId),
-          where('isListedPublicly', '==', true)
-        );
-        
-        unsubscribeProperties = onSnapshot(
-          q,
-          (querySnapshot) => {
-            const props: Property[] = [];
-            querySnapshot.forEach((doc) => {
-              props.push({ id: doc.id, ...doc.data() } as Property);
-            });
-            setProperties(props);
-          },
-          (error) => {
-            console.error('Error fetching public properties: ', error);
-            setPageState('disabled');
-          }
-        );
+        fetchPropertiesAndMedia();
       } else {
         setPageState('disabled');
       }

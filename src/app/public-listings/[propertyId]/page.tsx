@@ -7,14 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, getDocs, collection, query } from 'firebase/firestore';
 import { ArrowLeft, BadgeCheck, Building2, Phone, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
+interface PublicProperty extends Property {
+    media?: { url: string; contentType: string }[];
+}
+
 function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) {
-  const [property, setProperty] = React.useState<Property | null>(null);
+  const [property, setProperty] = React.useState<PublicProperty | null>(null);
   const [loading, setLoading] = React.useState(true);
   const { toast } = useToast();
   const router = useRouter();
@@ -26,9 +30,15 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
     }
 
     const propDocRef = doc(db, 'properties', propertyId);
-    const unsubscribe = onSnapshot(propDocRef, (docSnap) => {
+    const unsubscribe = onSnapshot(propDocRef, async (docSnap) => {
       if (docSnap.exists() && docSnap.data().isListedPublicly) {
-        setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+        const propertyData = { id: docSnap.id, ...docSnap.data() } as Property;
+        
+        const mediaCollectionRef = collection(db, 'properties', docSnap.id, 'media');
+        const mediaSnapshot = await getDocs(query(mediaCollectionRef));
+        const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
+
+        setProperty({ ...propertyData, media });
       } else {
         toast({ title: 'Not Found', description: 'This property is not available for public viewing.', variant: 'destructive' });
         router.push('/public-listings'); // Redirect if not found or not public
@@ -42,6 +52,9 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
 
     return () => unsubscribe();
   }, [propertyId, router, toast]);
+  
+  const imageUrl = property?.media?.[0]?.url || 'https://placehold.co/1200x800.png';
+  const imageHint = property?.media?.[0]?.url ? 'property interior' : 'property exterior';
 
   const handleContactAgent = () => {
     toast({
@@ -106,12 +119,12 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
       <main className="container mx-auto p-4 lg:p-6 space-y-8 mt-6">
         <div className="w-full h-64 md:h-96 relative rounded-lg overflow-hidden border">
             <Image 
-                src="https://placehold.co/1200x800.png"
+                src={imageUrl}
                 alt={`Photo of ${property.name}`}
                 fill
                 style={{objectFit: 'cover'}}
                 className="transition-transform duration-300 group-hover:scale-105"
-                data-ai-hint="property exterior"
+                data-ai-hint={imageHint}
             />
         </div>
         
@@ -161,7 +174,7 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
                         </div>
                         {pricePerUnit > 0 && (
                             <p className="text-sm text-muted-foreground">
-                                Rate: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(pricePerUnit)} per sq.ft
+                                Rate: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(pricePerUnit)} per {formatAreaUnit(property.landDetails.areaUnit)}
                             </p>
                         )}
                         <Button size="lg" className="w-full mt-4" onClick={handleContactAgent}>
