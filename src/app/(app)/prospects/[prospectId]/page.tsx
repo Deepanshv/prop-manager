@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -19,8 +20,6 @@ import type { Property } from '../../properties/page'
 function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: Prospect | null }) {
   const { user } = useAuth()
   const router = useRouter()
-  const [prospect, setProspect] = React.useState<Prospect | null>(initialProspect)
-  const [loading, setLoading] = React.useState(!initialProspect)
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
@@ -115,62 +114,59 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
     }
   }
 
-  if (loading || !prospect) {
+  if (!initialProspect) {
     return (
-      <div className="flex-1 p-6">
-          <div className="space-y-6">
-            <Skeleton className="h-8 w-48" />
-            <Card>
-            <CardHeader>
-                <Skeleton className="h-6 w-1/3" />
-            </CardHeader>
-            <CardContent>
-                <Skeleton className="h-64 w-full" />
-            </CardContent>
-            </Card>
-        </div>
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/3" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 p-6">
-        <div className="space-y-6">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
-            <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-bold tracking-tight">{prospect.name}</h1>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold tracking-tight">{initialProspect.name}</h1>
+      </div>
 
-        <Card>
-            <CardHeader>
-            <CardTitle>Edit Prospect Details</CardTitle>
-            <CardDescription>Update the information for this prospect.</CardDescription>
-            </CardHeader>
-            <CardContent>
-            <ProspectForm
-                mode="edit"
-                onSubmit={onSubmit}
-                isSaving={isSaving}
-                initialData={prospect}
-                submitButtonText="Save Changes"
-            >
-                <Button type="button" variant="ghost" onClick={() => router.push('/prospects')}>Cancel</Button>
-            </ProspectForm>
-            </CardContent>
-        </Card>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Edit Prospect Details</CardTitle>
+          <CardDescription>Update the information for this prospect.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProspectForm
+            mode="edit"
+            onSubmit={onSubmit}
+            isSaving={isSaving}
+            initialData={initialProspect}
+            submitButtonText="Save Changes"
+          >
+             <Button type="button" variant="ghost" onClick={() => router.push('/prospects')}>Cancel</Button>
+          </ProspectForm>
+        </CardContent>
+      </Card>
     </div>
   )
 }
 
+// This is a Server Component responsible for fetching initial data.
 export default async function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
 
-    const fetchProspect = async (prospectId: string): Promise<Prospect | null> => {
-        if (!db || !prospectId) return null;
+    const fetchProspect = async (id: string): Promise<Prospect | null> => {
+        if (!db || !id) return null;
         try {
-            const prospectDocRef = doc(db, 'prospects', prospectId);
+            const prospectDocRef = doc(db, 'prospects', id);
             const docSnap = await getDoc(prospectDocRef);
             if (docSnap.exists()) {
                  // NOTE: In a real app, you must also check if the currently
