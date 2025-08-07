@@ -29,6 +29,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
   const formInitialData = React.useMemo(() => {
     if (!initialProperty) return undefined;
     
+    // This logic ensures that if pricePerUnit is missing, it gets calculated for the form.
     let pricePerUnit = initialProperty.pricePerUnit;
     if (pricePerUnit === undefined && initialProperty.purchasePrice && initialProperty.landDetails.area > 0) {
       pricePerUnit = initialProperty.purchasePrice / initialProperty.landDetails.area;
@@ -126,7 +127,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
 
   if (!formInitialData) {
     return (
-        <div className="space-y-6">
+        <div className="p-6 space-y-6">
             <Skeleton className="h-8 w-48" />
             <div className="grid gap-6">
                 <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
@@ -138,14 +139,14 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
 
   if (!property) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-6">
         <p>Property not found.</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -211,8 +212,11 @@ export default async function PropertyDetailPage({ params }: { params: { propert
             const propDocRef = doc(db, 'properties', id);
             const docSnap = await getDoc(propDocRef);
             if (docSnap.exists()) {
-                // NOTE: In a real app, you must also check if the currently
-                // logged-in user has permission to view this property.
+                // SECURITY NOTE: In a production app, a server-side ownership check
+                // is critical here. Before returning the data, you must verify
+                // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
+                // Without this, any logged-in user could access any other user's property
+                // data by guessing the URL.
                 return { id: docSnap.id, ...docSnap.data() } as Property;
             }
             return null;

@@ -321,7 +321,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
             <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
                 {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedListingPrice)}
             </div>
-            <FormMessage>{form.formState.errors.listingPrice?.message}</FormMessage>
+            <FormMessage />
         </div>
     </div>
   );
@@ -514,7 +514,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                         {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedPurchaseValue)}
                     </div>
                     <FormDescription>This value is calculated from Land Area and Price per Unit and will be saved.</FormDescription>
-                    <FormMessage>{form.formState.errors.purchasePrice?.message}</FormMessage>
+                    <FormMessage />
                 </div>
              </div>
         </div>
@@ -610,5 +610,3 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     </Form>
   )
 }
-
-    

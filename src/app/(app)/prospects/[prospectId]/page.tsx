@@ -1,8 +1,7 @@
 
-
 'use client'
 
-import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
@@ -44,7 +43,10 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
     });
 
     try {
+      const batch = writeBatch(db);
+      
       const newPropertyRef = doc(collection(db, 'properties'))
+      const prospectDocRef = doc(db, 'prospects', prospectId);
 
       const newPropertyData: Omit<Property, 'id'> = {
         name: prospectData.name,
@@ -58,10 +60,10 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
         remarks: prospectData.contactInfo ? `Contact Info: ${prospectData.contactInfo}` : '',
       }
       
-      await setDoc(newPropertyRef, newPropertyData)
+      batch.set(newPropertyRef, newPropertyData);
+      batch.update(prospectDocRef, { status: 'Converted' });
       
-      const prospectDocRef = doc(db, 'prospects', prospectId);
-      await updateDoc(prospectDocRef, { status: 'Converted' });
+      await batch.commit();
 
       toastId.update({
         id: toastId.id,
@@ -116,7 +118,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
 
   if (!initialProspect) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         <Skeleton className="h-8 w-48" />
         <Card>
           <CardHeader>
@@ -131,7 +133,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
           <ArrowLeft className="h-4 w-4" />
@@ -169,8 +171,11 @@ export default async function ProspectDetailPage({ params }: { params: { prospec
             const prospectDocRef = doc(db, 'prospects', id);
             const docSnap = await getDoc(prospectDocRef);
             if (docSnap.exists()) {
-                 // NOTE: In a real app, you must also check if the currently
-                // logged-in user has permission to view this prospect.
+                 // SECURITY NOTE: In a production app, a server-side ownership check
+                 // is critical here. Before returning the data, you must verify
+                 // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
+                 // Without this, any logged-in user could access any other user's prospect
+                 // data by guessing the URL.
                 return { id: docSnap.id, ...docSnap.data() } as Prospect;
             }
             return null;
