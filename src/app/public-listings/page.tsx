@@ -271,9 +271,7 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
 
 // This is now a Server Component that unwraps searchParams and passes a primitive prop.
 export default function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
-    // Correctly unwrap searchParams in a Server Component using React.use()
-    const resolvedSearchParams = React.use(searchParams);
-    const ownerId = typeof resolvedSearchParams?.owner === 'string' ? resolvedSearchParams.owner : null;
+    const ownerId = typeof searchParams?.owner === 'string' ? searchParams.owner : null;
 
     return (
         <React.Suspense fallback={<PageSkeleton />}>

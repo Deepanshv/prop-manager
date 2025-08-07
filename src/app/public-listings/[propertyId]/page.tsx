@@ -190,7 +190,13 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
   );
 }
 
+// This is now a Server Component that unwraps searchParams and passes a primitive prop.
 export default function PublicPropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    const { propertyId } = params;
-    return <PublicPropertyDetailClientPage propertyId={propertyId} />;
+    const propertyId = params?.propertyId;
+
+    return (
+        <React.Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><p>Loading...</p></div>}>
+            <PublicPropertyDetailClientPage propertyId={propertyId} />
+        </React.Suspense>
+    );
 }
