@@ -235,26 +235,8 @@ export default function SoldPropertiesPage() {
   }, []);
 
   const handleViewDetails = React.useCallback((property: Property) => {
-    let pricePerUnit = property.pricePerUnit;
-    if (pricePerUnit === undefined && property.purchasePrice && property.landDetails.area > 0) {
-      pricePerUnit = property.purchasePrice / property.landDetails.area;
-    }
-    
-    let listingPricePerUnit = property.listingPricePerUnit;
-    if (listingPricePerUnit === undefined && property.listingPrice && property.landDetails.area > 0) {
-      listingPricePerUnit = property.listingPrice / property.landDetails.area;
-    }
-
-    const initialData = {
-        ...property,
-        purchaseDate: property.purchaseDate.toDate(),
-        soldDate: property.soldDate?.toDate(),
-        pricePerUnit: pricePerUnit,
-        listingPricePerUnit: listingPricePerUnit,
-    };
-    setEditingProperty(initialData as any);
-    setIsEditModalOpen(true);
-  }, []);
+    router.push(`/properties/${property.id}`);
+  }, [router]);
 
   const onEditSubmit = async (data: any) => {
     if (!user || !db || !editingProperty) {
@@ -324,7 +306,7 @@ export default function SoldPropertiesPage() {
 
   return (
     <>
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Sold Properties</h1>
         <div className="flex items-center gap-2">

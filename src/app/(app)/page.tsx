@@ -1,4 +1,5 @@
 
+
 'use client'
 import * as React from 'react'
 import dynamic from 'next/dynamic'
@@ -120,7 +121,7 @@ export default function DashboardPage() {
   ]
   
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       </div>

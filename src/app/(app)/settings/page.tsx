@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -194,7 +195,7 @@ export default function SettingsPage() {
   
   if (!user) {
      return (
-        <div className="p-4 lg:p-6 space-y-6">
+        <div className="space-y-6">
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <Card>
                 <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
@@ -208,7 +209,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <div className="p-4 lg:p-6 space-y-6">
+      <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         
         <Tabs defaultValue="profile" className="w-full">
