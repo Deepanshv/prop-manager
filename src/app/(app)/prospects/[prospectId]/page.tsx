@@ -1,4 +1,3 @@
-
 'use client'
 
 import { collection, doc, getDoc, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
@@ -16,23 +15,43 @@ import type { Prospect } from '../page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 import type { Property } from '../../properties/page'
 
-function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: Prospect | null }) {
+function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   const { user } = useAuth()
   const router = useRouter()
+  const [initialProspect, setInitialProspect] = React.useState<Prospect | null>(null);
+  const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
 
   React.useEffect(() => {
-    if (!initialProspect) {
-       toast({ title: 'Error', description: 'Prospect not found or you do not have access.', variant: 'destructive' })
-       router.push('/prospects')
+    if (!user || !prospectId) {
+      setLoading(false);
+      return;
     }
-    // We confirm the user has access on the client side
-    if (initialProspect && user && initialProspect.ownerUid !== user.uid) {
-        toast({ title: 'Error', description: 'You do not have access to this prospect.', variant: 'destructive' })
-        router.push('/prospects');
-    }
-  }, [initialProspect, user, router, toast])
+
+    const fetchProspect = async () => {
+      try {
+        const prospectDocRef = doc(db, 'prospects', prospectId);
+        const docSnap = await getDoc(prospectDocRef);
+
+        if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+          setInitialProspect({ id: docSnap.id, ...docSnap.data() } as Prospect);
+        } else {
+          toast({ title: 'Error', description: 'Prospect not found or you do not have access.', variant: 'destructive' })
+          router.push('/prospects');
+        }
+      } catch (error) {
+        console.error("Failed to fetch prospect:", error);
+        toast({ title: 'Error', description: 'Failed to fetch prospect data.', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProspect();
+
+  }, [prospectId, user, router, toast]);
+
   
   const handleConvertProspect = React.useCallback(async (prospectData: ProspectFormData) => {
     if (!user || !db) return;
@@ -116,7 +135,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
     }
   }
 
-  if (!initialProspect) {
+  if (loading) {
     return (
       <div className="space-y-6 p-6">
         <Skeleton className="h-8 w-48" />
@@ -130,6 +149,14 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
         </Card>
       </div>
     )
+  }
+
+  if (!initialProspect) {
+      return (
+         <div className="flex-1 flex items-center justify-center p-6">
+            <p>Prospect not found.</p>
+        </div>
+      )
   }
 
   return (
@@ -162,30 +189,10 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   )
 }
 
-// This is a Server Component responsible for fetching initial data.
-export default async function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
+// This is a Server Component responsible for handling params
+export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
+    const resolvedParams = React.use(params);
+    const { prospectId } = resolvedParams;
 
-    const fetchProspect = async (id: string): Promise<Prospect | null> => {
-        if (!db || !id) return null;
-        try {
-            const prospectDocRef = doc(db, 'prospects', id);
-            const docSnap = await getDoc(prospectDocRef);
-            if (docSnap.exists()) {
-                 // SECURITY NOTE: In a production app, a server-side ownership check
-                 // is critical here. Before returning the data, you must verify
-                 // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
-                 // Without this, any logged-in user could access any other user's prospect
-                 // data by guessing the URL.
-                return { id: docSnap.id, ...docSnap.data() } as Prospect;
-            }
-            return null;
-        } catch (error) {
-            console.error("Failed to fetch prospect on server:", error);
-            return null;
-        }
-    };
-
-    const initialProspect = await fetchProspect(params.prospectId);
-
-    return <ProspectDetailClientPage prospectId={params.prospectId} initialProspect={initialProspect} />;
+    return <ProspectDetailClientPage prospectId={prospectId} />;
 }
