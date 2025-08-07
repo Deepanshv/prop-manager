@@ -132,7 +132,6 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
   const handleFormSubmit = (data: FormValues) => {
     // --- Manual Validation with Toasts ---
-
     if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
         form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
         toast({
@@ -389,7 +388,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         )}
         
         <div className="space-y-4">
-             <h3 className="text-lg font-medium">Property &amp; Financial Details</h3>
+             <h3 className="text-lg font-medium">Property & Financial Details</h3>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 border p-4 rounded-md">
                 <FormField control={form.control} name="propertyType" render={({ field }) => (
                     <FormItem><FormLabel>Property Type</FormLabel>

@@ -277,6 +277,7 @@ export default function PropertyManagerPage() {
             status: 'Sold',
             soldPrice: data.soldPrice,
             soldDate: Timestamp.fromDate(data.soldDate),
+            isListedPublicly: false, // Ensure it's unlisted when sold
         });
         toast({ title: 'Success', description: 'Property marked as sold and moved to Sales History.' });
         setIsSoldModalOpen(false);
@@ -418,3 +419,5 @@ export default function PropertyManagerPage() {
     </>
   )
 }
+
+    
