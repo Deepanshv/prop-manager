@@ -244,7 +244,6 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex-grow">
               <h1 className="text-3xl font-bold tracking-tight">Available Properties</h1>
-              <p className="text-muted-foreground">Browse our current selection of publicly listed properties.</p>
           </div>
         </div>
         {renderContent()}
