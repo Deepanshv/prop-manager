@@ -42,13 +42,13 @@ const addressSchema = z.object({
 });
 
 const landDetailsSchema = z.object({
-    khasraNumber: z.string().min(1, "Khasra Number is required."),
-    landbookNumber: z.string().min(1, "Landbook Number is required."),
+    khasraNumber: z.string().optional(),
+    landbookNumber: z.string().optional(),
     area: z.coerce.number().min(0.0001, "Land area must be greater than 0."),
     areaUnit: z.string({ required_error: "Please select a unit." }),
 });
 
-const basePropertyFormObject = z.object({
+const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: addressSchema,
   landDetails: landDetailsSchema,
@@ -57,49 +57,23 @@ const basePropertyFormObject = z.object({
   pricePerUnit: z.coerce.number({
         invalid_type_error: "Price per unit must be a number."
     }).positive({ message: "Price per unit must be a positive number." }).optional(),
+  
   isListedPublicly: z.boolean().default(false),
   listingPricePerUnit: z.coerce.number().optional(),
+  
   remarks: z.string().optional(),
+  
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
-});
-
-const listingPriceRefinement = (data: z.infer<typeof basePropertyFormObject>) => {
-     if (data.isListedPublicly) {
-        return data.listingPricePerUnit && data.listingPricePerUnit > 0;
-    }
-    return true;
-}
-
-const addPropertyFormSchema = basePropertyFormObject
-    .refine(listingPriceRefinement, {
-        message: "A listing price per unit is required when a property is listed publicly.",
-        path: ["listingPricePerUnit"],
-    });
-
-const editPropertyFormSchemaBase = basePropertyFormObject.extend({
+  
   status: z.enum(['Owned', 'For Sale', 'Sold']).default('Owned'),
   soldPrice: z.coerce.number().optional(),
   soldDate: z.date().optional(),
 });
 
-export const editPropertyFormSchema = editPropertyFormSchemaBase
-.refine(listingPriceRefinement, {
-    message: "A listing price per unit is required when a property is listed publicly.",
-    path: ["listingPricePerUnit"],
-}).refine(data => {
-    if (data.status === 'Sold') {
-        return data.soldPrice && data.soldPrice > 0 && data.soldDate;
-    }
-    return true;
-}, {
-    message: "Sold Price and Sold Date are required when status is 'Sold'.",
-    path: ["status"],
-});
-
 
 // The final data type includes the calculated fields
-export type PropertyFormData = z.infer<typeof editPropertyFormSchema> & {
+export type PropertyFormData = z.infer<typeof propertyFormSchema> & {
     purchasePrice: number,
     listingPrice?: number,
 };
@@ -123,8 +97,8 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
-  const form = useForm<z.infer<typeof editPropertyFormSchema>>({
-    resolver: zodResolver(mode === 'edit' ? editPropertyFormSchema : addPropertyFormSchema),
+  const form = useForm<z.infer<typeof propertyFormSchema>>({
+    resolver: zodResolver(propertyFormSchema),
     defaultValues: mode === 'add' ? {
         status: 'Owned',
         isListedPublicly: false,
@@ -142,7 +116,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         },
         remarks: '',
         isDiverted: false,
-    } : undefined
+    } : initialData,
   })
   
   React.useEffect(() => {
@@ -176,18 +150,50 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     const price = Number(watchedListingPricePerUnit) || 0;
     return area * price;
   }, [watchedArea, watchedListingPricePerUnit]);
+
+  // When 'isListedPublicly' is toggled, clear the listing price if it's turned off
+  React.useEffect(() => {
+    if (!watchedIsListedPublicly) {
+        form.setValue('listingPricePerUnit', undefined);
+    }
+  }, [watchedIsListedPublicly, form]);
+
+  // When status is changed to anything other than 'Sold', clear sold fields
+  React.useEffect(() => {
+    if (watchedStatus !== 'Sold') {
+        form.setValue('soldDate', undefined);
+        form.setValue('soldPrice', undefined);
+    }
+  }, [watchedStatus, form]);
   
-  const handleFormSubmit = (data: z.infer<typeof editPropertyFormSchema>) => {
+  
+  const handleFormSubmit = (data: z.infer<typeof propertyFormSchema>) => {
+    
+    // Manual validation for conditional fields
+    if (data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
+        form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
+        return; // Stop submission
+    }
+    if (data.status === 'Sold' && (!data.soldPrice || data.soldPrice <= 0)) {
+        form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
+        return; // Stop submission
+    }
+    if (data.status === 'Sold' && !data.soldDate) {
+        form.setError("soldDate", { type: "manual", message: "A sold date is required." });
+        return; // Stop submission
+    }
+    if (data.propertyType === 'Open Land' && (!data.landDetails.khasraNumber || !data.landDetails.landbookNumber)) {
+        form.setError("landDetails.khasraNumber", { type: "manual", message: "Khasra and Landbook numbers are required for Open Land." });
+        form.setError("landDetails.landbookNumber", { type: "manual", message: "Khasra and Landbook numbers are required for Open Land." });
+        return;
+    }
+
+
     const finalData: PropertyFormData = {
         ...data,
         purchasePrice: calculatedPurchaseValue,
-        listingPrice: watchedIsListedPublicly ? calculatedListingPrice : undefined,
+        listingPrice: data.isListedPublicly ? calculatedListingPrice : undefined,
     };
-    
-    // Clear listing price if not public
-    if (!finalData.isListedPublicly) {
-        finalData.listingPricePerUnit = undefined;
-    }
 
     parentOnSubmit(finalData);
   }
@@ -415,17 +421,19 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
             </div>
         </div>
 
-        <div className="space-y-4">
-            <h3 className="text-lg font-medium">Land Details</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                 <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
-                    <FormItem><FormLabel>Khasra Number</FormLabel><FormControl><Input placeholder="e.g. 123/4" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                )}/>
-                 <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
-                    <FormItem><FormLabel>Landbook Number</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                )}/>
-             </div>
-        </div>
+        {watchedPropertyType === 'Open Land' && (
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium">Land Details</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+                     <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
+                        <FormItem><FormLabel>Khasra Number</FormLabel><FormControl><Input placeholder="e.g. 123/4" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                     <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
+                        <FormItem><FormLabel>Landbook Number</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                 </div>
+            </div>
+        )}
         
         <div className="space-y-4">
              <h3 className="text-lg font-medium">Property &amp; Financial Details</h3>
