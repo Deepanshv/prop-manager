@@ -273,7 +273,7 @@ function PublicListingsContent() {
   );
 }
 
-// This is now a Server Component that unwraps searchParams and passes a primitive prop.
+// This is now a Server Component that wraps the client part in Suspense.
 export default function PublicListingsPage() {
     return (
         <React.Suspense fallback={<PageSkeleton />}>

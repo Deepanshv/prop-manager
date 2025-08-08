@@ -6,7 +6,7 @@
 // Notice the 'use client' directive is here.
 'use client'
 
-import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
+import { doc, Timestamp, updateDoc, getDoc } from 'firebase/firestore'
 import { ArrowLeft, FileQuestion } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
