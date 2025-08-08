@@ -17,6 +17,7 @@ import { db } from '@/lib/firebase';
 import type { Property } from '@/app/(app)/properties/page';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useSearchParams } from 'next/navigation';
 
 interface PublicProperty extends Property {
     media?: { url: string; contentType: string }[];
@@ -130,7 +131,10 @@ const PageSkeleton = () => (
     </div>
 );
 
-function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
+function PublicListingsContent() {
+  const searchParams = useSearchParams();
+  const ownerId = searchParams.get('owner');
+
   const [properties, setProperties] = React.useState<PublicProperty[]>([]);
   const [pageState, setPageState] = React.useState<'loading' | 'enabled' | 'disabled' | 'invalid'>('loading');
   const [ownerName, setOwnerName] = React.useState('Property Manager');
@@ -270,12 +274,10 @@ function PublicListingsContent({ ownerId }: { ownerId: string | null }) {
 }
 
 // This is now a Server Component that unwraps searchParams and passes a primitive prop.
-export default function PublicListingsPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
-    const ownerId = typeof searchParams?.owner === 'string' ? searchParams.owner : null;
-
+export default function PublicListingsPage() {
     return (
         <React.Suspense fallback={<PageSkeleton />}>
-            <PublicListingsContent ownerId={ownerId} />
+            <PublicListingsContent />
         </React.Suspense>
     );
 }

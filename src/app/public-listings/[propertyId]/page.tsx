@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, onSnapshot, getDocs, collection, query } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query } from 'firebase/firestore';
 import { ArrowLeft, BadgeCheck, Building2, Phone, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -17,41 +17,27 @@ interface PublicProperty extends Property {
     media?: { url: string; contentType: string }[];
 }
 
-function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) {
-  const [property, setProperty] = React.useState<PublicProperty | null>(null);
-  const [loading, setLoading] = React.useState(true);
+// This is the Client Component that receives the initial data as a prop.
+function PublicPropertyDetailClientPage({ initialProperty }: { initialProperty: PublicProperty | null }) {
+  const [property] = React.useState<PublicProperty | null>(initialProperty);
   const { toast } = useToast();
   const router = useRouter();
 
   React.useEffect(() => {
-    if (!db || !propertyId) {
-      setLoading(false);
-      return;
+    if (!property) {
+      toast({ title: 'Not Found', description: 'This property is not available for public viewing.', variant: 'destructive' });
+      router.push('/public-listings'); // Redirect if not found or not public
     }
+  }, [property, router, toast]);
 
-    const propDocRef = doc(db, 'properties', propertyId);
-    const unsubscribe = onSnapshot(propDocRef, async (docSnap) => {
-      if (docSnap.exists() && docSnap.data().isListedPublicly) {
-        const propertyData = { id: docSnap.id, ...docSnap.data() } as Property;
-        
-        const mediaCollectionRef = collection(db, 'properties', docSnap.id, 'media');
-        const mediaSnapshot = await getDocs(query(mediaCollectionRef));
-        const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
-
-        setProperty({ ...propertyData, media });
-      } else {
-        toast({ title: 'Not Found', description: 'This property is not available for public viewing.', variant: 'destructive' });
-        router.push('/public-listings'); // Redirect if not found or not public
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching property details:", error);
-      toast({ title: 'Error', description: 'Failed to fetch property details.', variant: 'destructive' });
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [propertyId, router, toast]);
+  if (!property) {
+    // Return a loading or not found state while redirecting
+    return (
+      <div className="flex h-screen items-center justify-center">
+          <p>Loading...</p>
+      </div>
+    );
+  }
   
   const imageUrl = property?.media?.[0]?.url || 'https://placehold.co/1200x800.png';
   const imageHint = property?.media?.[0]?.url ? 'property interior' : 'property exterior';
@@ -68,34 +54,6 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
     if (unit) return unit;
     return '';
   };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto p-4 lg:p-6 space-y-6">
-        <Skeleton className="h-10 w-32" />
-        <Skeleton className="h-96 w-full rounded-lg" />
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-4">
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-5 w-1/2" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-          <div className="space-y-4">
-            <Skeleton className="h-32 w-full" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!property) {
-    // The redirect should handle this, but as a fallback:
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <p>Property not found or not available.</p>
-        </div>
-    );
-  }
   
   const pricePerUnit = property.listingPrice && property.landDetails.area > 0 ? (property.listingPrice / property.landDetails.area) : 0;
 
@@ -190,13 +148,36 @@ function PublicPropertyDetailClientPage({ propertyId }: { propertyId: string }) 
   );
 }
 
-// This is now a Server Component that unwraps searchParams and passes a primitive prop.
-export default function PublicPropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    const propertyId = params?.propertyId;
+// This is the Server Component that fetches data and passes it to the client.
+export default async function PublicPropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    
+    const fetchPublicProperty = async (id: string): Promise<PublicProperty | null> => {
+        if (!db || !id) return null;
+        try {
+            const propDocRef = doc(db, 'properties', id);
+            const docSnap = await getDoc(propDocRef);
+
+            if (docSnap.exists() && docSnap.data().isListedPublicly) {
+                const propertyData = { id: docSnap.id, ...docSnap.data() } as Property;
+                
+                const mediaCollectionRef = collection(db, 'properties', docSnap.id, 'media');
+                const mediaSnapshot = await getDocs(query(mediaCollectionRef));
+                const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
+
+                return { ...propertyData, media };
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching public property details:", error);
+            return null;
+        }
+    }
+
+    const initialProperty = await fetchPublicProperty(params.propertyId);
 
     return (
         <React.Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><p>Loading...</p></div>}>
-            <PublicPropertyDetailClientPage propertyId={propertyId} />
+            <PublicPropertyDetailClientPage initialProperty={initialProperty} />
         </React.Suspense>
     );
 }

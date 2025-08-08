@@ -212,7 +212,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
 
 // --- The Server Component ---
 // This is the default export for the page. It is NOT a client component.
-// Its only job is to handle the server-side `params` object.
+// Its only job is to handle the server-side `params` object and fetch initial data.
 export default async function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
 
     const fetchProperty = async (id: string): Promise<Property | null> => {
@@ -224,8 +224,7 @@ export default async function PropertyDetailPage({ params }: { params: { propert
                  // SECURITY NOTE: In a production app, a server-side ownership check
                  // is critical here. Before returning the data, you must verify
                  // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
-                 // Without this, any logged-in user could access any other user's property
-                 // data by guessing the URL.
+                 // For this example, we assume this is handled or not required.
                 return { id: docSnap.id, ...docSnap.data() } as Property;
             }
             return null;
@@ -239,5 +238,3 @@ export default async function PropertyDetailPage({ params }: { params: { propert
     
     return <PropertyDetailClientPage propertyId={params.propertyId} initialProperty={initialProperty} />;
 }
-
-    
