@@ -132,13 +132,16 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
 
   const handleFormSubmit = (data: FormValues) => {
+    // A list to hold all validation error messages.
     const validationErrors: string[] = [];
 
+    // --- Validation Check 1: Listing Price ---
     if (data.status === 'For Sale' && data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
         form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
-        validationErrors.push("A valid Listing Price is required when 'List Publicly' is enabled.");
+        validationErrors.push("A Listing Price is required when 'List Publicly' is on.");
     }
-    
+
+    // --- Validation Check 2: Sold Information ---
     if (data.status === 'Sold') {
         if (!data.soldPrice || data.soldPrice <= 0) {
             form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
@@ -149,10 +152,13 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
             validationErrors.push("A Sold Date is required.");
         }
     }
-    
+
+    // --- Final Check ---
+    // If there are any errors in our list, show a single toast and stop.
     if (validationErrors.length > 0) {
         toast({
             title: "Missing Information",
+            // Join all the error messages into a clear list for the user.
             description: `Please correct the following: ${validationErrors.join(' ')}`,
             variant: "destructive",
         });

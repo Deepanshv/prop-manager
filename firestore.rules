@@ -3,39 +3,53 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Users can only read and write to their own user document.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Properties can be managed only by their owner.
-    match /properties/{propertyId} {
-      // Any authenticated user can view a property if it is publicly listed.
-      allow get: if resource.data.isListedPublicly == true;
-      
-      // The owner can read the full document.
-      allow read: if request.auth != null && request.auth.uid == resource.data.ownerUid;
-      
-      // The owner can delete their own property.
-      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
-      
-      // An authenticated user can create a property, but they must set themselves as the owner.
-      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
-      
-      // The owner of a property can update it. The ownerUid cannot be changed.
-      allow update: if request.auth != null && request.auth.uid == resource.data.ownerUid && request.resource.data.ownerUid == resource.data.ownerUid;
-    }
-
-    // Prospects can only be managed by their owner.
-    match /prospects/{prospectId} {
-      allow read, write, delete, create: if request.auth != null && request.auth.uid == resource.data.ownerUid || (request.resource.data.ownerUid == request.auth.uid && request.method == 'create');
+    // Helper function to check if the user owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
     
-    // Rules for subcollections (files and media)
-    // A user can access files/media if they own the parent property.
-    match /properties/{propertyId}/{subcollection}/{documentId} {
-        allow read, write, delete: if request.auth != null && get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
+    // USERS collection
+    // Users can read their own profile, create it, and update it.
+    // They cannot read other user profiles.
+    match /users/{userId} {
+      allow read, update: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated();
+    }
+
+    // PROPERTIES collection
+    // Users can create properties for themselves.
+    // They can only read, update, or delete properties they own.
+    match /properties/{propertyId} {
+      allow read: if isAuthenticated() && (
+        resource.data.isListedPublicly == true || // Allow read for public listings
+        isOwner(resource.data.ownerUid)             // Or if the user is the owner
+      );
+      allow create: if isAuthenticated() && isOwner(request.resource.data.ownerUid);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      
+      // Subcollections for properties (files, media)
+      match /{allPaths=**} {
+        allow read, write: if isAuthenticated() && isOwner(get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid);
+      }
+    }
+    
+    // PROSPECTS collection
+    // Users can create prospects for themselves.
+    // They can only read, update, or delete prospects they own.
+    match /prospects/{prospectId} {
+      allow read, update, delete: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.ownerUid);
+      
+      // Subcollections for prospects
+      match /{allPaths=**} {
+        allow read, write: if isAuthenticated() && isOwner(get(/databases/$(database)/documents/prospects/$(prospectId)).data.ownerUid);
+      }
     }
   }
 }
