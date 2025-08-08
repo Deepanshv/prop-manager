@@ -1,6 +1,11 @@
+// This is the top of your file: app/(app/prospects/[prospectId]/page.tsx)
+
+// --- The Client Component ---
+// This part contains all your interactive logic.
+// Notice the 'use client' directive is here.
 'use client'
 
-import { collection, doc, getDoc, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, writeBatch, Timestamp, updateDoc, getDoc } from 'firebase/firestore'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
@@ -15,6 +20,8 @@ import type { Prospect } from '../page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 import type { Property } from '../../properties/page'
 
+// We've renamed your original component to "ProspectDetailClientPage"
+// It now receives the simple 'prospectId' as a prop.
 function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   const { user } = useAuth()
   const router = useRouter()
@@ -60,6 +67,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
     });
 
     try {
+      // Use a batch for atomic writes
       const batch = writeBatch(db);
       
       const newPropertyRef = doc(collection(db, 'properties'))
@@ -72,9 +80,9 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
         landDetails: { area: 0, areaUnit: 'Square Feet' }, // Default value
         propertyType: prospectData.propertyType as Property['propertyType'] || 'Open Land',
         purchaseDate: Timestamp.now(),
-        purchasePrice: 0,
+        purchasePrice: 0, // Default value
         status: 'Owned',
-        remarks: prospectData.contactInfo ? `Contact Info: ${prospectData.contactInfo}` : '',
+        remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
       }
       
       batch.set(newPropertyRef, newPropertyData);
@@ -133,6 +141,7 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
     }
   }
 
+  // Initial render with skeleton if data is still coming
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -148,14 +157,14 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
       </div>
     )
   }
-  
+
   if (!prospect) {
-     return (
-      <div className="flex-1 flex items-center justify-center p-6">
-        <p>Prospect not found.</p>
-      </div>
-    )
-  }
+    return (
+     <div className="flex-1 flex items-center justify-center p-6">
+       <p>Prospect not found.</p>
+     </div>
+   )
+ }
 
   return (
     <div className="p-6 space-y-6">
@@ -188,9 +197,13 @@ function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
 }
 
 // --- The Server Component ---
+// This is the default export for the page. It is NOT a client component.
+// Its only job is to handle the server-side `params` object.
 export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
+    // 1. Unwrap the params promise at the top of the server component.
     const resolvedParams = React.use(params);
     const { prospectId } = resolvedParams;
 
+    // 2. Pass the resolved, primitive `prospectId` string as a prop to the Client Component.
     return <ProspectDetailClientPage prospectId={prospectId} />;
 }
