@@ -176,8 +176,6 @@ export default async function PublicPropertyDetailPage({ params }: { params: { p
     const initialProperty = await fetchPublicProperty(params.propertyId);
 
     return (
-        <React.Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><p>Loading...</p></div>}>
-            <PublicPropertyDetailClientPage initialProperty={initialProperty} />
-        </React.Suspense>
+      <PublicPropertyDetailClientPage initialProperty={initialProperty} />
     );
 }
