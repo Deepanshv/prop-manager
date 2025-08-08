@@ -180,4 +180,3 @@ export default async function PublicPropertyDetailPage({ params }: { params: { p
       <PublicPropertyDetailClientPage initialProperty={initialProperty} />
     );
 }
-
