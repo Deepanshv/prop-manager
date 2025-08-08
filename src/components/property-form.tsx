@@ -366,19 +366,17 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
             </div>
         </div>
 
-        {watchedValues.propertyType === 'Open Land' && (
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium">Land Details</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
-                     <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
-                        <FormItem><FormLabel>Khasra Number</FormLabel><FormControl><Input placeholder="e.g. 123/4" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                     <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
-                        <FormItem><FormLabel>Landbook Number</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                    )}/>
-                 </div>
-            </div>
-        )}
+        <div className="space-y-4">
+            <h3 className="text-lg font-medium">Legal Details</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+                 <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
+                    <FormItem><FormLabel>Khasra / Registry Number</FormLabel><FormControl><Input placeholder="e.g. 123/4" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                 <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
+                    <FormItem><FormLabel>Landbook Number (Bhu Pustika)</FormLabel><FormControl><Input placeholder="e.g. 5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                )}/>
+             </div>
+        </div>
         
         <div className="space-y-4">
              <h3 className="text-lg font-medium">Property & Financial Details</h3>
