@@ -47,11 +47,11 @@ import { useAuth } from '../layout'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
 const profileFormSchema = z.object({
-  displayName: z.string().min(2, 'Display name must be at least 2 characters.'),
-  primaryNumber: z.string().regex(/^\d{10}$/, { message: "Must be a 10-digit number."}).optional().or(z.literal('')),
-  secondaryNumber: z.string().regex(/^\d{10}$/, { message: "Must be a 10-digit number."}).optional().or(z.literal('')),
-  aadhaarNumber: z.string().regex(/^\d{12}$/, { message: "Must be a 12-digit number."}).optional().or(z.literal('')),
-  panNumber: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, { message: "Invalid PAN format."}).optional().or(z.literal('')),
+  displayName: z.string().min(2, 'Display name must be at least 2 characters.').max(50, 'Display name cannot be more than 50 characters.'),
+  primaryNumber: z.union([z.string().length(0), z.string().regex(/^\d{10}$/, "Must be a 10-digit number.")]).optional(),
+  secondaryNumber: z.union([z.string().length(0), z.string().regex(/^\d{10}$/, "Must be a 10-digit number.")]).optional(),
+  aadhaarNumber: z.union([z.string().length(0), z.string().regex(/^\d{12}$/, "Must be a 12-digit number.")]).optional(),
+  panNumber: z.union([z.string().length(0), z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format.")]).optional(),
 })
 type ProfileFormData = z.infer<typeof profileFormSchema>
 
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                                             <FormField control={profileForm.control} name="primaryNumber" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Primary Number</FormLabel>
-                                                    <FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl>
+                                                    <FormControl><Input placeholder="10-digit mobile number" {...field} value={field.value ?? ''} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}/>
@@ -293,21 +293,21 @@ export default function SettingsPage() {
                                                 <FormItem>
                                                     <FormLabel>Secondary Number</FormLabel>
                                                      <FormDescription className="h-0 -mt-2 sm:hidden">Optional</FormDescription>
-                                                    <FormControl><Input placeholder="Optional 10-digit number" {...field} /></FormControl>
+                                                    <FormControl><Input placeholder="Optional 10-digit number" {...field} value={field.value ?? ''} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}/>
                                             <FormField control={profileForm.control} name="aadhaarNumber" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Aadhaar Number</FormLabel>
-                                                    <FormControl><Input placeholder="Optional 12-digit number" {...field} /></FormControl>
+                                                    <FormControl><Input placeholder="Optional 12-digit number" {...field} value={field.value ?? ''} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}/>
                                             <FormField control={profileForm.control} name="panNumber" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>PAN Number</FormLabel>
-                                                    <FormControl><Input placeholder="Optional 10-character PAN" {...field} className="uppercase" /></FormControl>
+                                                    <FormControl><Input placeholder="Optional 10-character PAN" {...field} className="uppercase" value={field.value ?? ''} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}/>
@@ -423,3 +423,5 @@ export default function SettingsPage() {
     </>
   )
 }
+
+    
