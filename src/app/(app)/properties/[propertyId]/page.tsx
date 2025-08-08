@@ -88,49 +88,67 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
-    // Prepare data for Firestore, converting JS Dates back to Timestamps
+    // Prepare a clean data object for Firestore
     const propertyData: Record<string, any> = {
-      ...data,
+      name: data.name,
       ownerUid: user.uid,
-      purchaseDate: Timestamp.fromDate(data.purchaseDate),
-      pricePerUnit: data.pricePerUnit ?? null,
-      remarks: data.remarks ?? null,
       address: {
-        ...data.address,
+        street: data.address.street,
+        city: data.address.city,
+        state: data.address.state,
+        zip: data.address.zip,
         landmark: data.address.landmark ?? null,
         latitude: data.address.latitude ?? null,
         longitude: data.address.longitude ?? null,
       },
       landDetails: {
-        ...data.landDetails,
+        area: data.landDetails.area,
+        areaUnit: data.landDetails.areaUnit,
         khasraNumber: data.landDetails.khasraNumber ?? null,
         landbookNumber: data.landDetails.landbookNumber ?? null,
       },
+      propertyType: data.propertyType,
+      purchaseDate: Timestamp.fromDate(data.purchaseDate),
+      purchasePrice: data.purchasePrice,
+      pricePerUnit: data.pricePerUnit ?? null,
+      remarks: data.remarks ?? null,
+      status: data.status,
     };
     
-    // Conditional logic based on form data
-    if (data.propertyType !== 'Open Land') {
+    // Handle conditional fields for Open Land
+    if (data.propertyType === 'Open Land') {
+        propertyData.landType = data.landType ?? null;
+        propertyData.isDiverted = data.isDiverted ?? false;
+    } else {
         propertyData.landType = null;
         propertyData.isDiverted = null;
     }
     
+    // Handle fields based on status
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
+        propertyData.listingPrice = null;
+        propertyData.listingPricePerUnit = null;
         propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
         propertyData.soldPrice = data.soldPrice ?? null;
-    } else {
+    } else if (data.status === 'For Sale') {
+        propertyData.soldDate = null;
+        propertyData.soldPrice = null;
+        propertyData.isListedPublicly = data.isListedPublicly ?? false;
+        if (data.isListedPublicly) {
+            propertyData.listingPrice = data.listingPrice ?? null;
+            propertyData.listingPricePerUnit = data.listingPricePerUnit ?? null;
+        } else {
+            propertyData.listingPrice = null;
+            propertyData.listingPricePerUnit = null;
+        }
+    } else { // 'Owned' status
+        propertyData.isListedPublicly = false;
+        propertyData.listingPrice = null;
+        propertyData.listingPricePerUnit = null;
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
     }
-
-    if (data.status === 'For Sale' && data.isListedPublicly) {
-        propertyData.listingPrice = data.listingPrice ?? null;
-        propertyData.listingPricePerUnit = data.listingPricePerUnit ?? null;
-    } else {
-        propertyData.listingPrice = null;
-        propertyData.listingPricePerUnit = null;
-    }
-    
 
     try {
       const propDocRef = doc(db, 'properties', propertyId)
@@ -145,6 +163,15 @@ export default function PropertyDetailPage() {
                 const updatedPropData = { id: docSnap.id, ...docSnap.data() } as Property;
                 setProperty(updatedPropData);
              }
+             // Refresh form data to reflect latest state
+             const propData = { id: docSnap.id, ...docSnap.data() } as Property;
+             setFormInitialData({
+                ...propData,
+                purchaseDate: propData.purchaseDate.toDate(),
+                soldDate: propData.soldDate?.toDate(),
+                pricePerUnit: propData.pricePerUnit,
+                listingPricePerUnit: propData.listingPricePerUnit,
+            });
         }
     } catch (error) {
       console.error('Error updating document: ', error)
