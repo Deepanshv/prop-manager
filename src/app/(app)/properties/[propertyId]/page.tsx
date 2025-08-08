@@ -233,8 +233,10 @@ export default async function PropertyDetailPage({ params }: { params: { propert
             return null;
         }
     };
-
-    const initialProperty = await fetchProperty(params.propertyId);
     
-    return <PropertyDetailClientPage propertyId={params.propertyId} initialProperty={initialProperty} />;
+    // Correctly access the propertyId from params
+    const { propertyId } = params;
+    const initialProperty = await fetchProperty(propertyId);
+    
+    return <PropertyDetailClientPage propertyId={propertyId} initialProperty={initialProperty} />;
 }

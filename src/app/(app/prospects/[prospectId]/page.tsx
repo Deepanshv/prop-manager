@@ -187,8 +187,6 @@ export default async function ProspectDetailPage({ params }: { params: { prospec
                  // SECURITY NOTE: In a production app, a server-side ownership check
                  // is critical here. Before returning the data, you must verify
                  // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
-                 // Without this, any logged-in user could access any other user's prospect
-                 // data by guessing the URL.
                 return { id: docSnap.id, ...docSnap.data() } as Prospect;
             }
             return null;
@@ -198,7 +196,8 @@ export default async function ProspectDetailPage({ params }: { params: { prospec
         }
     };
 
-    const initialProspect = await fetchProspect(params.prospectId);
+    const { prospectId } = params;
+    const initialProspect = await fetchProspect(prospectId);
 
-    return <ProspectDetailClientPage prospectId={params.prospectId} initialProspect={initialProspect} />;
+    return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;
 }

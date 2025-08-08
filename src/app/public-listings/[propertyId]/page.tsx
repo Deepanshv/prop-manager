@@ -174,7 +174,8 @@ export default async function PublicPropertyDetailPage({ params }: { params: { p
         }
     }
 
-    const initialProperty = await fetchPublicProperty(params.propertyId);
+    const { propertyId } = params;
+    const initialProperty = await fetchPublicProperty(propertyId);
 
     return (
       <PublicPropertyDetailClientPage initialProperty={initialProperty} />
