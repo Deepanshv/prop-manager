@@ -34,6 +34,27 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   const [property, setProperty] = React.useState<Property | null>(null);
   const [loading, setLoading] = React.useState(true);
 
+  const fetchAndSetProperty = React.useCallback(async () => {
+    if (!user || !db) return;
+    setLoading(true);
+    try {
+        const propDocRef = doc(db, 'properties', propertyId);
+        const docSnap = await getDoc(propDocRef);
+        if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+            setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+        } else {
+            toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
+            router.push('/properties');
+        }
+    } catch (error) {
+        console.error("Failed to fetch property on client:", error);
+        toast({ title: 'Error', description: 'Failed to load property details.', variant: 'destructive' })
+        router.push('/properties');
+    } finally {
+        setLoading(false);
+    }
+  }, [propertyId, user, db, router, toast]);
+
   // The form's initial data is derived from the state.
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
@@ -58,30 +79,8 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   }, [property]);
 
   React.useEffect(() => {
-    if (!user || !db) return;
-
-    const fetchProperty = async () => {
-        setLoading(true);
-        try {
-            const propDocRef = doc(db, 'properties', propertyId);
-            const docSnap = await getDoc(propDocRef);
-            if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
-                setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
-            } else {
-                toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
-                router.push('/properties');
-            }
-        } catch (error) {
-            console.error("Failed to fetch property on client:", error);
-            toast({ title: 'Error', description: 'Failed to load property details.', variant: 'destructive' })
-            router.push('/properties');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    fetchProperty();
-  }, [propertyId, user, db, router, toast]);
+    fetchAndSetProperty();
+  }, [fetchAndSetProperty]);
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !propertyId) {
@@ -91,31 +90,31 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
     setIsSaving(true)
 
     const propertyData: Record<string, any> = {
-      name: data.name,
-      ownerUid: user.uid,
-      address: {
-        street: data.address.street,
-        city: data.address.city,
-        state: data.address.state,
-        zip: data.address.zip,
-        landmark: data.address.landmark ?? null,
-        latitude: data.address.latitude ?? null,
-        longitude: data.address.longitude ?? null,
-      },
-      landDetails: {
-        area: data.landDetails.area,
-        areaUnit: data.landDetails.areaUnit,
-        khasraNumber: data.landDetails.khasraNumber ?? null,
-        landbookNumber: data.landDetails.landbookNumber ?? null,
-      },
-      propertyType: data.propertyType,
-      purchaseDate: Timestamp.fromDate(data.purchaseDate),
-      purchasePrice: data.purchasePrice,
-      pricePerUnit: data.pricePerUnit ?? null,
-      remarks: data.remarks ?? null,
-      status: data.status,
+        name: data.name,
+        ownerUid: user.uid,
+        address: {
+            street: data.address.street,
+            city: data.address.city,
+            state: data.address.state,
+            zip: data.address.zip,
+            landmark: data.address.landmark ?? null,
+            latitude: data.address.latitude ?? null,
+            longitude: data.address.longitude ?? null,
+        },
+        landDetails: {
+            area: data.landDetails.area,
+            areaUnit: data.landDetails.areaUnit,
+            khasraNumber: data.landDetails.khasraNumber ?? null,
+            landbookNumber: data.landDetails.landbookNumber ?? null,
+        },
+        propertyType: data.propertyType,
+        purchaseDate: Timestamp.fromDate(data.purchaseDate),
+        purchasePrice: data.purchasePrice,
+        pricePerUnit: data.pricePerUnit ?? null,
+        remarks: data.remarks ?? null,
+        status: data.status,
     };
-    
+
     if (data.propertyType === 'Open Land') {
         propertyData.landType = data.landType ?? null;
         propertyData.isDiverted = data.isDiverted ?? false;
@@ -123,7 +122,7 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
         propertyData.landType = null;
         propertyData.isDiverted = null;
     }
-    
+
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
@@ -157,7 +156,8 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          router.refresh(); 
+          // Re-fetch data to show immediate updates
+          await fetchAndSetProperty();
       }
     } catch (error) {
       console.error('Error updating document: ', error)
