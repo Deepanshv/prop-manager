@@ -235,7 +235,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
 
 // --- The Server Component ---
 // This is the default export for the page. It is NOT a client component.
-export default async function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+export default async function PropertyDetailPage({ params: { propertyId } }: { params: { propertyId: string } }) {
 
     // This is our server-side data fetching function.
     const fetchProperty = async (id: string): Promise<Property | null> => {
@@ -256,7 +256,6 @@ export default async function PropertyDetailPage({ params }: { params: { propert
         }
     };
 
-    const propertyId = params.propertyId;
     const initialProperty = await fetchProperty(propertyId);
 
     // Render the Client Component and pass the fetched data as a prop
