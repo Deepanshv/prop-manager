@@ -1,4 +1,3 @@
-
 // This is the top of your file: app/(app/prospects/[prospectId]/page.tsx)
 
 // --- The Client Component ---
@@ -195,7 +194,7 @@ export default async function ProspectDetailPage({ params }: { params: { prospec
         }
     };
 
-    const { prospectId } = params;
+    const { prospectId } = await params;
     const initialProspect = await fetchProspect(prospectId);
 
     return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;

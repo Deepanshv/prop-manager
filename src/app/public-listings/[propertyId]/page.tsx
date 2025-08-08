@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Property } from '@/app/(app)/properties/page';
@@ -187,7 +186,7 @@ export default async function PublicPropertyDetailPage({ params }: { params: { p
         }
     }
 
-    const { propertyId } = params;
+    const { propertyId } = await params;
     const initialProperty = await fetchPublicProperty(propertyId);
 
     return (

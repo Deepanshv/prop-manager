@@ -1,4 +1,3 @@
-
 // This is the top of your file: app/(app)/properties/[propertyId]/page.tsx
 
 // --- The Client Component ---
@@ -235,7 +234,7 @@ export default async function PropertyDetailPage({ params }: { params: { propert
     };
     
     // Correctly access the propertyId from params
-    const { propertyId } = params;
+    const { propertyId } = await params;
     const initialProperty = await fetchProperty(propertyId);
     
     return <PropertyDetailClientPage propertyId={propertyId} initialProperty={initialProperty} />;
