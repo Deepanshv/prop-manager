@@ -3,7 +3,7 @@
 
 import { collection, doc, writeBatch, Timestamp, updateDoc, getDoc } from 'firebase/firestore'
 import { ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -17,10 +17,11 @@ import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 import type { Property } from '../../properties/page'
 
 
-export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
+export default function ProspectDetailPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const { prospectId } = params;
+  const params = useParams()
+  const prospectId = params.prospectId as string;
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
   const [prospect, setProspect] = React.useState<Prospect | null>(null);
