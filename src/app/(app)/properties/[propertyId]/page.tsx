@@ -1,3 +1,4 @@
+
 // This is the top of your file: app/(app)/properties/[propertyId]/page.tsx
 
 // --- The Client Component ---
