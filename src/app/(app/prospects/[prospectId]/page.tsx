@@ -195,7 +195,7 @@ export default async function ProspectDetailPage({ params }: { params: { prospec
         }
     };
 
-    const { prospectId } = await params;
+    const prospectId = params.prospectId;
     const initialProspect = await fetchProspect(prospectId);
 
     return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;

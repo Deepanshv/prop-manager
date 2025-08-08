@@ -256,12 +256,9 @@ export default async function PropertyDetailPage({ params }: { params: { propert
         }
     };
 
-    // Correctly await the propertyId from params in a Server Component
-    const { propertyId } = await params;
+    const propertyId = params.propertyId;
     const initialProperty = await fetchProperty(propertyId);
 
     // Render the Client Component and pass the fetched data as a prop
     return <PropertyDetailClientPage propertyId={propertyId} initialProperty={initialProperty} />;
 }
-
-    
