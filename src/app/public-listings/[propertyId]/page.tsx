@@ -11,6 +11,7 @@ import { ArrowLeft, BadgeCheck, Building2, Phone, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PublicProperty extends Property {
     media?: { url: string; contentType: string }[];
@@ -32,8 +33,20 @@ function PublicPropertyDetailClientPage({ initialProperty, propertyId }: { initi
   if (!property) {
     // Return a loading or not found state while redirecting
     return (
-      <div className="flex h-screen items-center justify-center">
-          <p>Loading...</p>
+      <div className="flex h-screen items-center justify-center bg-background p-6">
+        <div className="w-full max-w-4xl space-y-8">
+            <Skeleton className="h-16 w-1/2" />
+            <Skeleton className="aspect-video w-full" />
+            <div className="grid md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-6">
+                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                </div>
+                <div className="space-y-6">
+                    <Skeleton className="h-64 w-full" />
+                </div>
+            </div>
+        </div>
       </div>
     );
   }
@@ -174,7 +187,7 @@ export default async function PublicPropertyDetailPage({ params }: { params: { p
         }
     }
 
-    const { propertyId } = await params;
+    const { propertyId } = params;
     const initialProperty = await fetchPublicProperty(propertyId);
 
     return (

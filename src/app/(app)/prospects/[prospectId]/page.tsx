@@ -175,7 +175,6 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
 
 // --- The Server Component ---
 // This is the default export for the page. It is NOT a client component.
-// Its only job is to handle the server-side `params` object and fetch initial data.
 export default async function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
 
     const fetchProspect = async (id: string): Promise<Prospect | null> => {
@@ -196,7 +195,7 @@ export default async function ProspectDetailPage({ params }: { params: { prospec
         }
     };
 
-    const { prospectId } = await params;
+    const { prospectId } = params;
     const initialProspect = await fetchProspect(prospectId);
 
     return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;
