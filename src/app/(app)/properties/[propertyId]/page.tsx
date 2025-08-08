@@ -32,52 +32,51 @@ export default function PropertyDetailPage() {
 
   const propertyId = params.propertyId as string;
 
-  const fetchAndSetProperty = React.useCallback(async (id: string) => {
-    if (!db || !user) return;
-    setLoading(true);
-    try {
-      const propDocRef = doc(db, 'properties', id);
-      const docSnap = await getDoc(propDocRef);
-
-      if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
-        const propData = { id: docSnap.id, ...docSnap.data() } as Property;
-        setProperty(propData);
-
-        let pricePerUnit = propData.pricePerUnit;
-        if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
-          pricePerUnit = propData.purchasePrice / propData.landDetails.area;
-        }
-        
-        let listingPricePerUnit = propData.listingPricePerUnit;
-        if (listingPricePerUnit === undefined && propData.listingPrice && propData.landDetails.area > 0) {
-          listingPricePerUnit = propData.listingPrice / propData.landDetails.area;
-        }
-
-        setFormInitialData({
-          ...propData,
-          purchaseDate: propData.purchaseDate.toDate(),
-          soldDate: propData.soldDate?.toDate(),
-          pricePerUnit: pricePerUnit,
-          listingPricePerUnit: listingPricePerUnit,
-        });
-
-      } else {
-        toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' });
-        router.push('/properties');
-      }
-    } catch (error) {
-      console.error('Error fetching property:', error);
-      toast({ title: 'Error', description: 'Failed to fetch property data.', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, router, toast]);
-
   React.useEffect(() => {
-    if (user && propertyId) {
-      fetchAndSetProperty(propertyId);
+    if (!user || !propertyId) return;
+
+    const fetchAndSetProperty = async (id: string) => {
+        setLoading(true);
+        try {
+          const propDocRef = doc(db, 'properties', id);
+          const docSnap = await getDoc(propDocRef);
+
+          if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+            const propData = { id: docSnap.id, ...docSnap.data() } as Property;
+            setProperty(propData);
+
+            let pricePerUnit = propData.pricePerUnit;
+            if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
+              pricePerUnit = propData.purchasePrice / propData.landDetails.area;
+            }
+            
+            let listingPricePerUnit = propData.listingPricePerUnit;
+            if (listingPricePerUnit === undefined && propData.listingPrice && propData.landDetails.area > 0) {
+              listingPricePerUnit = propData.listingPrice / propData.landDetails.area;
+            }
+
+            setFormInitialData({
+              ...propData,
+              purchaseDate: propData.purchaseDate.toDate(),
+              soldDate: propData.soldDate?.toDate(),
+              pricePerUnit: pricePerUnit,
+              listingPricePerUnit: listingPricePerUnit,
+            });
+
+          } else {
+            toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' });
+            router.push('/properties');
+          }
+        } catch (error) {
+          console.error('Error fetching property:', error);
+          toast({ title: 'Error', description: 'Failed to fetch property data.', variant: 'destructive' });
+        } finally {
+          setLoading(false);
+        }
     }
-  }, [user, propertyId, fetchAndSetProperty]);
+    
+    fetchAndSetProperty(propertyId)
+  }, [user, propertyId, router, toast]);
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !propertyId) {
@@ -152,11 +151,12 @@ export default function PropertyDetailPage() {
       const propDocRef = doc(db, 'properties', propertyId)
       await updateDoc(propDocRef, propertyData)
       toast({ title: 'Success', description: 'Property updated successfully.' })
+        
         if (propertyData.status === 'Sold') {
             router.push('/sold-properties')
         } else {
-            // Re-fetch and update local state to reflect changes immediately
-            fetchAndSetProperty(propertyId);
+            // This is the key change: force a refresh of the page's data.
+            router.refresh();
         }
     } catch (error) {
       console.error('Error updating document: ', error)
