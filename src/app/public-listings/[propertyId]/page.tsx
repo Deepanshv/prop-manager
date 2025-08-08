@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, getDocs, collection, query } from 'firebase/firestore';
 import { ArrowLeft, BadgeCheck, Building2, Phone, MapPin } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -16,21 +16,51 @@ interface PublicProperty extends Property {
     media?: { url: string; contentType: string }[];
 }
 
-// This is the Client Component that receives the initial data as a prop.
-function PublicPropertyDetailClientPage({ initialProperty, propertyId }: { initialProperty: PublicProperty | null, propertyId: string }) {
-  const [property] = React.useState<PublicProperty | null>(initialProperty);
-  const { toast } = useToast();
+export default function PublicPropertyDetailPage() {
   const router = useRouter();
+  const params = useParams();
+  const { toast } = useToast();
+  
+  const propertyId = params.propertyId as string;
 
+  const [property, setProperty] = React.useState<PublicProperty | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  
   React.useEffect(() => {
-    if (!property) {
-      toast({ title: 'Not Found', description: 'This property is not available for public viewing.', variant: 'destructive' });
-      router.push('/public-listings'); // Redirect if not found or not public
-    }
-  }, [property, router, toast]);
+    if (!db || !propertyId) {
+        setLoading(false);
+        return
+    };
 
-  if (!property) {
-    // Return a loading or not found state while redirecting
+    const fetchPublicProperty = async () => {
+        setLoading(true);
+        try {
+            const propDocRef = doc(db, 'properties', propertyId);
+            const docSnap = await getDoc(propDocRef);
+
+            if (docSnap.exists() && docSnap.data().isListedPublicly) {
+                const propertyData = { id: docSnap.id, ...docSnap.data() } as Property;
+                
+                const mediaCollectionRef = collection(db, 'properties', docSnap.id, 'media');
+                const mediaSnapshot = await getDocs(query(mediaCollectionRef));
+                const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
+
+                setProperty({ ...propertyData, media });
+            } else {
+                 toast({ title: 'Not Found', description: 'This property is not available for public viewing.', variant: 'destructive' });
+                 router.push('/public-listings'); // Redirect if not found or not public
+            }
+        } catch (error) {
+            console.error("Error fetching public property details:", error);
+            toast({ title: 'Error', description: 'Could not load property details.', variant: 'destructive' });
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchPublicProperty();
+  }, [propertyId, router, toast]);
+
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-6">
         <div className="w-full max-w-4xl space-y-8">
@@ -48,6 +78,10 @@ function PublicPropertyDetailClientPage({ initialProperty, propertyId }: { initi
         </div>
       </div>
     );
+  }
+
+  if (!property) {
+    return <div className="flex h-screen items-center justify-center bg-background p-6">Property not found.</div>;
   }
   
   const imageUrl = property?.media?.[0]?.url || 'https://placehold.co/1200x800.png';
@@ -157,39 +191,4 @@ function PublicPropertyDetailClientPage({ initialProperty, propertyId }: { initi
       </main>
     </div>
   );
-}
-
-// --- The Server Component ---
-// This is the default export for the page. It is NOT a client component.
-// Its only job is to handle the server-side `params` object and fetch initial data.
-export default async function PublicPropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    
-    const fetchPublicProperty = async (id: string): Promise<PublicProperty | null> => {
-        if (!db || !id) return null;
-        try {
-            const propDocRef = doc(db, 'properties', id);
-            const docSnap = await getDoc(propDocRef);
-
-            if (docSnap.exists() && docSnap.data().isListedPublicly) {
-                const propertyData = { id: docSnap.id, ...docSnap.data() } as Property;
-                
-                const mediaCollectionRef = collection(db, 'properties', docSnap.id, 'media');
-                const mediaSnapshot = await getDocs(query(mediaCollectionRef));
-                const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
-
-                return { ...propertyData, media };
-            }
-            return null;
-        } catch (error) {
-            console.error("Error fetching public property details:", error);
-            return null;
-        }
-    }
-
-    const { propertyId } = await params;
-    const initialProperty = await fetchPublicProperty(propertyId);
-
-    return (
-      <PublicPropertyDetailClientPage propertyId={propertyId} initialProperty={initialProperty} />
-    );
 }
