@@ -46,12 +46,13 @@ import { auth, db } from '@/lib/firebase'
 import { useAuth } from '../layout'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
+// Simplify the schema to ensure the form submission always triggers
 const profileFormSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.').max(50, 'Display name cannot be more than 50 characters.'),
-  primaryNumber: z.string().optional().refine((val) => val === '' || !val || /^\d{10}$/.test(val), { message: "Must be a 10-digit number." }),
-  secondaryNumber: z.string().optional().refine((val) => val === '' || !val || /^\d{10}$/.test(val), { message: "Must be a 10-digit number." }),
-  aadhaarNumber: z.string().optional().refine((val) => val === '' || !val || /^\d{12}$/.test(val), { message: "Must be a 12-digit number." }),
-  panNumber: z.string().optional().refine((val) => val === '' || !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val.toUpperCase()), { message: "Invalid PAN format." }),
+  primaryNumber: z.string().optional(),
+  secondaryNumber: z.string().optional(),
+  aadhaarNumber: z.string().optional(),
+  panNumber: z.string().optional(),
 })
 type ProfileFormData = z.infer<typeof profileFormSchema>
 
@@ -139,6 +140,23 @@ export default function SettingsPage() {
 
   const handleProfileUpdate = async (data: ProfileFormData) => {
     if (!auth.currentUser || !db) return
+    
+    // Manual validation inside the handler
+    const validations = [
+      { key: 'primaryNumber', value: data.primaryNumber, regex: /^\d{10}$/, message: 'Primary Number must be a 10-digit number.' },
+      { key: 'secondaryNumber', value: data.secondaryNumber, regex: /^\d{10}$/, message: 'Secondary Number must be a 10-digit number.' },
+      { key: 'aadhaarNumber', value: data.aadhaarNumber, regex: /^\d{12}$/, message: 'Aadhaar Number must be a 12-digit number.' },
+      { key: 'panNumber', value: data.panNumber, regex: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i, message: 'PAN Number has an invalid format.' }
+    ];
+
+    for (const v of validations) {
+      if (v.value && !v.regex.test(v.value)) {
+        toast({ title: 'Invalid Information', description: v.message, variant: 'destructive' });
+        profileForm.setError(v.key as keyof ProfileFormData, { type: 'manual', message: v.message });
+        return; // Stop the submission
+      }
+    }
+
     try {
       await updateProfile(auth.currentUser, { displayName: data.displayName })
 
