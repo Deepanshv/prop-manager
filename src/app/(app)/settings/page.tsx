@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -51,6 +50,8 @@ const profileFormSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.'),
   primaryNumber: z.string().regex(/^\d{10}$/, { message: "Must be a 10-digit number."}).optional().or(z.literal('')),
   secondaryNumber: z.string().regex(/^\d{10}$/, { message: "Must be a 10-digit number."}).optional().or(z.literal('')),
+  aadhaarNumber: z.string().regex(/^\d{12}$/, { message: "Must be a 12-digit number."}).optional().or(z.literal('')),
+  panNumber: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, { message: "Invalid PAN format."}).optional().or(z.literal('')),
 })
 type ProfileFormData = z.infer<typeof profileFormSchema>
 
@@ -81,6 +82,8 @@ export default function SettingsPage() {
       displayName: '',
       primaryNumber: '',
       secondaryNumber: '',
+      aadhaarNumber: '',
+      panNumber: '',
     },
   })
 
@@ -100,16 +103,22 @@ export default function SettingsPage() {
           const docSnap = await getDoc(userDocRef);
           let primaryNumber = '';
           let secondaryNumber = '';
+          let aadhaarNumber = '';
+          let panNumber = '';
 
           if (docSnap.exists()) {
             const data = docSnap.data();
             primaryNumber = data.primaryNumber || '';
             secondaryNumber = data.secondaryNumber || '';
+            aadhaarNumber = data.aadhaarNumber || '';
+            panNumber = data.panNumber || '';
           }
           profileForm.reset({
             displayName: user.displayName || '',
             primaryNumber,
             secondaryNumber,
+            aadhaarNumber,
+            panNumber,
           });
         } catch (error) {
           toast({ title: 'Error', description: 'Could not fetch profile data.', variant: 'destructive' });
@@ -117,6 +126,8 @@ export default function SettingsPage() {
             displayName: user.displayName || '',
             primaryNumber: '',
             secondaryNumber: '',
+            aadhaarNumber: '',
+            panNumber: '',
           });
         } finally {
           setIsProfileLoading(false);
@@ -133,8 +144,10 @@ export default function SettingsPage() {
 
       const userDocRef = doc(db, 'users', auth.currentUser.uid);
       await setDoc(userDocRef, { 
-        primaryNumber: data.primaryNumber,
-        secondaryNumber: data.secondaryNumber,
+        primaryNumber: data.primaryNumber || null,
+        secondaryNumber: data.secondaryNumber || null,
+        aadhaarNumber: data.aadhaarNumber || null,
+        panNumber: data.panNumber ? data.panNumber.toUpperCase() : null,
         email: auth.currentUser.email,
         displayName: data.displayName
       }, { merge: true });
@@ -281,6 +294,20 @@ export default function SettingsPage() {
                                                     <FormLabel>Secondary Number</FormLabel>
                                                      <FormDescription className="h-0 -mt-2 sm:hidden">Optional</FormDescription>
                                                     <FormControl><Input placeholder="Optional 10-digit number" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}/>
+                                            <FormField control={profileForm.control} name="aadhaarNumber" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Aadhaar Number</FormLabel>
+                                                    <FormControl><Input placeholder="Optional 12-digit number" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}/>
+                                            <FormField control={profileForm.control} name="panNumber" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>PAN Number</FormLabel>
+                                                    <FormControl><Input placeholder="Optional 10-character PAN" {...field} className="uppercase" /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}/>
