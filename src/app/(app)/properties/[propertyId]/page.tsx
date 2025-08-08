@@ -1,12 +1,11 @@
-// The entire file is now a Client Component.
+
 'use client'
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { ArrowLeft, FileQuestion } from 'lucide-react'
-import { useRouter, useParams } from 'next/navigation' // Import useParams
+import { useRouter, useParams } from 'next/navigation'
 import * as React from 'react'
 
-// --- Import all your necessary components and hooks ---
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -20,24 +19,19 @@ import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 import { MediaManager } from '@/components/media-manager'
 
 
-// This is now the only component in the file.
 export default function PropertyDetailPage() {
-  // --- Use client-side hooks to get necessary info ---
   const router = useRouter()
-  const params = useParams() // Use the client-side hook to get URL params
+  const params = useParams()
   const { user } = useAuth()
   const { toast } = useToast()
 
-  // --- State management for the component ---
   const [property, setProperty] = React.useState<Property | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
   const [formInitialData, setFormInitialData] = React.useState<Partial<PropertyFormData> | undefined>(undefined);
 
-  // Get the propertyId from the client-side params hook
   const propertyId = params.propertyId as string;
 
-  // --- Data fetching is now done entirely on the client in useEffect ---
   React.useEffect(() => {
     if (!user || !propertyId || !db) {
       setLoading(false);
@@ -54,7 +48,6 @@ export default function PropertyDetailPage() {
           const propData = { id: docSnap.id, ...docSnap.data() } as Property;
           setProperty(propData);
 
-          // Pre-calculation logic for the form
           let pricePerUnit = propData.pricePerUnit;
           if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
             pricePerUnit = propData.purchasePrice / propData.landDetails.area;
@@ -88,7 +81,6 @@ export default function PropertyDetailPage() {
     fetchProperty();
   }, [user, propertyId, router, toast]);
 
-  // --- All your other functions (like onSubmit) remain the same ---
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !propertyId) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
@@ -102,10 +94,6 @@ export default function PropertyDetailPage() {
       ownerUid: user.uid,
       purchaseDate: Timestamp.fromDate(data.purchaseDate),
       pricePerUnit: data.pricePerUnit ?? null,
-      soldDate: data.soldDate ? Timestamp.fromDate(data.soldDate) : null,
-      soldPrice: data.soldPrice ?? null,
-      listingPrice: data.listingPrice ?? null,
-      listingPricePerUnit: data.listingPricePerUnit ?? null,
       remarks: data.remarks ?? null,
       address: {
         ...data.address,
@@ -125,16 +113,24 @@ export default function PropertyDetailPage() {
         propertyData.landType = null;
         propertyData.isDiverted = null;
     }
+    
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
+        propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
+        propertyData.soldPrice = data.soldPrice ?? null;
     } else {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
     }
-    if (!data.isListedPublicly || data.status !== 'For Sale') {
+
+    if (data.status === 'For Sale' && data.isListedPublicly) {
+        propertyData.listingPrice = data.listingPrice ?? null;
+        propertyData.listingPricePerUnit = data.listingPricePerUnit ?? null;
+    } else {
         propertyData.listingPrice = null;
         propertyData.listingPricePerUnit = null;
     }
+    
 
     try {
       const propDocRef = doc(db, 'properties', propertyId)
@@ -143,6 +139,7 @@ export default function PropertyDetailPage() {
         if (propertyData.status === 'Sold') {
             router.push('/sold-properties')
         } else {
+            // Re-fetch and update local state to reflect changes immediately
             const docSnap = await getDoc(propDocRef);
              if (docSnap.exists()) {
                 const updatedPropData = { id: docSnap.id, ...docSnap.data() } as Property;
@@ -158,7 +155,6 @@ export default function PropertyDetailPage() {
   };
 
 
-  // --- JSX Rendering Logic ---
   if (loading) {
     return (
         <div className="p-6 space-y-6">
@@ -206,7 +202,9 @@ export default function PropertyDetailPage() {
                         initialData={formInitialData}
                         isSaving={isSaving}
                         submitButtonText="Save Changes"
-                    />
+                    >
+                       <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
+                    </PropertyForm>
                 </CardContent>
             </Card>
         </TabsContent>

@@ -31,7 +31,6 @@ const landAreaUnits = ['Square Feet', 'Acre'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
-// This is the data type for what the form manages.
 const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
@@ -55,7 +54,6 @@ const propertyFormSchema = z.object({
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
-  // Fields for listing and selling - validation will be handled manually
   status: z.string().optional(),
   isListedPublicly: z.boolean().optional(),
   listingPricePerUnit: z.coerce.number().positive().optional(),
@@ -66,7 +64,6 @@ const propertyFormSchema = z.object({
 
 type FormValues = z.infer<typeof propertyFormSchema>;
 
-// This is the final data type that gets submitted, including calculated fields.
 export type PropertyFormData = FormValues & {
     purchasePrice: number,
     listingPrice?: number,
@@ -132,16 +129,13 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
 
   const handleFormSubmit = (data: FormValues) => {
-    // A list to hold all validation error messages.
     const validationErrors: string[] = [];
 
-    // --- Validation Check 1: Listing Price ---
     if (data.status === 'For Sale' && data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
         form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
         validationErrors.push("A Listing Price is required when 'List Publicly' is on.");
     }
 
-    // --- Validation Check 2: Sold Information ---
     if (data.status === 'Sold') {
         if (!data.soldPrice || data.soldPrice <= 0) {
             form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
@@ -153,16 +147,13 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         }
     }
 
-    // --- Final Check ---
-    // If there are any errors in our list, show a single toast and stop.
     if (validationErrors.length > 0) {
         toast({
             title: "Missing Information",
-            // Join all the error messages into a clear list for the user.
             description: `Please correct the following: ${validationErrors.join(' ')}`,
             variant: "destructive",
         });
-        return; // Stop the submission
+        return;
     }
     
     const finalData: PropertyFormData = {
