@@ -48,10 +48,10 @@ import { uploadToCloudinary } from '@/lib/cloudinary'
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.').max(50, 'Display name cannot be more than 50 characters.'),
-  primaryNumber: z.union([z.string().length(0), z.string().regex(/^\d{10}$/, "Must be a 10-digit number.")]).optional(),
-  secondaryNumber: z.union([z.string().length(0), z.string().regex(/^\d{10}$/, "Must be a 10-digit number.")]).optional(),
-  aadhaarNumber: z.union([z.string().length(0), z.string().regex(/^\d{12}$/, "Must be a 12-digit number.")]).optional(),
-  panNumber: z.union([z.string().length(0), z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format.")]).optional(),
+  primaryNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), { message: "Must be a 10-digit number." }),
+  secondaryNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), { message: "Must be a 10-digit number." }),
+  aadhaarNumber: z.string().optional().refine(val => !val || /^\d{12}$/.test(val), { message: "Must be a 12-digit number." }),
+  panNumber: z.string().optional().refine(val => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val.toUpperCase()), { message: "Invalid PAN format." }),
 })
 type ProfileFormData = z.infer<typeof profileFormSchema>
 
@@ -423,5 +423,3 @@ export default function SettingsPage() {
     </>
   )
 }
-
-    
