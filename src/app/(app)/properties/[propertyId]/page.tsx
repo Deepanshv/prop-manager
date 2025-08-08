@@ -32,54 +32,52 @@ export default function PropertyDetailPage() {
 
   const propertyId = params.propertyId as string;
 
-  React.useEffect(() => {
-    if (!user || !propertyId || !db) {
-      setLoading(false);
-      return;
-    }
+  const fetchAndSetProperty = React.useCallback(async (id: string) => {
+    if (!db || !user) return;
+    setLoading(true);
+    try {
+      const propDocRef = doc(db, 'properties', id);
+      const docSnap = await getDoc(propDocRef);
 
-    const fetchProperty = async () => {
-      setLoading(true);
-      try {
-        const propDocRef = doc(db, 'properties', propertyId);
-        const docSnap = await getDoc(propDocRef);
+      if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+        const propData = { id: docSnap.id, ...docSnap.data() } as Property;
+        setProperty(propData);
 
-        if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
-          const propData = { id: docSnap.id, ...docSnap.data() } as Property;
-          setProperty(propData);
-
-          let pricePerUnit = propData.pricePerUnit;
-          if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
-            pricePerUnit = propData.purchasePrice / propData.landDetails.area;
-          }
-          
-          let listingPricePerUnit = propData.listingPricePerUnit;
-          if (listingPricePerUnit === undefined && propData.listingPrice && propData.landDetails.area > 0) {
-            listingPricePerUnit = propData.listingPrice / propData.landDetails.area;
-          }
-
-          setFormInitialData({
-            ...propData,
-            purchaseDate: propData.purchaseDate.toDate(),
-            soldDate: propData.soldDate?.toDate(),
-            pricePerUnit: pricePerUnit,
-            listingPricePerUnit: listingPricePerUnit,
-          });
-
-        } else {
-          toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' });
-          router.push('/properties');
+        let pricePerUnit = propData.pricePerUnit;
+        if (pricePerUnit === undefined && propData.purchasePrice && propData.landDetails.area > 0) {
+          pricePerUnit = propData.purchasePrice / propData.landDetails.area;
         }
-      } catch (error) {
-        console.error('Error fetching property:', error);
-        toast({ title: 'Error', description: 'Failed to fetch property data.', variant: 'destructive' });
-      } finally {
-        setLoading(false);
-      }
-    };
+        
+        let listingPricePerUnit = propData.listingPricePerUnit;
+        if (listingPricePerUnit === undefined && propData.listingPrice && propData.landDetails.area > 0) {
+          listingPricePerUnit = propData.listingPrice / propData.landDetails.area;
+        }
 
-    fetchProperty();
-  }, [user, propertyId, router, toast]);
+        setFormInitialData({
+          ...propData,
+          purchaseDate: propData.purchaseDate.toDate(),
+          soldDate: propData.soldDate?.toDate(),
+          pricePerUnit: pricePerUnit,
+          listingPricePerUnit: listingPricePerUnit,
+        });
+
+      } else {
+        toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' });
+        router.push('/properties');
+      }
+    } catch (error) {
+      console.error('Error fetching property:', error);
+      toast({ title: 'Error', description: 'Failed to fetch property data.', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  }, [user, router, toast]);
+
+  React.useEffect(() => {
+    if (user && propertyId) {
+      fetchAndSetProperty(propertyId);
+    }
+  }, [user, propertyId, fetchAndSetProperty]);
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !propertyId) {
@@ -158,20 +156,7 @@ export default function PropertyDetailPage() {
             router.push('/sold-properties')
         } else {
             // Re-fetch and update local state to reflect changes immediately
-            const docSnap = await getDoc(propDocRef);
-             if (docSnap.exists()) {
-                const updatedPropData = { id: docSnap.id, ...docSnap.data() } as Property;
-                setProperty(updatedPropData);
-             }
-             // Refresh form data to reflect latest state
-             const propData = { id: docSnap.id, ...docSnap.data() } as Property;
-             setFormInitialData({
-                ...propData,
-                purchaseDate: propData.purchaseDate.toDate(),
-                soldDate: propData.soldDate?.toDate(),
-                pricePerUnit: propData.pricePerUnit,
-                listingPricePerUnit: propData.listingPricePerUnit,
-            });
+            fetchAndSetProperty(propertyId);
         }
     } catch (error) {
       console.error('Error updating document: ', error)
