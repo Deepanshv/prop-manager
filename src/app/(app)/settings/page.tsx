@@ -87,6 +87,7 @@ export default function SettingsPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [isProfileLoading, setIsProfileLoading] = React.useState(true);
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  const [isInitialDataLoaded, setIsInitialDataLoaded] = React.useState(false); 
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -105,49 +106,48 @@ export default function SettingsPage() {
   })
   
   React.useEffect(() => {
-    if (user && db) {
+    // Only run this logic if the user exists AND we haven't loaded the data yet.
+    if (user && db && !isInitialDataLoaded) {
       setIsProfileLoading(true);
       setAvatarUrl(user.photoURL);
-
+  
       const fetchProfile = async () => {
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(userDocRef);
-          let primaryNumber = '';
-          let secondaryNumber = '';
-          let aadhaarNumber = '';
-          let panNumber = '';
-
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            primaryNumber = data.primaryNumber || '';
-            secondaryNumber = data.secondaryNumber || '';
-            aadhaarNumber = data.aadhaarNumber || '';
-            panNumber = data.panNumber || '';
-          }
-          profileForm.reset({
-            displayName: user.displayName || '',
-            primaryNumber,
-            secondaryNumber,
-            aadhaarNumber,
-            panNumber,
-          });
-        } catch (error) {
-          toast({ title: 'Error', description: 'Could not fetch profile data.', variant: 'destructive' });
-           profileForm.reset({
+          
+          let initialValues = {
             displayName: user.displayName || '',
             primaryNumber: '',
             secondaryNumber: '',
             aadhaarNumber: '',
             panNumber: '',
-          });
+          };
+  
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            initialValues.primaryNumber = data.primaryNumber || '';
+            initialValues.secondaryNumber = data.secondaryNumber || '';
+            initialValues.aadhaarNumber = data.aadhaarNumber || '';
+            initialValues.panNumber = data.panNumber || '';
+          }
+  
+          // Set the form values
+          profileForm.reset(initialValues);
+          
+          // Mark that the initial data has been loaded
+          setIsInitialDataLoaded(true); 
+  
+        } catch (error) {
+          toast({ title: 'Error', description: 'Could not fetch profile data.', variant: 'destructive' });
         } finally {
           setIsProfileLoading(false);
         }
       };
+  
       fetchProfile();
     }
-  }, [user, db, profileForm, toast])
+  }, [user, db, profileForm, toast, isInitialDataLoaded]);
 
   const handleProfileUpdate = async (data: ProfileFormData) => {
     if (!auth.currentUser || !db) return
@@ -436,3 +436,5 @@ export default function SettingsPage() {
     </>
   )
 }
+
+    
