@@ -1,5 +1,3 @@
-
-
 // This is the top of your file: app/(app/prospects/[prospectId]/page.tsx)
 
 // --- The Client Component ---
@@ -24,26 +22,42 @@ import type { Property } from '../../properties/page'
 
 // We've renamed your original component to "ProspectDetailClientPage"
 // It now receives the simple 'prospectId' and initial data as props.
-function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: Prospect | null }) {
+function ProspectDetailClientPage({ prospectId }: { prospectId: string }) {
   const { user } = useAuth()
   const router = useRouter()
   const [isSaving, setIsSaving] = React.useState(false)
   const { toast } = useToast()
-
+  const [prospect, setProspect] = React.useState<Prospect | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  
   React.useEffect(() => {
-    // We check for user and prospect on the client side for robustness
-    if (!initialProspect) {
-       toast({ title: 'Error', description: 'Prospect not found or you do not have access.', variant: 'destructive' })
-       router.push('/prospects')
-    }
-    if (initialProspect && user && initialProspect.ownerUid !== user.uid) {
-        toast({ title: 'Error', description: 'You do not have access to this prospect.', variant: 'destructive' })
-        router.push('/prospects');
-    }
-  }, [initialProspect, user, router, toast])
+    if (!user || !db) return;
+
+    const fetchProspect = async () => {
+        setLoading(true);
+        try {
+            const prospectDocRef = doc(db, 'prospects', prospectId);
+            const docSnap = await getDoc(prospectDocRef);
+            if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+                setProspect({ id: docSnap.id, ...docSnap.data() } as Prospect);
+            } else {
+                toast({ title: 'Error', description: 'Prospect not found or you do not have access.', variant: 'destructive' })
+                router.push('/prospects');
+            }
+        } catch (error) {
+            console.error("Failed to fetch prospect on client:", error);
+            toast({ title: 'Error', description: 'Failed to load prospect details.', variant: 'destructive' })
+            router.push('/prospects');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    fetchProspect();
+  }, [prospectId, user, db, router, toast]);
   
   const handleConvertProspect = React.useCallback(async (prospectData: ProspectFormData) => {
-    if (!user || !db || !initialProspect) return;
+    if (!user || !db || !prospect) return;
 
     const toastId = toast({
       title: 'Converting Prospect...',
@@ -51,14 +65,11 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
     });
 
     try {
-      // Use a batch for atomic writes
       const batch = writeBatch(db);
       
       const newPropertyRef = doc(collection(db, 'properties'))
-      const prospectDocRef = doc(db, 'prospects', initialProspect.id);
+      const prospectDocRef = doc(db, 'prospects', prospect.id);
 
-      // This is a security risk if not validated server-side.
-      // For this app, we trust the client data, but a real app should re-validate.
       const newPropertyData: Omit<Property, 'id'> = {
         name: prospectData.name,
         ownerUid: user.uid,
@@ -94,7 +105,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
         });
     }
 
-  }, [user, db, toast, router, initialProspect]);
+  }, [user, db, toast, router, prospect]);
 
   const onSubmit = async (data: ProspectFormData) => {
     if (!user || !db || !prospectId) {
@@ -128,7 +139,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
   }
 
   // Initial render with skeleton if data is still coming
-  if (!initialProspect) {
+  if (loading || !prospect) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -150,7 +161,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
         <Button variant="outline" size="icon" onClick={() => router.push('/prospects')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{initialProspect.name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{prospect.name}</h1>
       </div>
 
       <Card>
@@ -163,7 +174,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
             mode="edit"
             onSubmit={onSubmit}
             isSaving={isSaving}
-            initialData={initialProspect}
+            initialData={prospect}
             submitButtonText="Save Changes"
           >
              <Button type="button" variant="ghost" onClick={() => router.push('/prospects')}>Cancel</Button>
@@ -176,28 +187,7 @@ function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId:
 
 // --- The Server Component ---
 // This is the default export for the page. It is NOT a client component.
-export default async function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
-
-    const fetchProspect = async (id: string): Promise<Prospect | null> => {
-        if (!db || !id) return null;
-        try {
-            const prospectDocRef = doc(db, 'prospects', id);
-            const docSnap = await getDoc(prospectDocRef);
-            if (docSnap.exists()) {
-                 // SECURITY NOTE: In a production app, a server-side ownership check
-                 // is critical here. Before returning the data, you must verify
-                 // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
-                return { id: docSnap.id, ...docSnap.data() } as Prospect;
-            }
-            return null;
-        } catch (error) {
-            console.error("Failed to fetch prospect on server:", error);
-            return null;
-        }
-    };
-
-    const prospectId = params.prospectId;
-    const initialProspect = await fetchProspect(prospectId);
-
-    return <ProspectDetailClientPage prospectId={prospectId} initialProspect={initialProspect} />;
+export default function ProspectDetailPage({ params }: { params: { prospectId: string } }) {
+    // Render the Client Component and pass the prospectId as a prop
+    return <ProspectDetailClientPage prospectId={params.prospectId} />;
 }

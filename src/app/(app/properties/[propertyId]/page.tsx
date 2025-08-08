@@ -1,5 +1,3 @@
-
-
 // This is the top of your file: app/(app/properties/[propertyId]/page.tsx)
 
 // --- The Client Component ---
@@ -27,17 +25,15 @@ import { MediaManager } from '@/components/media-manager'
 
 // We've renamed your original component to "PropertyDetailClientPage"
 // It now receives the simple 'propertyId' and initial data as props.
-function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId: string, initialProperty: Property | null }) {
+function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
   const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
 
   const [isSaving, setIsSaving] = React.useState(false)
+  const [property, setProperty] = React.useState<Property | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  // The 'property' state is initialized directly from the server-provided prop.
-  // This avoids a client-side fetch on initial load.
-  const [property, setProperty] = React.useState<Property | null>(initialProperty);
-  
   // The form's initial data is derived from the state.
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
@@ -61,18 +57,31 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
     };
   }, [property]);
 
-
   React.useEffect(() => {
-    // We check for user and property on the client side for robustness
-    if (!initialProperty) {
-       toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
-       router.push('/properties')
-    }
-    if (initialProperty && user && initialProperty.ownerUid !== user.uid) {
-        toast({ title: 'Error', description: 'You do not have access to this property.', variant: 'destructive' })
-        router.push('/properties');
-    }
-  }, [initialProperty, user, router, toast])
+    if (!user || !db) return;
+
+    const fetchProperty = async () => {
+        setLoading(true);
+        try {
+            const propDocRef = doc(db, 'properties', propertyId);
+            const docSnap = await getDoc(propDocRef);
+            if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+                setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+            } else {
+                toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
+                router.push('/properties');
+            }
+        } catch (error) {
+            console.error("Failed to fetch property on client:", error);
+            toast({ title: 'Error', description: 'Failed to load property details.', variant: 'destructive' })
+            router.push('/properties');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchProperty();
+  }, [propertyId, user, db, router, toast]);
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !propertyId) {
@@ -148,8 +157,6 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          // This is the key change: force a refresh of the page's data.
-          // This tells Next.js to re-run the server component and pass new props.
           router.refresh(); 
       }
     } catch (error) {
@@ -161,7 +168,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
   };
 
   // Initial render with skeleton if data is still coming (e.g., during navigation)
-  if (!property || !formInitialData) {
+  if (loading || !property || !formInitialData) {
     return (
         <div className="p-6 space-y-6">
             <Skeleton className="h-8 w-48" />
@@ -236,31 +243,7 @@ function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId:
 
 // --- The Server Component ---
 // This is the default export for the page. It is NOT a client component.
-export default async function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-
-    // This is our server-side data fetching function.
-    const fetchProperty = async (id: string): Promise<Property | null> => {
-        if (!db || !id) return null;
-        try {
-            const propDocRef = doc(db, 'properties', id);
-            const docSnap = await getDoc(propDocRef);
-            if (docSnap.exists()) {
-                 // SECURITY NOTE: In a production app, a server-side ownership check
-                 // is critical here. Before returning the data, you must verify
-                 // that the currently authenticated user's ID matches `docSnap.data().ownerUid`.
-                return { id: docSnap.id, ...docSnap.data() } as Property;
-            }
-            return null;
-        } catch (error) {
-            console.error("Failed to fetch property on server:", error);
-            return null;
-        }
-    };
-    
-    // Correctly access the propertyId from params
-    const propertyId = params.propertyId;
-    const initialProperty = await fetchProperty(propertyId);
-
-    // Render the Client Component and pass the fetched data as a prop
-    return <PropertyDetailClientPage propertyId={propertyId} initialProperty={initialProperty} />;
+export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
+    // Render the Client Component and pass the propertyId as a prop
+    return <PropertyDetailClientPage propertyId={params.propertyId} />;
 }
