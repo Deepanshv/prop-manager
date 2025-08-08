@@ -31,8 +31,18 @@ const PageSkeleton = () => (
 export default function PublicListingsPage() {
     return (
         <React.Suspense fallback={
-          <div className="bg-background min-h-screen p-4 lg:p-6 space-y-6 container mx-auto">
-            <PageSkeleton />
+          <div className="bg-background min-h-screen">
+             <header className="bg-card border-b sticky top-0 z-10">
+                <div className="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
+                  <Skeleton className="h-8 w-48" />
+                </div>
+              </header>
+              <main className="container mx-auto p-4 lg:p-6 space-y-6">
+                <div className="flex-grow">
+                  <Skeleton className="h-9 w-72" />
+                </div>
+                <PageSkeleton />
+              </main>
           </div>
         }>
             <PublicListingsContent />
