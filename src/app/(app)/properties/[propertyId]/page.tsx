@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { FileManager } from '@/components/file-manager'
-import { useAuth } from '../../layout' // Assuming this path is correct
+import { useAuth } from '../../layout'
 import type { Property } from '../page'
 import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 import { MediaManager } from '@/components/media-manager'
