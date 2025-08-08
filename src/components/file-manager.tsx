@@ -39,6 +39,7 @@ import {
 import * as React from 'react'
 import { Skeleton } from './ui/skeleton'
 import { cn } from '@/lib/utils'
+import { Badge } from './ui/badge'
 
 interface FileManagerProps {
   entityType: 'properties' | 'prospects'
@@ -55,11 +56,11 @@ interface FileMetadata {
   uploadTimestamp: Timestamp
 }
 
-const requiredDocs = [
-  { id: 'registry-document', name: 'Registry Document' },
-  { id: 'land-book', name: 'Land Book (Bhu Pustika) Document' },
-  { id: 'owner-aadhaar-card', name: 'Owner\'s Aadhaar Card' },
-  { id: 'owner-pan-card', name: 'Owner\'s PAN Card' },
+const documentTypes = [
+  { id: 'registry-document', name: 'Registry Document', required: true },
+  { id: 'land-book', name: 'Land Book (Bhu Pustika) Document', required: true },
+  { id: 'owner-aadhaar-card', name: 'Owner\'s Aadhaar Card', required: false },
+  { id: 'owner-pan-card', name: 'Owner\'s PAN Card', required: false },
 ];
 
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -143,7 +144,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
     setIsUploading(true);
     setSelectedDocTypeId(docTypeId);
     
-    const docTypeName = requiredDocs.find(d => d.id === docTypeId)?.name || 'Untitled Document';
+    const docTypeName = documentTypes.find(d => d.id === docTypeId)?.name || 'Untitled Document';
     const isUpdating = files.some(f => f.id === docTypeId);
 
     try {
@@ -234,7 +235,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
             <DocumentSkeleton />
           ) : (
             <div className="space-y-2 rounded-md border">
-              {requiredDocs.map((docType) => {
+              {documentTypes.map((docType) => {
                 const file = filesMap.get(docType.id);
                 const isUploadingThisDoc = isUploading && selectedDocTypeId === docType.id;
 
@@ -247,7 +248,12 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
                          <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       )}
                       <div className="flex-grow overflow-hidden">
-                        <p className="font-medium">{docType.name}</p>
+                        <div className="flex items-center gap-2">
+                           <p className="font-medium">{docType.name}</p>
+                           <Badge variant={docType.required ? "destructive" : "secondary"}>
+                            {docType.required ? "Required" : "Optional"}
+                           </Badge>
+                        </div>
                         {file && (
                           <p className="text-sm text-muted-foreground truncate max-w-xs">{file.fileName} - {formatBytes(file.sizeBytes)}</p>
                         )}
