@@ -17,13 +17,13 @@ import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
-import type { Property } from '../page'
+import type { SerializableProperty } from './page'
 import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 import { MediaManager } from '@/components/media-manager'
 
 
 // This component receives the simple 'propertyId' and initial data as props.
-export default function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId: string, initialProperty: Property | null }) {
+export default function PropertyDetailClientPage({ propertyId, initialProperty }: { propertyId: string, initialProperty: SerializableProperty | null }) {
   const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
@@ -32,7 +32,7 @@ export default function PropertyDetailClientPage({ propertyId, initialProperty }
 
   // The 'property' state is initialized directly from the server-provided prop.
   // This avoids a client-side fetch on initial load.
-  const [property, setProperty] = React.useState<Property | null>(initialProperty);
+  const [property, setProperty] = React.useState<SerializableProperty | null>(initialProperty);
   
   // The form's initial data is derived from the state.
   const formInitialData = React.useMemo(() => {
@@ -50,8 +50,8 @@ export default function PropertyDetailClientPage({ propertyId, initialProperty }
 
     return {
       ...property,
-      purchaseDate: property.purchaseDate.toDate(),
-      soldDate: property.soldDate?.toDate(),
+      purchaseDate: property.purchaseDate, // Already a Date object
+      soldDate: property.soldDate, // Already a Date object or undefined
       pricePerUnit: pricePerUnit,
       listingPricePerUnit: listingPricePerUnit,
     };

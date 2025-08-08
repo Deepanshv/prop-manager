@@ -15,12 +15,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { useAuth } from '../../layout'
-import type { Prospect } from '../page'
+import type { SerializableProspect } from './page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 import type { Property } from '../../properties/page'
 
 
-export default function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: Prospect | null }) {
+export default function ProspectDetailClientPage({ prospectId, initialProspect }: { prospectId: string, initialProspect: SerializableProspect | null }) {
   const { user } = useAuth()
   const router = useRouter()
   const [isSaving, setIsSaving] = React.useState(false)
