@@ -17,7 +17,7 @@ interface PublicProperty extends Property {
 }
 
 // This is the Client Component that receives the initial data as a prop.
-function PublicPropertyDetailClientPage({ initialProperty }: { initialProperty: PublicProperty | null }) {
+function PublicPropertyDetailClientPage({ initialProperty, propertyId }: { initialProperty: PublicProperty | null, propertyId: string }) {
   const [property] = React.useState<PublicProperty | null>(initialProperty);
   const { toast } = useToast();
   const router = useRouter();
@@ -174,10 +174,10 @@ export default async function PublicPropertyDetailPage({ params }: { params: { p
         }
     }
 
-    const { propertyId } = params;
+    const { propertyId } = await params;
     const initialProperty = await fetchPublicProperty(propertyId);
 
     return (
-      <PublicPropertyDetailClientPage initialProperty={initialProperty} />
+      <PublicPropertyDetailClientPage propertyId={propertyId} initialProperty={initialProperty} />
     );
 }
