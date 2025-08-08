@@ -1,12 +1,8 @@
-// This is the top of your file: app/(app/properties/[propertyId]/page.tsx)
 
-// --- The Client Component ---
-// This part contains all your interactive logic.
-// Notice the 'use client' directive is here.
 'use client'
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
-import { ArrowLeft, FileQuestion } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 
@@ -23,12 +19,11 @@ import { PropertyForm, type PropertyFormData } from '@/components/property-form'
 import { MediaManager } from '@/components/media-manager'
 
 
-// We've renamed your original component to "PropertyDetailClientPage"
-// It now receives the simple 'propertyId' and initial data as props.
-function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
+export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
   const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
+  const { propertyId } = params
 
   const [isSaving, setIsSaving] = React.useState(false)
   const [property, setProperty] = React.useState<Property | null>(null);
@@ -53,9 +48,12 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
     } finally {
         setLoading(false);
     }
-  }, [propertyId, user, db, router, toast]);
+  }, [propertyId, user, router, toast]);
 
-  // The form's initial data is derived from the state.
+  React.useEffect(() => {
+    fetchAndSetProperty();
+  }, [fetchAndSetProperty]);
+
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
@@ -78,9 +76,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
     };
   }, [property]);
 
-  React.useEffect(() => {
-    fetchAndSetProperty();
-  }, [fetchAndSetProperty]);
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !propertyId) {
@@ -156,7 +151,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          // Re-fetch data to show immediate updates
           await fetchAndSetProperty();
       }
     } catch (error) {
@@ -167,7 +161,6 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
     }
   };
 
-  // Initial render with skeleton if data is still coming (e.g., during navigation)
   if (loading || !property || !formInitialData) {
     return (
         <div className="p-6 space-y-6">
@@ -192,7 +185,7 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
       <Tabs defaultValue="details" className="w-full">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="files">Media & Files</TabsTrigger>
         </TabsList>
         <TabsContent value="details">
             <Card className="mt-4">
@@ -216,34 +209,10 @@ function PropertyDetailClientPage({ propertyId }: { propertyId: string }) {
         <TabsContent value="files">
             <div className="mt-4 space-y-6">
                 <MediaManager entityType="properties" entityId={property.id} />
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><FileQuestion className="text-muted-foreground" /> Recommended Documents</CardTitle>
-                        <CardDescription>
-                            For a complete record, you can upload documents using the file manager below.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                            <li>Registry Document</li>
-                            <li>Land Book (Bhu Pustika) Document</li>
-                            <li>Owner's Aadhaar Card</li>
-                            <li>Owner's PAN Card</li>
-                        </ul>
-                    </CardContent>
-                </Card>
                 <FileManager entityType="properties" entityId={property.id} />
             </div>
         </TabsContent>
       </Tabs>
     </div>
   )
-}
-
-
-// --- The Server Component ---
-// This is the default export for the page. It is NOT a client component.
-export default function PropertyDetailPage({ params }: { params: { propertyId: string } }) {
-    // Render the Client Component and pass the propertyId as a prop
-    return <PropertyDetailClientPage propertyId={params.propertyId} />;
 }
