@@ -436,5 +436,3 @@ export default function SettingsPage() {
     </>
   )
 }
-
-    
