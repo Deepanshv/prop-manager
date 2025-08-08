@@ -4,7 +4,6 @@
 import type { Property } from '@/app/(app)/properties/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, getDocs, collection, query } from 'firebase/firestore';
@@ -148,7 +147,9 @@ function PublicPropertyDetailClientPage({ initialProperty }: { initialProperty: 
   );
 }
 
-// This is the Server Component that fetches data and passes it to the client.
+// --- The Server Component ---
+// This is the default export for the page. It is NOT a client component.
+// Its only job is to handle the server-side `params` object and fetch initial data.
 export default async function PublicPropertyDetailPage({ params }: { params: { propertyId: string } }) {
     
     const fetchPublicProperty = async (id: string): Promise<PublicProperty | null> => {
@@ -179,3 +180,4 @@ export default async function PublicPropertyDetailPage({ params }: { params: { p
       <PublicPropertyDetailClientPage initialProperty={initialProperty} />
     );
 }
+
