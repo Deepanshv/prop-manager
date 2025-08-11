@@ -71,3 +71,5 @@ export async function uploadToCloudinary(file: File): Promise<{ success: boolean
     return { success: false, message: error.message || "An unknown error occurred during upload." };
   }
 }
+
+    
