@@ -31,7 +31,7 @@ const landAreaUnits = ['Square Feet', 'Acre'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
-const propertyFormSchema = z.object({
+const baseSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
     street: z.string().min(1, 'Area/Locality is required'),
@@ -50,25 +50,52 @@ const propertyFormSchema = z.object({
   }),
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
-  purchasePrice: z.coerce.number().optional(), // Now optional, as it will be calculated
-  pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }).optional(),
+  pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }),
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
   status: z.string().optional(),
   isListedPublicly: z.boolean().optional(),
-  listingPrice: z.coerce.number().optional(), // Now optional, as it will be calculated
   listingPricePerUnit: z.coerce.number().positive().optional(),
   soldPrice: z.coerce.number().positive().optional(),
   soldDate: z.date().optional(),
 });
 
+// Refined schema for complex cross-field validation
+const propertyFormSchema = baseSchema.refine(data => {
+    // If status is 'For Sale' and it's listed publicly, listingPricePerUnit is required
+    if (data.status === 'For Sale' && data.isListedPublicly) {
+        return data.listingPricePerUnit !== undefined && data.listingPricePerUnit > 0;
+    }
+    return true;
+}, {
+    message: "Listing price per unit is required when property is listed publicly.",
+    path: ["listingPricePerUnit"],
+}).refine(data => {
+    // If status is 'Sold', soldPrice is required
+    if (data.status === 'Sold') {
+        return data.soldPrice !== undefined && data.soldPrice > 0;
+    }
+    return true;
+}, {
+    message: "A valid sold price is required.",
+    path: ["soldPrice"],
+}).refine(data => {
+    // If status is 'Sold', soldDate is required
+    if (data.status === 'Sold') {
+        return data.soldDate !== undefined;
+    }
+    return true;
+}, {
+    message: "A sold date is required.",
+    path: ["soldDate"],
+});
+
 
 type FormValues = z.infer<typeof propertyFormSchema>;
 
-// This is the complete data structure that will be passed out of the form
 export type PropertyFormData = FormValues & {
-    purchasePrice: number; // Make non-optional, as it's always calculated
+    purchasePrice: number;
     listingPrice?: number;
 };
 
@@ -132,41 +159,11 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
 
   const handleFormSubmit = (data: FormValues) => {
-    const validationErrors: string[] = [];
-
-    if (data.status === 'For Sale' && data.isListedPublicly && (!data.listingPricePerUnit || data.listingPricePerUnit <= 0)) {
-        form.setError("listingPricePerUnit", { type: "manual", message: "A listing price is required when property is public." });
-        validationErrors.push("A Listing Price is required when 'List Publicly' is on.");
-    }
-
-    if (data.status === 'Sold') {
-        if (!data.soldPrice || data.soldPrice <= 0) {
-            form.setError("soldPrice", { type: "manual", message: "A valid sold price is required." });
-            validationErrors.push("A valid Sold Price is required.");
-        }
-        if (!data.soldDate) {
-            form.setError("soldDate", { type: "manual", message: "A sold date is required." });
-            validationErrors.push("A Sold Date is required.");
-        }
-    }
-
-    if (validationErrors.length > 0) {
-        toast({
-            title: "Missing Information",
-            description: `Please correct the following: ${validationErrors.join(' ')}`,
-            variant: "destructive",
-        });
-        return;
-    }
-    
-    // Construct the final data object with all calculated values
     const finalData: PropertyFormData = {
         ...data,
         purchasePrice: calculatedPurchaseValue,
         listingPrice: calculatedListingValue > 0 ? calculatedListingValue : undefined,
     };
-    
-    // Pass the complete, correct data object to the parent
     parentOnSubmit(finalData);
 }
 
