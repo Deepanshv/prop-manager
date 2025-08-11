@@ -120,6 +120,7 @@ export default function ProspectDetailPage() {
 
     const prospectDataToSave = {
       ...data,
+      dateAdded: Timestamp.now(), // update dateAdded on edit
       contactInfo: data.contactInfo || null, 
     }
 
@@ -181,3 +182,5 @@ export default function ProspectDetailPage() {
     </div>
   )
 }
+
+    
