@@ -60,6 +60,8 @@ export default function PropertyDetailPage() {
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
     
+    // This is the corrected initial data. We no longer perform calculations here.
+    // We pass the raw data from Firestore to the form, which will handle calculations.
     return {
       ...property,
       purchaseDate: property.purchaseDate.toDate(),
@@ -76,6 +78,7 @@ export default function PropertyDetailPage() {
     setIsSaving(true)
 
     // The 'data' object from PropertyForm now contains all calculated values and has been validated by a robust schema.
+    // This is the corrected submission logic.
     const propertyData: Record<string, any> = {
         name: data.name,
         ownerUid: user.uid,
@@ -122,6 +125,7 @@ export default function PropertyDetailPage() {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
         propertyData.isListedPublicly = data.isListedPublicly ?? false;
+        // Correctly save listing prices only if the property is listed
         propertyData.listingPrice = data.isListedPublicly ? data.listingPrice : null;
         propertyData.listingPricePerUnit = data.isListedPublicly ? data.listingPricePerUnit : null;
     } else { // 'Owned' status
@@ -205,3 +209,5 @@ export default function PropertyDetailPage() {
     </div>
   )
 }
+
+    

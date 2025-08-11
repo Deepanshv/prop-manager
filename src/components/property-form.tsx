@@ -31,7 +31,8 @@ const landAreaUnits = ['Square Feet', 'Acre'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
-const baseSchema = z.object({
+// This is the corrected and robust schema.
+const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
     street: z.string().min(1, 'Area/Locality is required'),
@@ -59,10 +60,7 @@ const baseSchema = z.object({
   listingPricePerUnit: z.coerce.number().positive().optional(),
   soldPrice: z.coerce.number().positive().optional(),
   soldDate: z.date().optional(),
-});
-
-// Refined schema for complex cross-field validation
-const propertyFormSchema = baseSchema.refine(data => {
+}).refine(data => {
     // If status is 'For Sale' and it's listed publicly, listingPricePerUnit is required
     if (data.status === 'For Sale' && data.isListedPublicly) {
         return data.listingPricePerUnit !== undefined && data.listingPricePerUnit > 0;
@@ -578,3 +576,5 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     </Form>
   )
 }
+
+    
