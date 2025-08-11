@@ -60,22 +60,12 @@ export default function PropertyDetailPage() {
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
-    let pricePerUnit = property.pricePerUnit;
-    if (pricePerUnit === undefined && property.purchasePrice && property.landDetails.area > 0) {
-      pricePerUnit = property.purchasePrice / property.landDetails.area;
-    }
-    
-    let listingPricePerUnit = property.listingPricePerUnit;
-    if (listingPricePerUnit === undefined && property.listingPrice && property.landDetails.area > 0) {
-      listingPricePerUnit = property.listingPrice / property.landDetails.area;
-    }
-
+    // This is the corrected initial data. We no longer perform calculations here.
+    // We pass the raw data from Firestore to the form, which will handle calculations.
     return {
       ...property,
       purchaseDate: property.purchaseDate.toDate(),
       soldDate: property.soldDate?.toDate(),
-      pricePerUnit: pricePerUnit,
-      listingPricePerUnit: listingPricePerUnit,
     };
   }, [property]);
 
@@ -87,6 +77,8 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
+    // The 'data' object from PropertyForm now contains all calculated values and has been validated by a robust schema.
+    // This is the corrected submission logic.
     const propertyData: Record<string, any> = {
         name: data.name,
         ownerUid: user.uid,
@@ -107,12 +99,13 @@ export default function PropertyDetailPage() {
         },
         propertyType: data.propertyType,
         purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        purchasePrice: data.purchasePrice,
-        pricePerUnit: data.pricePerUnit ?? null,
+        purchasePrice: data.purchasePrice, // This is now correctly calculated by the form
+        pricePerUnit: data.pricePerUnit, // We now correctly save this value
         remarks: data.remarks ?? null,
         status: data.status,
     };
 
+    // Handle conditional fields based on property type
     if (data.propertyType === 'Open Land') {
         propertyData.landType = data.landType ?? null;
         propertyData.isDiverted = data.isDiverted ?? false;
@@ -121,6 +114,7 @@ export default function PropertyDetailPage() {
         propertyData.isDiverted = null;
     }
 
+    // Handle status-specific fields. The Zod schema has already validated these.
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
@@ -131,13 +125,9 @@ export default function PropertyDetailPage() {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
         propertyData.isListedPublicly = data.isListedPublicly ?? false;
-        if (data.isListedPublicly) {
-            propertyData.listingPrice = data.listingPrice ?? null;
-            propertyData.listingPricePerUnit = data.listingPricePerUnit ?? null;
-        } else {
-            propertyData.listingPrice = null;
-            propertyData.listingPricePerUnit = null;
-        }
+        // Correctly save listing prices only if the property is listed
+        propertyData.listingPrice = data.isListedPublicly ? data.listingPrice : null;
+        propertyData.listingPricePerUnit = data.isListedPublicly ? data.listingPricePerUnit : null;
     } else { // 'Owned' status
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
@@ -154,7 +144,7 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty();
+          await fetchAndSetProperty(); // Refresh data on the page
       }
     } catch (error) {
       console.error('Error updating document: ', error)
@@ -219,5 +209,3 @@ export default function PropertyDetailPage() {
     </div>
   )
 }
-
-    
