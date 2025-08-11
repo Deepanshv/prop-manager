@@ -1,11 +1,12 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // A user can only read and update their own profile document.
+    // A user can read, create, and update their own profile document.
     match /users/{userId} {
-      allow read, update: if request.auth.uid == userId;
+      allow read, update, create: if request.auth.uid == userId;
     }
 
     // --- Properties Collection ---
@@ -22,6 +23,10 @@ service cloud.firestore {
       allow update: if request.auth.uid == resource.data.ownerUid
                       && request.resource.data.ownerUid == resource.data.ownerUid;
     }
+    
+    match /properties/{propertyId}/{subcollection}/{docId} {
+      allow read, write, delete: if get(/databases/$(database)/documents/properties/$(propertyId)).data.ownerUid == request.auth.uid;
+    }
 
     // --- Prospects Collection (Strictly Private) ---
     match /prospects/{prospectId} {
@@ -33,15 +38,8 @@ service cloud.firestore {
       allow create: if request.resource.data.ownerUid == request.auth.uid;
     }
 
-    // --- Generic Rule for ALL Subcollections (e.g., files, media) ---
-    // This single rule protects subcollections under both 'properties' and 'prospects'.
-    match /{collection}/{docId}/files/{fileId} {
-      // Allow access if the user owns the parent document (the property or prospect).
-      allow read, write, delete: if get(/databases/$(database)/documents/$(collection)/$(docId)).data.ownerUid == request.auth.uid;
-    }
-     match /{collection}/{docId}/media/{mediaId} {
-      // Allow access if the user owns the parent document (the property or prospect).
-      allow read, write, delete: if get(/databases/$(database)/documents/$(collection)/$(docId)).data.ownerUid == request.auth.uid;
+    match /prospects/{prospectId}/{subcollection}/{docId} {
+      allow read, write, delete: if get(/databases/$(database)/documents/prospects/$(prospectId)).data.ownerUid == request.auth.uid;
     }
   }
 }
