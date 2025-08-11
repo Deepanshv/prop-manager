@@ -60,6 +60,8 @@ export default function PropertyDetailPage() {
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
+    // These calculations are for display purposes in the form only.
+    // The final saved value is calculated within the PropertyForm component.
     let pricePerUnit = property.pricePerUnit;
     if (pricePerUnit === undefined && property.purchasePrice && property.landDetails.area > 0) {
       pricePerUnit = property.purchasePrice / property.landDetails.area;
@@ -87,6 +89,8 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
+    // The 'data' object from PropertyForm now contains all calculated values.
+    // We just need to structure it for Firestore.
     const propertyData: Record<string, any> = {
         name: data.name,
         ownerUid: user.uid,
@@ -107,12 +111,13 @@ export default function PropertyDetailPage() {
         },
         propertyType: data.propertyType,
         purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        purchasePrice: data.purchasePrice,
+        purchasePrice: data.purchasePrice, // Directly from form data
         pricePerUnit: data.pricePerUnit ?? null,
         remarks: data.remarks ?? null,
         status: data.status,
     };
 
+    // Handle conditional fields for Open Land
     if (data.propertyType === 'Open Land') {
         propertyData.landType = data.landType ?? null;
         propertyData.isDiverted = data.isDiverted ?? false;
@@ -121,6 +126,7 @@ export default function PropertyDetailPage() {
         propertyData.isDiverted = null;
     }
 
+    // Handle status-specific fields
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
@@ -131,13 +137,9 @@ export default function PropertyDetailPage() {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
         propertyData.isListedPublicly = data.isListedPublicly ?? false;
-        if (data.isListedPublicly) {
-            propertyData.listingPrice = data.listingPrice ?? null;
-            propertyData.listingPricePerUnit = data.listingPricePerUnit ?? null;
-        } else {
-            propertyData.listingPrice = null;
-            propertyData.listingPricePerUnit = null;
-        }
+        // The listing prices are now directly from the form data
+        propertyData.listingPrice = data.listingPrice ?? null;
+        propertyData.listingPricePerUnit = data.listingPricePerUnit ?? null;
     } else { // 'Owned' status
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
@@ -154,7 +156,7 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty();
+          await fetchAndSetProperty(); // Refresh data on the page
       }
     } catch (error) {
       console.error('Error updating document: ', error)

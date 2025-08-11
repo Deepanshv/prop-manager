@@ -50,12 +50,14 @@ const propertyFormSchema = z.object({
   }),
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
+  purchasePrice: z.coerce.number().optional(), // Now optional, as it will be calculated
   pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }).optional(),
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
   status: z.string().optional(),
   isListedPublicly: z.boolean().optional(),
+  listingPrice: z.coerce.number().optional(), // Now optional, as it will be calculated
   listingPricePerUnit: z.coerce.number().positive().optional(),
   soldPrice: z.coerce.number().positive().optional(),
   soldDate: z.date().optional(),
@@ -64,9 +66,10 @@ const propertyFormSchema = z.object({
 
 type FormValues = z.infer<typeof propertyFormSchema>;
 
+// This is the complete data structure that will be passed out of the form
 export type PropertyFormData = FormValues & {
-    purchasePrice: number,
-    listingPrice?: number,
+    purchasePrice: number; // Make non-optional, as it's always calculated
+    listingPrice?: number;
 };
 
 interface PropertyFormProps {
@@ -156,12 +159,14 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         return;
     }
     
+    // Construct the final data object with all calculated values
     const finalData: PropertyFormData = {
         ...data,
         purchasePrice: calculatedPurchaseValue,
         listingPrice: calculatedListingValue > 0 ? calculatedListingValue : undefined,
     };
     
+    // Pass the complete, correct data object to the parent
     parentOnSubmit(finalData);
 }
 
