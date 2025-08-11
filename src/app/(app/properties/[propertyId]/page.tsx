@@ -99,8 +99,8 @@ export default function PropertyDetailPage() {
         },
         propertyType: data.propertyType,
         purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        purchasePrice: data.purchasePrice, // This is now correctly calculated by the form
-        pricePerUnit: data.pricePerUnit, // We now correctly save this value
+        purchasePrice: data.purchasePrice,
+        pricePerUnit: data.pricePerUnit,
         remarks: data.remarks ?? null,
         status: data.status,
     };
