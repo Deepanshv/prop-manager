@@ -71,11 +71,12 @@ export default function ProspectDetailPage() {
       const newPropertyData: Omit<Property, 'id'> = {
         name: prospectData.name,
         ownerUid: user.uid,
-        address: prospectData.address || { street: '', city: '', state: '', zip: '' },
-        landDetails: { area: 0, areaUnit: 'Square Feet' }, // Default value
-        propertyType: prospectData.propertyType as Property['propertyType'] || 'Open Land',
+        address: prospectData.address,
+        landDetails: { area: 0.1, areaUnit: 'Square Feet' }, // Use a non-zero default
+        propertyType: prospectData.propertyType as Property['propertyType'],
         purchaseDate: Timestamp.now(),
         purchasePrice: 0, // Default value
+        pricePerUnit: 0, // Default value
         status: 'Owned',
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
       }
