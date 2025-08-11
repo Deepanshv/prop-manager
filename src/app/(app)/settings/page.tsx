@@ -48,22 +48,18 @@ import { uploadToCloudinary } from '@/lib/cloudinary'
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.').max(50, 'Display name cannot be more than 50 characters.'),
-  primaryNumber: z.string().optional()
-    .refine((val) => !val || /^\d{10}$/.test(val), {
-        message: "Primary number must be 10 digits.",
-    }),
-  secondaryNumber: z.string().optional()
-    .refine((val) => !val || /^\d{10}$/.test(val), {
-        message: "Secondary number must be 10 digits.",
-    }),
-  aadhaarNumber: z.string().optional()
-    .refine((val) => !val || /^\d{12}$/.test(val), {
-        message: "Aadhaar number must be 12 digits.",
-    }),
-  panNumber: z.string().optional()
-    .refine((val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(val), {
-        message: "Invalid PAN number format.",
-    }),
+  primaryNumber: z.string().optional().refine((val) => val === '' || !val || /^\d{10}$/.test(val), {
+    message: "Primary number must be 10 digits.",
+  }),
+  secondaryNumber: z.string().optional().refine((val) => val === '' || !val || /^\d{10}$/.test(val), {
+    message: "Secondary number must be 10 digits.",
+  }),
+  aadhaarNumber: z.string().optional().refine((val) => val === '' || !val || /^\d{12}$/.test(val), {
+    message: "Aadhaar number must be 12 digits.",
+  }),
+  panNumber: z.string().optional().refine((val) => val === '' || !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(val), {
+    message: "Invalid PAN number format.",
+  }),
 });
 type ProfileFormData = z.infer<typeof profileFormSchema>
 
@@ -436,3 +432,5 @@ export default function SettingsPage() {
     </>
   )
 }
+
+    
