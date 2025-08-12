@@ -31,7 +31,7 @@ const landAreaUnits = ['Square Feet', 'Acre'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
-// This is the corrected and robust schema.
+// --- REPLACEMENT for propertyFormSchema in your PropertyForm.tsx file ---
 const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
@@ -51,7 +51,7 @@ const propertyFormSchema = z.object({
   }),
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
-  pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }),
+  pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }).optional(),
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
@@ -60,32 +60,36 @@ const propertyFormSchema = z.object({
   listingPricePerUnit: z.coerce.number().positive().optional(),
   soldPrice: z.coerce.number().positive().optional(),
   soldDate: z.date().optional(),
-}).refine(data => {
-    // If status is 'For Sale' and it's listed publicly, listingPricePerUnit is required
-    if (data.status === 'For Sale' && data.isListedPublicly) {
+})
+// Add dependent validation rules using .refine()
+.refine(data => {
+    // If the property is listed publicly, a listing price is required.
+    if (data.isListedPublicly) {
         return data.listingPricePerUnit !== undefined && data.listingPricePerUnit > 0;
     }
-    return true;
+    return true; // Otherwise, this check passes.
 }, {
-    message: "Listing price per unit is required when property is listed publicly.",
-    path: ["listingPricePerUnit"],
-}).refine(data => {
-    // If status is 'Sold', soldPrice is required
+    message: "A listing price is required when the property is public.",
+    path: ["listingPricePerUnit"], // Apply the error message to this specific field.
+})
+.refine(data => {
+    // If the status is 'Sold', a sold price is required.
     if (data.status === 'Sold') {
         return data.soldPrice !== undefined && data.soldPrice > 0;
     }
     return true;
 }, {
-    message: "A valid sold price is required.",
+    message: "A valid sold price is required when status is 'Sold'.",
     path: ["soldPrice"],
-}).refine(data => {
-    // If status is 'Sold', soldDate is required
+})
+.refine(data => {
+    // If the status is 'Sold', a sold date is required.
     if (data.status === 'Sold') {
         return data.soldDate !== undefined;
     }
     return true;
 }, {
-    message: "A sold date is required.",
+    message: "A sold date is required when status is 'Sold'.",
     path: ["soldDate"],
 });
 
