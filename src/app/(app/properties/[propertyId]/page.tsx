@@ -60,8 +60,7 @@ export default function PropertyDetailPage() {
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
-    // This is the corrected initial data. We no longer perform calculations here.
-    // We pass the raw data from Firestore to the form, which will handle calculations.
+    // Correctly pass raw data to the form. The form will handle calculations.
     return {
       ...property,
       purchaseDate: property.purchaseDate.toDate(),
@@ -81,7 +80,7 @@ export default function PropertyDetailPage() {
     // This is the corrected submission logic.
     const propertyData: Record<string, any> = {
         name: data.name,
-        ownerUid: user.uid,
+        ownerUid: user.uid, // Always use the current authenticated user's UID
         address: {
             street: data.address.street,
             city: data.address.city,

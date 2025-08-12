@@ -75,6 +75,7 @@ export function ProspectForm({ onSubmit, isSaving, submitButtonText, initialData
         },
         contactInfo: '',
         status: 'New',
+        propertyType: 'Open Land',
     }
   });
 

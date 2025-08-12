@@ -31,7 +31,7 @@ const landAreaUnits = ['Square Feet', 'Acre'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
-// --- REPLACEMENT for propertyFormSchema in your PropertyForm.tsx file ---
+// This schema provides robust, conditional validation for the property form.
 const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
@@ -51,7 +51,7 @@ const propertyFormSchema = z.object({
   }),
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
-  pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }).optional(),
+  pricePerUnit: z.coerce.number({invalid_type_error: "Price must be a number"}).positive({ message: "Price per unit must be a positive number." }),
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
@@ -61,19 +61,18 @@ const propertyFormSchema = z.object({
   soldPrice: z.coerce.number().positive().optional(),
   soldDate: z.date().optional(),
 })
-// Add dependent validation rules using .refine()
 .refine(data => {
-    // If the property is listed publicly, a listing price is required.
-    if (data.isListedPublicly) {
+    // If status is 'For Sale' and it's listed publicly, listing price per unit is required.
+    if (data.status === 'For Sale' && data.isListedPublicly) {
         return data.listingPricePerUnit !== undefined && data.listingPricePerUnit > 0;
     }
-    return true; // Otherwise, this check passes.
+    return true;
 }, {
     message: "A listing price is required when the property is public.",
-    path: ["listingPricePerUnit"], // Apply the error message to this specific field.
+    path: ["listingPricePerUnit"],
 })
 .refine(data => {
-    // If the status is 'Sold', a sold price is required.
+    // If status is 'Sold', a sold price is required.
     if (data.status === 'Sold') {
         return data.soldPrice !== undefined && data.soldPrice > 0;
     }
@@ -83,7 +82,7 @@ const propertyFormSchema = z.object({
     path: ["soldPrice"],
 })
 .refine(data => {
-    // If the status is 'Sold', a sold date is required.
+    // If status is 'Sold', a sold date is required.
     if (data.status === 'Sold') {
         return data.soldDate !== undefined;
     }
@@ -96,6 +95,7 @@ const propertyFormSchema = z.object({
 
 type FormValues = z.infer<typeof propertyFormSchema>;
 
+// This is the complete data packet that the form will send on submission.
 export type PropertyFormData = FormValues & {
     purchasePrice: number;
     listingPrice?: number;
@@ -103,7 +103,7 @@ export type PropertyFormData = FormValues & {
 
 interface PropertyFormProps {
     onSubmit: (data: PropertyFormData) => void;
-    initialData?: Partial<PropertyFormData>;
+    initialData?: Partial<FormValues>;
     isSaving: boolean;
     submitButtonText: string;
     mode: 'add' | 'edit';
@@ -125,11 +125,13 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
     defaultValues: mode === 'add' ? {
         name: '',
         address: { street: '', city: '', state: '', zip: '', landmark: '' },
-        landDetails: { khasraNumber: '', landbookNumber: '' },
+        landDetails: { area: 0.1, areaUnit: 'Square Feet', khasraNumber: '', landbookNumber: '' },
         remarks: '',
         isDiverted: false,
         isListedPublicly: false,
         status: 'Owned',
+        propertyType: 'Open Land',
+        pricePerUnit: 1,
     } : initialData,
   })
   
@@ -160,6 +162,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
   }, [watchedValues.landDetails?.area, watchedValues.listingPricePerUnit]);
 
 
+  // This function is now simplified. It just calculates the final prices and passes the data up.
   const handleFormSubmit = (data: FormValues) => {
     const finalData: PropertyFormData = {
         ...data,
@@ -167,7 +170,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         listingPrice: calculatedListingValue > 0 ? calculatedListingValue : undefined,
     };
     parentOnSubmit(finalData);
-}
+  }
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
@@ -457,14 +460,14 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
                 <FormField control={form.control} name="pricePerUnit" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Price per {watchedValues.landDetails?.areaUnit || 'Unit'} (₹)</FormLabel>
+                        <FormLabel>Purchase Price per {watchedValues.landDetails?.areaUnit || 'Unit'} (₹)</FormLabel>
                         <FormControl><Input type="number" placeholder="e.g. 5000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
                 
                 <div className="md:col-span-2 space-y-1">
-                    <FormLabel>Purchase Price</FormLabel>
+                    <FormLabel>Calculated Purchase Price</FormLabel>
                     <div className="text-2xl font-bold p-2 bg-muted/50 rounded-md min-h-[44px] flex items-center">
                         {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(calculatedPurchaseValue)}
                     </div>
