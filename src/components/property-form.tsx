@@ -122,17 +122,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
   const form = useForm<FormValues>({
     resolver: zodResolver(propertyFormSchema),
-    defaultValues: mode === 'add' ? {
-        name: '',
-        address: { street: '', city: '', state: '', zip: '', landmark: '' },
-        landDetails: { area: 0.1, areaUnit: 'Square Feet', khasraNumber: '', landbookNumber: '' },
-        remarks: '',
-        isDiverted: false,
-        isListedPublicly: false,
-        status: 'Owned',
-        propertyType: 'Open Land',
-        pricePerUnit: 1,
-    } : initialData,
+    // Default values are now set in useEffect below to ensure form state is always synchronized.
   })
   
   React.useEffect(() => {
@@ -144,6 +134,18 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         }
         setSearchQuery([initialData.address.street, initialData.address.city].filter(Boolean).join(', '));
       }
+    } else {
+        form.reset({
+            name: '',
+            address: { street: '', city: '', state: '', zip: '', landmark: '' },
+            landDetails: { area: 0.1, areaUnit: 'Square Feet', khasraNumber: '', landbookNumber: '' },
+            remarks: '',
+            isDiverted: false,
+            isListedPublicly: false,
+            status: 'Owned',
+            propertyType: 'Open Land',
+            pricePerUnit: 1,
+        });
     }
   }, [initialData, form]);
 
@@ -390,7 +392,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 border p-4 rounded-md">
                 <FormField control={form.control} name="propertyType" render={({ field }) => (
                     <FormItem><FormLabel>Property Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.propertyType}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
                         <SelectContent>
                             {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
@@ -419,7 +421,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                   <>
                     <FormField control={form.control} name="landType" render={({ field }) => (
                         <FormItem><FormLabel>Land Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landType}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
@@ -445,7 +447,7 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
                 
                 <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                     <FormItem><FormLabel>Area Unit</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={initialData?.landDetails?.areaUnit}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
                         <SelectContent>
                             {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
