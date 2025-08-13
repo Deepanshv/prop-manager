@@ -60,7 +60,7 @@ export default function PropertyDetailPage() {
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
-    // Correctly pass raw data to the form. The form will handle calculations.
+    // This is the corrected initial data. We must convert Timestamps to Date objects for the form.
     return {
       ...property,
       purchaseDate: property.purchaseDate.toDate(),
@@ -76,11 +76,9 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
-    // The 'data' object from PropertyForm now contains all calculated values and has been validated by a robust schema.
-    // This is the corrected submission logic.
     const propertyData: Record<string, any> = {
         name: data.name,
-        ownerUid: user.uid, // Always use the current authenticated user's UID
+        ownerUid: user.uid,
         address: {
             street: data.address.street,
             city: data.address.city,
@@ -113,7 +111,7 @@ export default function PropertyDetailPage() {
         propertyData.isDiverted = null;
     }
 
-    // Handle status-specific fields. The Zod schema has already validated these.
+    // Handle status-specific fields based on validated data
     if (data.status === 'Sold') {
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
@@ -124,7 +122,6 @@ export default function PropertyDetailPage() {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
         propertyData.isListedPublicly = data.isListedPublicly ?? false;
-        // Correctly save listing prices only if the property is listed
         propertyData.listingPrice = data.isListedPublicly ? data.listingPrice : null;
         propertyData.listingPricePerUnit = data.isListedPublicly ? data.listingPricePerUnit : null;
     } else { // 'Owned' status
