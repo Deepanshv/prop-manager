@@ -117,10 +117,34 @@ export default function PropertyDetailPage() {
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
             const data = { id: docSnap.id, ...docSnap.data() } as Property
             setProperty(data);
+
+            // This is the fix: ensure all form values are defined and not null/undefined.
             form.reset({
               ...data,
+              name: data.name || '',
+              address: {
+                street: data.address?.street || '',
+                city: data.address?.city || '',
+                state: data.address?.state || '',
+                zip: data.address?.zip || '',
+                landmark: data.address?.landmark || '',
+                latitude: data.address?.latitude || undefined,
+                longitude: data.address?.longitude || undefined,
+              },
+              landDetails: {
+                  ...data.landDetails,
+                  khasraNumber: data.landDetails?.khasraNumber || '',
+                  landbookNumber: data.landDetails?.landbookNumber || '',
+              },
               purchaseDate: data.purchaseDate.toDate(),
               soldDate: data.soldDate?.toDate(),
+              remarks: data.remarks || '',
+              landType: data.landType || '',
+              isDiverted: data.isDiverted || false,
+              status: data.status || 'Owned',
+              isListedPublicly: data.isListedPublicly || false,
+              listingPrice: data.listingPrice || undefined,
+              soldPrice: data.soldPrice || undefined,
             });
         } else {
             toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
