@@ -150,7 +150,7 @@ export function PropertyForm({
       };
       form.reset(resetData);
     }
-  }, [initialData, form.reset]);
+  }, [initialData, form]);
 
 
   const [mapCenter, setMapCenter] = React.useState<[number, number]>(
@@ -483,5 +483,3 @@ export function PropertyForm({
       </Form>
   )
 }
-
-    
