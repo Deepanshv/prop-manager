@@ -57,6 +57,7 @@ export const propertyFormSchema = z.object({
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().positive("Purchase price must be positive."),
+  purchasePricePerUnit: z.coerce.number().optional(),
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
@@ -87,6 +88,7 @@ export default function NewPropertyPage() {
         propertyType: 'Open Land',
         purchaseDate: new Date(),
         purchasePrice: 100000,
+        purchasePricePerUnit: 100000,
         remarks: '',
         landType: '',
         isDiverted: false,
@@ -112,6 +114,9 @@ export default function NewPropertyPage() {
         soldPrice: null,
         soldDate: null,
     };
+    
+    // We don't save the per-unit price, it's just for the form UI
+    delete propertyData.purchasePricePerUnit;
 
     try {
       await addDoc(collection(db, 'properties'), propertyData)
@@ -215,6 +220,30 @@ export default function NewPropertyPage() {
 
 
   const watchedPropertyType = form.watch('propertyType');
+  const watchedArea = form.watch('landDetails.area');
+  const watchedAreaUnit = form.watch('landDetails.areaUnit');
+  const watchedPricePerUnit = form.watch('purchasePricePerUnit');
+  const watchedPurchasePrice = form.watch('purchasePrice');
+
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'landDetails.area' || name === 'purchasePricePerUnit' || name === 'landDetails.areaUnit') {
+        const area = value.landDetails?.area;
+        const pricePerUnit = value.purchasePricePerUnit;
+        if (area && pricePerUnit && area > 0) {
+            form.setValue('purchasePrice', area * pricePerUnit, { shouldValidate: true });
+        }
+      } else if (name === 'purchasePrice') {
+        const area = value.landDetails?.area;
+        const purchasePrice = value.purchasePrice;
+        if (area && purchasePrice && area > 0) {
+            form.setValue('purchasePricePerUnit', purchasePrice / area, { shouldValidate: true });
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
 
   return (
     <div className="p-6 space-y-6">
@@ -370,6 +399,14 @@ export default function NewPropertyPage() {
                         <FormField control={form.control} name="landDetails.area" render={({ field }) => (
                             <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                         )}/>
+
+                         <FormField control={form.control} name="purchasePricePerUnit" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Purchase Price per {watchedAreaUnit}</FormLabel>
+                              <FormControl><Input type="number" placeholder="e.g. 4167" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                         )}/>
 
                         <FormField control={form.control} name="purchasePrice" render={({ field }) => (
                             <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>

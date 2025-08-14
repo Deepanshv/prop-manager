@@ -62,6 +62,7 @@ export const propertyFormSchema = z.object({
   propertyType: z.string({ required_error: 'Please select a property type.' }),
   purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
   purchasePrice: z.coerce.number().positive("Purchase price must be positive."),
+  purchasePricePerUnit: z.coerce.number().optional(),
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
@@ -145,10 +146,13 @@ export default function PropertyDetailPage() {
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
+    const purchasePricePerUnit = property.purchasePrice && property.landDetails.area > 0 ? property.purchasePrice / property.landDetails.area : 0
+
     return {
       ...property,
       purchaseDate: property.purchaseDate.toDate(),
       soldDate: property.soldDate?.toDate(),
+      purchasePricePerUnit,
     };
   }, [property]);
 
@@ -167,6 +171,9 @@ export default function PropertyDetailPage() {
         landType: data.landType || null,
         remarks: data.remarks || null,
     };
+    
+    // We don't save the per-unit price, it's just for the form UI
+    delete propertyData.purchasePricePerUnit;
 
     if (data.status === 'Sold') {
         propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
@@ -323,6 +330,29 @@ export default function PropertyDetailPage() {
   const watchedStatus = form.watch('status');
   const watchedIsListedPublicly = form.watch('isListedPublicly');
   const watchedPropertyType = form.watch('propertyType');
+  const watchedArea = form.watch('landDetails.area');
+  const watchedAreaUnit = form.watch('landDetails.areaUnit');
+  const watchedPricePerUnit = form.watch('purchasePricePerUnit');
+  const watchedPurchasePrice = form.watch('purchasePrice');
+
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'landDetails.area' || name === 'purchasePricePerUnit' || name === 'landDetails.areaUnit') {
+        const area = value.landDetails?.area;
+        const pricePerUnit = value.purchasePricePerUnit;
+        if (area && pricePerUnit && area > 0) {
+            form.setValue('purchasePrice', area * pricePerUnit, { shouldValidate: true });
+        }
+      } else if (name === 'purchasePrice') {
+        const area = value.landDetails?.area;
+        const purchasePrice = value.purchasePrice;
+        if (area && purchasePrice && area > 0) {
+            form.setValue('purchasePricePerUnit', purchasePrice / area, { shouldValidate: true });
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   if (loading || !property || !formInitialData) {
     return (
@@ -496,6 +526,14 @@ export default function PropertyDetailPage() {
                             <FormField control={form.control} name="landDetails.area" render={({ field }) => (
                                 <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                             )}/>
+                            
+                            <FormField control={form.control} name="purchasePricePerUnit" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Purchase Price per {watchedAreaUnit}</FormLabel>
+                                  <FormControl><Input type="number" placeholder="e.g. 4167" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                             )}/>
 
                             <FormField control={form.control} name="purchasePrice" render={({ field }) => (
                                 <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
