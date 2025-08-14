@@ -76,7 +76,7 @@ export default function ProspectDetailPage() {
         landDetails: { area: 1, areaUnit: 'Square Feet' }, // Use a valid default
         propertyType: prospectData.propertyType as Property['propertyType'],
         purchaseDate: Timestamp.now(),
-        purchasePrice: 100000, // Default non-zero value, to be edited
+        purchasePrice: 1, // Default non-zero value, to be edited
         status: 'Owned',
         isListedPublicly: false,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',

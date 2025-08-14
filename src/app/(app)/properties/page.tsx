@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { cn } from '@/lib/utils'
-import { useAuth } from '../layout'
+import { useAuth } from '@/app/(app)/layout'
 import { useRouter } from 'next/navigation'
 import { Building, MapPin } from 'lucide-react'
 

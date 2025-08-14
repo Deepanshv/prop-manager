@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
-import { useAuth } from '../../layout'
-import type { Prospect } from '../page'
+import { useAuth } from '@/app/(app)/layout'
+import type { Prospect } from '@/app/(app)/prospects/page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
-import type { Property } from '../../properties/page'
+import type { Property } from '@/app/(app)/properties/page'
 
 
 export default function ProspectDetailPage() {
@@ -76,7 +76,7 @@ export default function ProspectDetailPage() {
         landDetails: { area: 1, areaUnit: 'Square Feet' }, // Use a valid default
         propertyType: prospectData.propertyType as Property['propertyType'],
         purchaseDate: Timestamp.now(),
-        purchasePrice: 100000, // Default non-zero value, to be edited
+        purchasePrice: 1, // Default non-zero value, to be edited
         status: 'Owned',
         isListedPublicly: false,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
