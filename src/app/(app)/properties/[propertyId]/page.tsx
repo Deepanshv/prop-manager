@@ -29,6 +29,7 @@ export default function PropertyDetailPage() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [property, setProperty] = React.useState<Property | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [formKey, setFormKey] = React.useState(Date.now()); // This is the key change
 
   const fetchAndSetProperty = React.useCallback(async () => {
     if (!user || !db) return;
@@ -38,6 +39,7 @@ export default function PropertyDetailPage() {
         const docSnap = await getDoc(propDocRef);
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
             setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+            setFormKey(Date.now()); // Update the key on every fetch
         } else {
             toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
             router.push('/properties');
@@ -111,7 +113,7 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty(); // This will refresh data on the page
+          await fetchAndSetProperty(); // This will refresh data and the form key
       }
     } catch (error) {
       console.error('Error updating document: ', error)
@@ -155,7 +157,7 @@ export default function PropertyDetailPage() {
                 </CardHeader>
                 <CardContent>
                     <PropertyForm 
-                        key={JSON.stringify(formInitialData)}
+                        key={formKey}
                         mode="edit"
                         onSubmit={onSubmit}
                         initialData={formInitialData}
