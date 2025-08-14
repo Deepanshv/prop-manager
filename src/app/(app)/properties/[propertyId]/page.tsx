@@ -4,11 +4,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { ArrowLeft, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
+import { ArrowLeft, Calendar as CalendarIcon, Loader2, LocateFixed, MapPin, Search } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
+import dynamic from 'next/dynamic'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -28,6 +29,11 @@ import { FileManager } from '@/components/file-manager'
 import { MediaManager } from '@/components/media-manager'
 import { useAuth } from '../../layout'
 import type { Property } from '../page'
+
+const InteractiveMap = dynamic(() => import('@/components/interactive-map').then(mod => mod.InteractiveMap), {
+  ssr: false,
+  loading: () => <Skeleton className="h-96 w-full rounded-md" />,
+});
 
 const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment'];
 const landAreaUnits = ['Square Feet', 'Acre'];
@@ -104,6 +110,13 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = React.useState<Property | null>(null);
   const [loading, setLoading] = React.useState(true);
   
+  const [mapCenter, setMapCenter] = React.useState<[number, number]>([20.5937, 78.9629]);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isSearching, setIsSearching] = React.useState(false);
+  const [suggestions, setSuggestions] = React.useState<any[]>([]);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const [isFindingOnMap, setIsFindingOnMap] = React.useState(false);
+  
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
   });
@@ -117,9 +130,8 @@ export default function PropertyDetailPage() {
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
             const data = { id: docSnap.id, ...docSnap.data() } as Property
             setProperty(data);
-
-            // This is the fix: ensure all form values are defined and not null/undefined.
-            form.reset({
+            
+            const formData = {
               ...data,
               name: data.name || '',
               address: {
@@ -128,24 +140,33 @@ export default function PropertyDetailPage() {
                 state: data.address?.state || '',
                 zip: data.address?.zip || '',
                 landmark: data.address?.landmark || '',
-                latitude: data.address?.latitude || undefined,
-                longitude: data.address?.longitude || undefined,
+                latitude: data.address?.latitude,
+                longitude: data.address?.longitude,
               },
               landDetails: {
-                  ...data.landDetails,
+                  area: data.landDetails?.area || 0,
+                  areaUnit: data.landDetails?.areaUnit || 'Square Feet',
                   khasraNumber: data.landDetails?.khasraNumber || '',
                   landbookNumber: data.landDetails?.landbookNumber || '',
               },
               purchaseDate: data.purchaseDate.toDate(),
+              purchasePrice: data.purchasePrice || 0,
               soldDate: data.soldDate?.toDate(),
               remarks: data.remarks || '',
               landType: data.landType || '',
               isDiverted: data.isDiverted || false,
               status: data.status || 'Owned',
               isListedPublicly: data.isListedPublicly || false,
-              listingPrice: data.listingPrice || undefined,
-              soldPrice: data.soldPrice || undefined,
-            });
+              listingPrice: data.listingPrice,
+              soldPrice: data.soldPrice,
+            };
+
+            form.reset(formData);
+
+            if (data.address?.latitude && data.address?.longitude) {
+              setMapCenter([data.address.latitude, data.address.longitude]);
+            }
+            setSearchQuery([data.address.street, data.address.city, data.address.state].filter(Boolean).join(', '));
         } else {
             toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
             router.push('/properties');
@@ -165,6 +186,94 @@ export default function PropertyDetailPage() {
     }
   }, [user, fetchAndSetProperty]);
 
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+        if (searchQuery.length > 2 && document.activeElement === searchInputRef.current) {
+            setIsSearching(true);
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&countrycodes=in&limit=5`);
+                const data = await response.json();
+                setSuggestions(data);
+            } catch (error) {
+                toast({ title: "Search Error", description: "Could not connect to the address search service.", variant: "destructive" });
+            } finally {
+                setIsSearching(false);
+            }
+        } else {
+            setSuggestions([]);
+        }
+    }, 500); // Debounce search
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, toast]);
+
+  const handleSuggestionSelect = (suggestion: any) => {
+    const { address, lat, lon } = suggestion;
+    const newCenter: [number, number] = [parseFloat(lat), parseFloat(lon)];
+
+    form.setValue('address.street', address.road || address.suburb || address.neighbourhood || '');
+    form.setValue('address.city', address.city || address.town || address.village || '');
+    form.setValue('address.state', address.state || '');
+    form.setValue('address.zip', address.postcode || '');
+    form.setValue('address.latitude', newCenter[0], { shouldValidate: true });
+    form.setValue('address.longitude', newCenter[1], { shouldValidate: true });
+
+    setMapCenter(newCenter);
+    setSearchQuery(suggestion.display_name);
+    setSuggestions([]);
+    searchInputRef.current?.blur();
+  };
+  
+  const handleFindOnMap = async () => {
+    const address = form.getValues('address');
+    const manualQuery = [address.street, address.city, address.state, address.zip].filter(Boolean).join(', ');
+
+    if (!manualQuery) {
+        toast({ title: "Address needed", description: "Please enter an address or pincode to find on the map.", variant: "destructive" });
+        return;
+    }
+    
+    setIsFindingOnMap(true);
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(manualQuery)}&format=json&addressdetails=1&countrycodes=in&limit=1`);
+        const data = await response.json();
+        if (data && data.length > 0) {
+            handleSuggestionSelect(data[0]);
+            toast({ title: "Location Found", description: "The map has been updated to the new location." });
+        } else {
+            toast({ title: "Not Found", description: "Could not find a location for the provided address.", variant: "destructive" });
+        }
+    } catch (error) {
+        toast({ title: "Search Error", description: "Could not connect to the address search service.", variant: "destructive" });
+    } finally {
+        setIsFindingOnMap(false);
+    }
+  };
+
+  const handleMarkerMove = React.useCallback(async (lat: number, lng: number) => {
+    form.setValue('address.latitude', lat, { shouldValidate: true });
+    form.setValue('address.longitude', lng, { shouldValidate: true });
+    setMapCenter([lat, lng]);
+
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
+        const data = await response.json();
+        if (data && data.address) {
+            const { address } = data;
+            form.setValue('address.street', address.road || address.suburb || address.neighbourhood || '', { shouldValidate: true });
+            form.setValue('address.city', address.city || address.town || address.village || '', { shouldValidate: true });
+            form.setValue('address.state', address.state || '', { shouldValidate: true });
+            form.setValue('address.zip', address.postcode || '', { shouldValidate: true });
+            setSearchQuery(data.display_name);
+            toast({ title: "Address Updated", description: "Address fields have been updated based on pin location." });
+        } else {
+             toast({ title: "Location Error", description: "Could not find address details for this location.", variant: "destructive" });
+        }
+    } catch (error) {
+        toast({ title: "Connection Error", description: "Could not connect to the address service.", variant: "destructive" });
+    }
+  }, [form, toast]);
+
 
   const onSubmit = async (data: PropertyFormData) => {
     if (!user || !propertyId) {
@@ -176,8 +285,8 @@ export default function PropertyDetailPage() {
         ...data,
         ownerUid: user.uid,
         purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        landType: data.landType ?? null,
-        remarks: data.remarks ?? null,
+        landType: data.landType || null,
+        remarks: data.remarks || null,
     };
 
     if (data.status === 'Sold') {
@@ -255,24 +364,77 @@ export default function PropertyDetailPage() {
                        <FormField control={form.control} name="name" render={({ field }) => (
                           <FormItem>
                               <FormLabel>Property Name</FormLabel>
-                              <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} /></FormControl>
+                              <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} value={field.value ?? ''} /></FormControl>
                               <FormMessage />
                           </FormItem>
                       )}/>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="address.street" render={({ field }) => (
-                            <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name="address.city" render={({ field }) => (
-                            <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name="address.state" render={({ field }) => (
-                            <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name="address.zip" render={({ field }) => (
-                            <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
+
+                      <div className="space-y-4">
+                          <h3 className="text-lg font-medium">Address & Location</h3>
+                          <div className="border p-4 rounded-md space-y-4">
+                              <div className="space-y-2 relative">
+                                  <FormLabel>Smart Address Search</FormLabel>
+                                  <FormDescription>Find the address to automatically fill the fields below.</FormDescription>
+                                  <div className="relative mt-2">
+                                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                      <Input
+                                          ref={searchInputRef}
+                                          placeholder="Start typing an address or pincode..." 
+                                          className="pl-10 pr-10"
+                                          value={searchQuery}
+                                          onChange={(e) => setSearchQuery(e.target.value)}
+                                          autoComplete="off"
+                                      />
+                                      <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => {}} title="Use my current location">
+                                          {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+                                      </Button>
+                                  </div>
+                                  {suggestions.length > 0 && (
+                                      <div className="absolute z-50 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                                          {suggestions.map((s) => (
+                                              <div 
+                                                  key={s.place_id} 
+                                                  onClick={() => handleSuggestionSelect(s)}
+                                                  className="p-2 hover:bg-muted cursor-pointer text-sm"
+                                              >
+                                                  {s.display_name}
+                                              </div>
+                                          ))}
+                                      </div>
+                                  )}
+                              </div>
+                              
+                              <div className="space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <FormField control={form.control} name="address.street" render={({ field }) => (
+                                          <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                      )}/>
+                                      <FormField control={form.control} name="address.city" render={({ field }) => (
+                                          <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                      )}/>
+                                      <FormField control={form.control} name="address.state" render={({ field }) => (
+                                          <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                      )}/>
+                                      <FormField control={form.control} name="address.zip" render={({ field }) => (
+                                          <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                      )}/>
+                                  </div>
+                                  <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isFindingOnMap} className="w-full md:w-auto">
+                                      {isFindingOnMap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                      Find on Map with Manual Address
+                                  </Button>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Set Location on Map</h3>
+                        <div className="border p-4 rounded-md space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                                Drag the pin or click on the map to set the exact property location.
+                            </p>
+                            <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
@@ -334,11 +496,11 @@ export default function PropertyDetailPage() {
                             </FormItem>
                         )}/>
                         <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                            <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                         )}/>
 
                         <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                            <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                         )}/>
                       </div>
 
@@ -368,7 +530,7 @@ export default function PropertyDetailPage() {
                                )}/>
                                {watchedIsListedPublicly && (
                                    <FormField control={form.control} name="listingPrice" render={({ field }) => (
-                                       <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
+                                       <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                                    )}/>
                                )}
                            </div>
@@ -377,7 +539,7 @@ export default function PropertyDetailPage() {
                        {watchedStatus === 'Sold' && (
                            <div className="space-y-4 rounded-md border p-4">
                                <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                                   <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
+                                   <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                                )}/>
                                <FormField control={form.control} name="soldDate" render={({ field }) => (
                                    <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
@@ -396,7 +558,7 @@ export default function PropertyDetailPage() {
                       </div>
 
                       <FormField control={form.control} name="remarks" render={({ field }) => (
-                          <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="Add any other relevant details..." {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="Add any other relevant details..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                       )} />
                       
                       <div className="flex justify-end gap-2">
