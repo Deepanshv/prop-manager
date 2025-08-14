@@ -102,38 +102,130 @@ export const propertyFormSchema = z.object({
 
 export type PropertyFormData = z.infer<typeof propertyFormSchema>
 
-function PropertyForm({
-    initialData,
-    onSubmit,
-    isSaving,
-    children,
-}: {
-    initialData: PropertyFormData;
-    onSubmit: (data: PropertyFormData) => Promise<void>;
-    isSaving: boolean;
-    children?: React.ReactNode;
-}) {
-  const router = useRouter();
+export default function PropertyDetailPage() {
+  const router = useRouter()
+  const params = useParams()
+  const { user } = useAuth()
   const { toast } = useToast()
+  const propertyId = params.propertyId as string
+
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [property, setProperty] = React.useState<Property | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [formKey, setFormKey] = React.useState(Date.now()); // This is the key change
+
+  const fetchAndSetProperty = React.useCallback(async () => {
+    if (!user || !db) return;
+    setLoading(true);
+    try {
+        const propDocRef = doc(db, 'properties', propertyId);
+        const docSnap = await getDoc(propDocRef);
+        if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
+            setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+            setFormKey(Date.now()); // Update the key on every fetch
+        } else {
+            toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
+            router.push('/properties');
+        }
+    } catch (error) {
+        console.error("Failed to fetch property on client:", error);
+        toast({ title: 'Error', description: 'Failed to load property details.', variant: 'destructive' })
+        router.push('/properties');
+    } finally {
+        setLoading(false);
+    }
+  }, [propertyId, user, router, toast]);
+
+  React.useEffect(() => {
+    if (user) {
+        fetchAndSetProperty();
+    }
+  }, [user, fetchAndSetProperty]);
+
+  const formInitialData = React.useMemo(() => {
+    if (!property) return undefined;
+
+    return {
+      ...property,
+      purchaseDate: property.purchaseDate.toDate(),
+      soldDate: property.soldDate?.toDate(),
+    };
+  }, [property]);
+
+
+  const onSubmit = async (data: PropertyFormData) => {
+    if (!user || !propertyId) {
+      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
+      return
+    }
+    setIsSaving(true)
+
+    const propertyData: Record<string, any> = {
+        ...data,
+        ownerUid: user.uid,
+        purchaseDate: Timestamp.fromDate(data.purchaseDate),
+        landType: data.landType || null,
+        remarks: data.remarks || null,
+    };
+
+    // Handle status-specific fields and Timestamp conversions
+    if (data.status === 'Sold') {
+        propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
+        propertyData.isListedPublicly = false; // Unlist when sold
+        propertyData.listingPrice = data.listingPrice || null;
+    } else if (data.status === 'For Sale') {
+        propertyData.soldDate = null;
+        propertyData.soldPrice = null;
+        if (data.isListedPublicly) {
+            propertyData.listingPrice = data.listingPrice || null;
+        } else {
+            propertyData.listingPrice = null;
+        }
+    } else { // 'Owned' status
+        propertyData.isListedPublicly = false;
+        propertyData.listingPrice = null;
+        propertyData.soldDate = null;
+        propertyData.soldPrice = null;
+    }
+
+    try {
+      const propDocRef = doc(db, 'properties', propertyId)
+      await updateDoc(propDocRef, propertyData)
+      toast({ title: 'Success', description: 'Property updated successfully.' })
+        
+      if (propertyData.status === 'Sold') {
+          router.push('/sold-properties')
+      } else {
+          await fetchAndSetProperty(); // This will refresh data and the form key
+      }
+    } catch (error) {
+      console.error('Error updating document: ', error)
+      toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' })
+    } finally {
+        setIsSaving(false)
+    }
+  };
   
-  const form = useForm<PropertyFormData>({
+    const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
-    defaultValues: initialData,
+    defaultValues: formInitialData,
   });
   
   React.useEffect(() => {
-    form.reset(initialData);
-  }, [initialData, form]);
+    if (formInitialData) {
+        form.reset(formInitialData);
+    }
+  }, [formInitialData, form]);
 
 
   const [mapCenter, setMapCenter] = React.useState<[number, number]>(
-    initialData?.address?.latitude && initialData?.address?.longitude 
-    ? [initialData.address.latitude, initialData.address.longitude] 
+    formInitialData?.address?.latitude && formInitialData?.address?.longitude 
+    ? [formInitialData.address.latitude, formInitialData.address.longitude] 
     : [20.5937, 78.9629]
   );
   
   const [searchQuery, setSearchQuery] = React.useState(
-      initialData?.address ? [initialData.address.street, initialData.address.city, initialData.address.state].filter(Boolean).join(', ') : ''
+      formInitialData?.address ? [formInitialData.address.street, formInitialData.address.city, formInitialData.address.state].filter(Boolean).join(', ') : ''
   );
   const [isSearching, setIsSearching] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
@@ -232,326 +324,6 @@ function PropertyForm({
   const watchedStatus = form.watch('status');
   const watchedIsListedPublicly = form.watch('isListedPublicly');
   const watchedPropertyType = form.watch('propertyType');
-  
-  return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-           <FormField control={form.control} name="name" render={({ field }) => (
-              <FormItem>
-                  <FormLabel>Property Name</FormLabel>
-                  <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} value={field.value ?? ''} /></FormControl>
-                  <FormMessage />
-              </FormItem>
-          )}/>
-
-          <div className="space-y-4">
-              <h3 className="text-lg font-medium">Address & Location</h3>
-              <div className="border p-4 rounded-md space-y-4">
-                  <div className="space-y-2 relative">
-                      <FormLabel>Smart Address Search</FormLabel>
-                      <FormDescription>Find the address to automatically fill the fields below.</FormDescription>
-                      <div className="relative mt-2">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                              ref={searchInputRef}
-                              placeholder="Start typing an address or pincode..." 
-                              className="pl-10 pr-10"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              autoComplete="off"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => {}} title="Use my current location">
-                              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
-                          </Button>
-                      </div>
-                      {suggestions.length > 0 && (
-                          <div className="absolute z-50 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
-                              {suggestions.map((s) => (
-                                  <div 
-                                      key={s.place_id} 
-                                      onClick={() => handleSuggestionSelect(s)}
-                                      className="p-2 hover:bg-muted cursor-pointer text-sm"
-                                  >
-                                      {s.display_name}
-                                  </div>
-                              ))}
-                          </div>
-                      )}
-                  </div>
-                  
-                  <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField control={form.control} name="address.street" render={({ field }) => (
-                              <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <FormField control={form.control} name="address.city" render={({ field }) => (
-                              <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <FormField control={form.control} name="address.state" render={({ field }) => (
-                              <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <FormField control={form.control} name="address.zip" render={({ field }) => (
-                              <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                      </div>
-                      <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isFindingOnMap} className="w-full md:w-auto">
-                          {isFindingOnMap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                          Find on Map with Manual Address
-                      </Button>
-                  </div>
-              </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Set Location on Map</h3>
-            <div className="border p-4 rounded-md space-y-2">
-                <p className="text-sm text-muted-foreground">
-                    Drag the pin or click on the map to set the exact property location.
-                </p>
-                <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-             <FormField control={form.control} name="propertyType" render={({ field }) => (
-                <FormItem><FormLabel>Property Type</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}/>
-            <FormField control={form.control} name="purchaseDate" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
-                <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                    {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                </FormControl></PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
-                <FormMessage />
-                </FormItem>
-            )}/>
-
-            {watchedPropertyType === 'Open Land' && (
-              <>
-                <FormField control={form.control} name="landType" render={({ field }) => (
-                    <FormItem><FormLabel>Land Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField control={form.control} name="isDiverted" render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-2"><div className="space-y-0.5">
-                        <FormLabel>Diverted Land</FormLabel>
-                        <FormDescription>Is the land diverted?</FormDescription>
-                    </div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
-                )}/>
-              </>
-            )}
-            
-            <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
-                <FormItem><FormLabel>Area Unit</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}/>
-            <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-            )}/>
-
-            <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-            )}/>
-          </div>
-
-          <div className="space-y-4">
-              <FormField control={form.control} name="status" render={({ field }) => (
-                  <FormItem><FormLabel>Property Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                          {propertyStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-                  <FormMessage />
-                  </FormItem>
-              )}/>
-
-              {watchedStatus === 'For Sale' && (
-                  <div className="space-y-4 rounded-md border p-4">
-                      <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between">
-                              <div className="space-y-0.5">
-                                  <FormLabel>List Publicly</FormLabel>
-                                  <FormDescription>Make this property visible on the public listings page.</FormDescription>
-                              </div>
-                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                          </FormItem>
-                      )}/>
-                      {watchedIsListedPublicly && (
-                          <FormField control={form.control} name="listingPrice" render={({ field }) => (
-                              <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-                          )}/>
-                      )}
-                  </div>
-              )}
-
-              {watchedStatus === 'Sold' && (
-                  <div className="space-y-4 rounded-md border p-4">
-                      <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                          <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-                      )}/>
-                      <FormField control={form.control} name="soldDate" render={({ field }) => (
-                          <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
-                          <Popover><PopoverTrigger asChild><FormControl>
-                              <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                          </FormControl></PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
-                          <FormMessage />
-                          </FormItem>
-                      )}/>
-                  </div>
-              )}
-          </div>
-
-
-          <FormField control={form.control} name="remarks" render={({ field }) => (
-              <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="Add any other relevant details..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-          )} />
-          
-          <div className="flex justify-end gap-2">
-            {children}
-            <Button type="submit" disabled={isSaving}>
-               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-               Save Changes
-            </Button>
-          </div>
-        </form>
-      </Form>
-  )
-}
-
-export default function PropertyDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const propertyId = params.propertyId as string
-
-  const [isSaving, setIsSaving] = React.useState(false)
-  const [property, setProperty] = React.useState<Property | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [formKey, setFormKey] = React.useState(Date.now());
-
-  const fetchAndSetProperty = React.useCallback(async () => {
-    if (!user || !db) return;
-    setLoading(true);
-    try {
-        const propDocRef = doc(db, 'properties', propertyId);
-        const docSnap = await getDoc(propDocRef);
-        if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
-            setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
-            setFormKey(Date.now());
-        } else {
-            toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
-            router.push('/properties');
-        }
-    } catch (error) {
-        console.error("Failed to fetch property on client:", error);
-        toast({ title: 'Error', description: 'Failed to load property details.', variant: 'destructive' })
-        router.push('/properties');
-    } finally {
-        setLoading(false);
-    }
-  }, [propertyId, user, router, toast]);
-
-  React.useEffect(() => {
-    if (user) {
-        fetchAndSetProperty();
-    }
-  }, [user, fetchAndSetProperty]);
-
-  const formInitialData = React.useMemo(() => {
-    if (!property) return undefined;
-
-    return {
-      ...property,
-      purchaseDate: property.purchaseDate.toDate(),
-      soldDate: property.soldDate?.toDate(),
-    } as PropertyFormData;
-  }, [property]);
-
-
-  const onSubmit = async (data: PropertyFormData) => {
-    if (!user || !propertyId) {
-      toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
-      return
-    }
-    setIsSaving(true)
-
-    const propertyData: Record<string, any> = {
-        ...data,
-        ownerUid: user.uid,
-        purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        landType: data.landType || null,
-        remarks: data.remarks || null,
-    };
-
-    // Handle status-specific fields and Timestamp conversions
-    if (data.status === 'Sold') {
-        propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
-        propertyData.isListedPublicly = false; // Unlist when sold
-        propertyData.listingPrice = data.listingPrice || null;
-    } else if (data.status === 'For Sale') {
-        propertyData.soldDate = null;
-        propertyData.soldPrice = null;
-        if (data.isListedPublicly) {
-            propertyData.listingPrice = data.listingPrice || null;
-        } else {
-            propertyData.listingPrice = null;
-        }
-    } else { // 'Owned' status
-        propertyData.isListedPublicly = false;
-        propertyData.listingPrice = null;
-        propertyData.soldDate = null;
-        propertyData.soldPrice = null;
-    }
-
-    try {
-      const propDocRef = doc(db, 'properties', propertyId)
-      await updateDoc(propDocRef, propertyData)
-      toast({ title: 'Success', description: 'Property updated successfully.' })
-        
-      if (propertyData.status === 'Sold') {
-          router.push('/sold-properties')
-      } else {
-          await fetchAndSetProperty();
-      }
-    } catch (error) {
-      console.error('Error updating document: ', error)
-      toast({ title: 'Error', description: 'Failed to update property.', variant: 'destructive' })
-    } finally {
-        setIsSaving(false)
-    }
-  };
 
   if (loading || !property || !formInitialData) {
     return (
@@ -586,14 +358,218 @@ export default function PropertyDetailPage() {
                     <CardDescription>Update the information for this property.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <PropertyForm 
-                        key={formKey}
-                        onSubmit={onSubmit}
-                        initialData={formInitialData}
-                        isSaving={isSaving}
-                    >
-                       <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
-                    </PropertyForm>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" key={formKey}>
+                           <FormField control={form.control} name="name" render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Property Name</FormLabel>
+                                  <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} value={field.value ?? ''} /></FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                          )}/>
+
+                          <div className="space-y-4">
+                              <h3 className="text-lg font-medium">Address & Location</h3>
+                              <div className="border p-4 rounded-md space-y-4">
+                                  <div className="space-y-2 relative">
+                                      <FormLabel>Smart Address Search</FormLabel>
+                                      <FormDescription>Find the address to automatically fill the fields below.</FormDescription>
+                                      <div className="relative mt-2">
+                                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                          <Input
+                                              ref={searchInputRef}
+                                              placeholder="Start typing an address or pincode..." 
+                                              className="pl-10 pr-10"
+                                              value={searchQuery}
+                                              onChange={(e) => setSearchQuery(e.target.value)}
+                                              autoComplete="off"
+                                          />
+                                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => {}} title="Use my current location">
+                                              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+                                          </Button>
+                                      </div>
+                                      {suggestions.length > 0 && (
+                                          <div className="absolute z-50 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                                              {suggestions.map((s) => (
+                                                  <div 
+                                                      key={s.place_id} 
+                                                      onClick={() => handleSuggestionSelect(s)}
+                                                      className="p-2 hover:bg-muted cursor-pointer text-sm"
+                                                  >
+                                                      {s.display_name}
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      )}
+                                  </div>
+                                  
+                                  <div className="space-y-4">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <FormField control={form.control} name="address.street" render={({ field }) => (
+                                              <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                          <FormField control={form.control} name="address.city" render={({ field }) => (
+                                              <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                          <FormField control={form.control} name="address.state" render={({ field }) => (
+                                              <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                          <FormField control={form.control} name="address.zip" render={({ field }) => (
+                                              <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                      </div>
+                                      <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isFindingOnMap} className="w-full md:w-auto">
+                                          {isFindingOnMap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                          Find on Map with Manual Address
+                                      </Button>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Set Location on Map</h3>
+                            <div className="border p-4 rounded-md space-y-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Drag the pin or click on the map to set the exact property location.
+                                </p>
+                                <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                             <FormField control={form.control} name="propertyType" render={({ field }) => (
+                                <FormItem><FormLabel>Property Type</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField control={form.control} name="purchaseDate" render={({ field }) => (
+                                <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
+                                <Popover><PopoverTrigger asChild><FormControl>
+                                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                    {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl></PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+
+                            {watchedPropertyType === 'Open Land' && (
+                              <>
+                                <FormField control={form.control} name="landType" render={({ field }) => (
+                                    <FormItem><FormLabel>Land Type</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}/>
+                                <FormField control={form.control} name="isDiverted" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-2"><div className="space-y-0.5">
+                                        <FormLabel>Diverted Land</FormLabel>
+                                        <FormDescription>Is the land diverted?</FormDescription>
+                                    </div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                )}/>
+                              </>
+                            )}
+                            
+                            <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
+                                <FormItem><FormLabel>Area Unit</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField control={form.control} name="landDetails.area" render={({ field }) => (
+                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                            )}/>
+
+                            <FormField control={form.control} name="purchasePrice" render={({ field }) => (
+                                <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                            )}/>
+                          </div>
+
+                          <div className="space-y-4">
+                              <FormField control={form.control} name="status" render={({ field }) => (
+                                  <FormItem><FormLabel>Property Status</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                      <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                                      <SelectContent>
+                                          {propertyStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                      </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                  </FormItem>
+                              )}/>
+
+                              {watchedStatus === 'For Sale' && (
+                                  <div className="space-y-4 rounded-md border p-4">
+                                      <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
+                                          <FormItem className="flex flex-row items-center justify-between">
+                                              <div className="space-y-0.5">
+                                                  <FormLabel>List Publicly</FormLabel>
+                                                  <FormDescription>Make this property visible on the public listings page.</FormDescription>
+                                              </div>
+                                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                          </FormItem>
+                                      )}/>
+                                      {watchedIsListedPublicly && (
+                                          <FormField control={form.control} name="listingPrice" render={({ field }) => (
+                                              <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                      )}
+                                  </div>
+                              )}
+
+                              {watchedStatus === 'Sold' && (
+                                  <div className="space-y-4 rounded-md border p-4">
+                                      <FormField control={form.control} name="soldPrice" render={({ field }) => (
+                                          <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                      )}/>
+                                      <FormField control={form.control} name="soldDate" render={({ field }) => (
+                                          <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
+                                          <Popover><PopoverTrigger asChild><FormControl>
+                                              <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                              </Button>
+                                          </FormControl></PopoverTrigger>
+                                          <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                                          <FormMessage />
+                                          </FormItem>
+                                      )}/>
+                                  </div>
+                              )}
+                          </div>
+
+
+                          <FormField control={form.control} name="remarks" render={({ field }) => (
+                              <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="Add any other relevant details..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                          
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
+                            <Button type="submit" disabled={isSaving}>
+                               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                               Save Changes
+                            </Button>
+                          </div>
+                        </form>
+                    </Form>
                 </CardContent>
             </Card>
         </TabsContent>

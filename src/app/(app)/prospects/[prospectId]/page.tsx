@@ -80,9 +80,9 @@ export default function ProspectDetailPage() {
         status: 'Owned',
         isListedPublicly: false,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
-        soldPrice: null,
-        soldDate: null,
-        listingPrice: null,
+        soldPrice: undefined,
+        soldDate: undefined,
+        listingPrice: undefined,
         landType: undefined,
         isDiverted: undefined
       }
@@ -189,5 +189,3 @@ export default function ProspectDetailPage() {
     </div>
   )
 }
-
-    
