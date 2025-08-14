@@ -70,20 +70,15 @@ export default function ProspectDetailPage() {
 
       // Create a complete property record from the prospect data
       const newPropertyData: Omit<Property, 'id'> = {
-        name: prospectData.name,
+        name: prospectData.name || 'Unnamed Property',
         ownerUid: user.uid,
         address: prospectData.address,
-        landDetails: { area: 0.1, areaUnit: 'Square Feet' }, // Use a non-zero default
+        landDetails: { area: 1, areaUnit: 'Square Feet' }, // Use a valid default
         propertyType: prospectData.propertyType as Property['propertyType'],
         purchaseDate: Timestamp.now(),
-        purchasePrice: 0, // Default value, to be edited
-        pricePerUnit: 0, // Default value, to be edited
+        purchasePrice: 1, // Default non-zero value, to be edited
         status: 'Owned',
         isListedPublicly: false,
-        listingPrice: undefined,
-        listingPricePerUnit: undefined,
-        soldPrice: undefined,
-        soldDate: undefined,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
       }
       

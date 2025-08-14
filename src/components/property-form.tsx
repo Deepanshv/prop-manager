@@ -95,7 +95,7 @@ export type PropertyFormData = z.infer<typeof propertyFormSchema>
 interface PropertyFormProps {
     mode: 'add' | 'edit'
     onSubmit: (data: PropertyFormData) => void
-    initialData?: PropertyFormData
+    initialData?: Partial<PropertyFormData>
     isSaving: boolean
     submitButtonText: string
     children?: React.ReactNode // For cancel button
@@ -113,12 +113,37 @@ export function PropertyForm({
   
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
+    defaultValues: {
+      name: '',
+      address: {
+        street: '', city: '', state: '', zip: '', landmark: '',
+      },
+      landDetails: {
+          area: 1, areaUnit: 'Square Feet', khasraNumber: '', landbookNumber: ''
+      },
+      propertyType: 'Open Land',
+      purchaseDate: new Date(),
+      purchasePrice: 100000,
+      remarks: '',
+      landType: '',
+      isDiverted: false,
+      status: 'Owned',
+      isListedPublicly: false,
+      listingPrice: undefined,
+      soldPrice: undefined,
+      soldDate: undefined,
+      ...initialData,
+    }
   });
 
   // This effect correctly synchronizes the form with external data.
   React.useEffect(() => {
     if (initialData) {
-      form.reset(initialData);
+      form.reset({
+        ...initialData,
+        purchaseDate: initialData.purchaseDate ? new Date(initialData.purchaseDate) : new Date(),
+        soldDate: initialData.soldDate ? new Date(initialData.soldDate) : undefined,
+      });
     }
   }, [initialData, form]);
 
