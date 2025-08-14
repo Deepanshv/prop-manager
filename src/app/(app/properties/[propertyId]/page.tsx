@@ -29,6 +29,7 @@ export default function PropertyDetailPage() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [property, setProperty] = React.useState<Property | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [formKey, setFormKey] = React.useState(Date.now()); // This is the key change
 
   const fetchAndSetProperty = React.useCallback(async () => {
     if (!user || !db) return;
@@ -38,6 +39,7 @@ export default function PropertyDetailPage() {
         const docSnap = await getDoc(propDocRef);
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
             setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
+            setFormKey(Date.now()); // Update the key on every fetch
         } else {
             toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
             router.push('/properties');
@@ -60,14 +62,8 @@ export default function PropertyDetailPage() {
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
-    // This is the corrected initial data. We must convert Timestamps to Date objects for the form.
     return {
       ...property,
-      name: property.name || '',
-      remarks: property.remarks || '',
-      landType: property.landType || '',
-      listingPrice: property.listingPrice,
-      soldPrice: property.soldPrice,
       purchaseDate: property.purchaseDate.toDate(),
       soldDate: property.soldDate?.toDate(),
     };
@@ -81,27 +77,25 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
-    // The 'data' object from PropertyForm now contains all calculated values and has been validated by a robust schema.
-    // This is the corrected submission logic. It uses the validated data directly.
     const propertyData: Record<string, any> = {
         ...data,
         ownerUid: user.uid,
         purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        // Ensure optional fields are handled correctly
-        landType: data.landType ?? null,
-        remarks: data.remarks ?? null,
+        landType: data.landType || null,
+        remarks: data.remarks || null,
     };
 
     // Handle status-specific fields and Timestamp conversions
     if (data.status === 'Sold') {
         propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
         propertyData.isListedPublicly = false; // Unlist when sold
-        propertyData.listingPrice = null;
+        propertyData.listingPrice = data.listingPrice || null;
     } else if (data.status === 'For Sale') {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
-        // Only save listing prices if the property is actually listed
-        if (!data.isListedPublicly) {
+        if (data.isListedPublicly) {
+            propertyData.listingPrice = data.listingPrice || null;
+        } else {
             propertyData.listingPrice = null;
         }
     } else { // 'Owned' status
@@ -119,7 +113,7 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty(); // Refresh data on the page
+          await fetchAndSetProperty(); // This will refresh data and the form key
       }
     } catch (error) {
       console.error('Error updating document: ', error)
@@ -163,6 +157,7 @@ export default function PropertyDetailPage() {
                 </CardHeader>
                 <CardContent>
                     <PropertyForm 
+                        key={formKey}
                         mode="edit"
                         onSubmit={onSubmit}
                         initialData={formInitialData}
