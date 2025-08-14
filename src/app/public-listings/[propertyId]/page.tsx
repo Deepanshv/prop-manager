@@ -36,13 +36,13 @@ export default function PublicPropertyDetailPage() {
     const fetchPublicProperty = async () => {
         setLoading(true);
         try {
-            const propDocRef = doc(db, 'properties', propertyId);
+            const propDocRef = doc(db!, 'properties', propertyId);
             const docSnap = await getDoc(propDocRef);
 
             if (docSnap.exists() && docSnap.data().isListedPublicly) {
                 const propertyData = { id: docSnap.id, ...docSnap.data() } as Property;
                 
-                const mediaCollectionRef = collection(db, 'properties', docSnap.id, 'media');
+                const mediaCollectionRef = collection(db!, 'properties', docSnap.id, 'media');
                 const mediaSnapshot = await getDocs(query(mediaCollectionRef));
                 const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
 

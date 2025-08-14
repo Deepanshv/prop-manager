@@ -159,7 +159,7 @@ export default function InternalListingsPage() {
   React.useEffect(() => {
     if (user && db) {
         setIsPublicSettingLoading(true);
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db!, 'users', user.uid);
         getDoc(userDocRef).then(docSnap => {
             if (docSnap.exists()) {
                 setIsPublicPageEnabled(docSnap.data().publicListingsEnabled || false);
@@ -209,7 +209,7 @@ export default function InternalListingsPage() {
     if (!user || !db) return;
     setIsUpdatingPublicSetting(true);
     try {
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db!, 'users', user.uid);
         await setDoc(userDocRef, { publicListingsEnabled: enabled }, { merge: true });
         setIsPublicPageEnabled(enabled);
         toast({ title: 'Success', description: `Public page has been ${enabled ? 'enabled' : 'disabled'}.` });
@@ -245,7 +245,7 @@ export default function InternalListingsPage() {
     if (!selectedProperty || !db) return
 
     try {
-      await deleteDoc(doc(db, 'properties', selectedProperty.id))
+      await deleteDoc(doc(db!, 'properties', selectedProperty.id))
       toast({ title: 'Success', description: 'Property deleted successfully.' })
     } catch (error) {
       console.error('Error deleting document: ', error)
@@ -262,7 +262,7 @@ export default function InternalListingsPage() {
       return
     }
     try {
-      const propDocRef = doc(db, 'properties', selectedProperty.id)
+      const propDocRef = doc(db!, 'properties', selectedProperty.id)
       await updateDoc(propDocRef, {
         status: 'Sold',
         soldPrice: data.soldPrice,

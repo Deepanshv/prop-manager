@@ -109,7 +109,7 @@ export default function SettingsPage() {
   
       const fetchProfile = async () => {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db!, 'users', user.uid);
           const docSnap = await getDoc(userDocRef);
           
           let initialValues = {
@@ -146,12 +146,12 @@ export default function SettingsPage() {
   }, [user, db, profileForm, toast, isInitialDataLoaded]);
 
   const handleProfileUpdate = async (data: ProfileFormData) => {
-    if (!auth.currentUser || !db) return
+    if (!auth?.currentUser || !db) return
 
     try {
       await updateProfile(auth.currentUser, { displayName: data.displayName })
 
-      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const userDocRef = doc(db!, 'users', auth.currentUser.uid);
       await setDoc(userDocRef, { 
         primaryNumber: data.primaryNumber || null,
         secondaryNumber: data.secondaryNumber || null,
@@ -182,7 +182,7 @@ export default function SettingsPage() {
   }
 
   const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!auth.currentUser || !event.target.files || event.target.files.length === 0) return
+    if (!auth?.currentUser || !event.target.files || event.target.files.length === 0) return
 
     const file = event.target.files[0]
     const uploadToast = toast({ title: 'Uploading...', description: 'Your new profile picture is being uploaded.' });
@@ -203,7 +203,7 @@ export default function SettingsPage() {
   }
 
   const handleDeleteAccount = async () => {
-    if (!auth.currentUser) return
+    if (!auth?.currentUser) return
     try {
       await deleteUser(auth.currentUser)
       toast({ title: 'Account Deleted', description: 'Your account has been permanently deleted.' })
@@ -420,7 +420,6 @@ export default function SettingsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              variant="destructive"
               disabled={deleteConfirmation !== user.email}
               onClick={handleDeleteAccount}
             >

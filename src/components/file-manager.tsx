@@ -151,7 +151,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         const result = await uploadToCloudinary(file);
         
         if (result.success && result.url) {
-            const fileDocRef = doc(db, entityType, entityId, 'files', docTypeId);
+            const fileDocRef = doc(db!, entityType, entityId, 'files', docTypeId);
             await setDoc(fileDocRef, {
               id: docTypeId,
               documentType: docTypeName,
@@ -184,7 +184,7 @@ export function FileManager({ entityType, entityId }: FileManagerProps) {
         toast({ title: 'Error', description: 'Could not delete file record.', variant: 'destructive' })
         return
     }
-    const fileDocRef = doc(db, entityType, entityId, 'files', fileToDelete.id)
+    const fileDocRef = doc(db!, entityType, entityId, 'files', fileToDelete.id)
 
     try {
       await deleteDoc(fileDocRef)

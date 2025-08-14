@@ -31,7 +31,7 @@ export default function ProspectDetailPage() {
     if (!user || !db) return;
     setLoading(true);
     try {
-        const prospectDocRef = doc(db, 'prospects', prospectId);
+        const prospectDocRef = doc(db!, 'prospects', prospectId);
         const docSnap = await getDoc(prospectDocRef);
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
             setProspect({ id: docSnap.id, ...docSnap.data() } as Prospect);
@@ -65,18 +65,18 @@ export default function ProspectDetailPage() {
     try {
       const batch = writeBatch(db);
       
-      const newPropertyRef = doc(collection(db, 'properties'))
-      const prospectDocRef = doc(db, 'prospects', prospect.id);
+      const newPropertyRef = doc(collection(db!, 'properties'))
+      const prospectDocRef = doc(db!, 'prospects', prospect.id);
 
       // Create a complete property record from the prospect data
-      const newPropertyData: Omit<Property, 'id'> = {
+      const newPropertyData: Record<string, any> = {
         name: prospectData.name || 'Unnamed Property',
         ownerUid: user.uid,
         address: prospectData.address,
-        landDetails: { area: 1, areaUnit: 'Square Feet' }, // Use a valid default
-        propertyType: prospectData.propertyType as Property['propertyType'],
+        landDetails: { area: 1, areaUnit: 'Square Feet' },
+        propertyType: (prospectData.propertyType || 'Open Land'),
         purchaseDate: Timestamp.now(),
-        purchasePrice: 1, // Default non-zero value, to be edited
+        purchasePrice: 1,
         status: 'Owned',
         isListedPublicly: false,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
@@ -84,7 +84,7 @@ export default function ProspectDetailPage() {
         soldDate: null,
         listingPrice: null,
         landType: null,
-        isDiverted: null
+        isDiverted: null,
       }
       
       batch.set(newPropertyRef, newPropertyData);
@@ -132,7 +132,7 @@ export default function ProspectDetailPage() {
     }
 
     try {
-      const prospectDocRef = doc(db, 'prospects', prospectId)
+      const prospectDocRef = doc(db!, 'prospects', prospectId)
       await updateDoc(prospectDocRef, prospectDataToSave)
       toast({ title: 'Success', description: 'Prospect updated successfully.' })
       router.push('/prospects')
@@ -160,11 +160,12 @@ export default function ProspectDetailPage() {
     )
   }
 
-  const initialData = {
-    ...prospect,
-    dateAdded: prospect.dateAdded.toDate(),
-    // ensure address is not null
+  const initialData: ProspectFormData = {
+    name: prospect.name,
+    propertyType: (prospect.propertyType as string) || 'Open Land',
     address: prospect.address || { street: '', city: '', state: '', zip: '' },
+    contactInfo: prospect.contactInfo || '',
+    status: prospect.status,
   };
 
 

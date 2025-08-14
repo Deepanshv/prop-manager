@@ -199,7 +199,7 @@ export default function PropertiesPage() {
     if (!selectedProperty || !db) return
 
     try {
-      await deleteDoc(doc(db, 'properties', selectedProperty.id))
+      await deleteDoc(doc(db!, 'properties', selectedProperty.id))
       toast({ title: 'Success', description: 'Property deleted successfully.' })
     } catch (error) {
       console.error('Error deleting document: ', error)
