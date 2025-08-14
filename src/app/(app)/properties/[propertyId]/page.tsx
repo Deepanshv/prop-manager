@@ -39,7 +39,6 @@ export default function PropertyDetailPage() {
         const docSnap = await getDoc(propDocRef);
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
             setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
-            setFormKey(Date.now()); // Update the key on every fetch
         } else {
             toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
             router.push('/properties');
@@ -113,7 +112,8 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty(); // This will refresh data and the form key
+          await fetchAndSetProperty(); // Re-fetch the data
+          setFormKey(Date.now()); // Change the key to force re-mount
       }
     } catch (error) {
       console.error('Error updating document: ', error)
