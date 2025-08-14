@@ -80,11 +80,11 @@ export default function ProspectDetailPage() {
         status: 'Owned',
         isListedPublicly: false,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
-        soldPrice: undefined,
-        soldDate: undefined,
-        listingPrice: undefined,
-        landType: undefined,
-        isDiverted: undefined
+        soldPrice: null,
+        soldDate: null,
+        listingPrice: null,
+        landType: null,
+        isDiverted: null
       }
       
       batch.set(newPropertyRef, newPropertyData);
