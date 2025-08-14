@@ -101,12 +101,10 @@ const propertyFormSchema = z.object({
 type PropertyFormData = z.infer<typeof propertyFormSchema>
 
 function PropertyForm({
-    key,
     initialData,
     onSubmit,
     isSaving,
 }: {
-    key: number,
     initialData: PropertyFormData,
     onSubmit: (data: PropertyFormData) => void,
     isSaving: boolean
@@ -228,7 +226,7 @@ function PropertyForm({
   
   return (
       <Form {...form}>
-        <form key={key} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
            <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem>
                   <FormLabel>Property Name</FormLabel>
