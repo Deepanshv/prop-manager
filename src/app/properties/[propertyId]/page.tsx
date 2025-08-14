@@ -122,7 +122,7 @@ export default function PropertyDetailPage() {
         const docSnap = await getDoc(propDocRef);
         if (docSnap.exists() && docSnap.data().ownerUid === user.uid) {
             setProperty({ id: docSnap.id, ...docSnap.data() } as Property);
-            setFormKey(Date.now()); // Update the key on every fetch
+            setFormKey(Date.now());
         } else {
             toast({ title: 'Error', description: 'Property not found or you do not have access.', variant: 'destructive' })
             router.push('/properties');
@@ -582,3 +582,5 @@ export default function PropertyDetailPage() {
     </div>
   )
 }
+
+    

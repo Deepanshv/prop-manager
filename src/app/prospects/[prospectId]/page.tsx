@@ -68,14 +68,15 @@ export default function ProspectDetailPage() {
       const newPropertyRef = doc(collection(db, 'properties'))
       const prospectDocRef = doc(db, 'prospects', prospect.id);
 
+      // Create a complete property record from the prospect data
       const newPropertyData: Omit<Property, 'id'> = {
         name: prospectData.name || 'Unnamed Property',
         ownerUid: user.uid,
         address: prospectData.address,
-        landDetails: { area: 1, areaUnit: 'Square Feet' },
+        landDetails: { area: 1, areaUnit: 'Square Feet' }, // Use a valid default
         propertyType: prospectData.propertyType as Property['propertyType'],
         purchaseDate: Timestamp.now(),
-        purchasePrice: 100000,
+        purchasePrice: 100000, // Default non-zero value, to be edited
         status: 'Owned',
         isListedPublicly: false,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
@@ -126,7 +127,7 @@ export default function ProspectDetailPage() {
 
     const prospectDataToSave = {
       ...data,
-      dateAdded: Timestamp.now(),
+      dateAdded: Timestamp.now(), // update dateAdded on edit
       contactInfo: data.contactInfo || null, 
     }
 
@@ -188,3 +189,5 @@ export default function ProspectDetailPage() {
     </div>
   )
 }
+
+    
