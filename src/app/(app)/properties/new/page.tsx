@@ -401,19 +401,19 @@ export default function NewPropertyPage() {
                             </FormItem>
                         )}/>
                         <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                            <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                         )}/>
 
                          <FormField control={form.control} name="purchasePricePerUnit" render={({ field }) => (
                             <FormItem>
                               <FormLabel>Purchase Price per {watchedAreaUnit}</FormLabel>
-                              <FormControl><Input type="number" placeholder="e.g. 4167" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl>
+                              <FormControl><Input type="number" placeholder="e.g. 4167" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
                               <FormMessage />
                             </FormItem>
                          )}/>
 
                         <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                            <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                         )}/>
                       </div>
 
@@ -435,5 +435,7 @@ export default function NewPropertyPage() {
     </div>
   )
 }
+
+    
 
     

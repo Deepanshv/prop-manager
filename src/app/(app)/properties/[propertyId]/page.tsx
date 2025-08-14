@@ -528,19 +528,19 @@ export default function PropertyDetailPage() {
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             
                             <FormField control={form.control} name="purchasePricePerUnit" render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Purchase Price per {watchedAreaUnit}</FormLabel>
-                                  <FormControl><Input type="number" placeholder="e.g. 4167" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''} /></FormControl>
+                                  <FormControl><Input type="number" placeholder="e.g. 4167" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
                              )}/>
 
                             <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                                <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                           </div>
 
@@ -570,7 +570,7 @@ export default function PropertyDetailPage() {
                                       )}/>
                                       {watchedIsListedPublicly && (
                                           <FormField control={form.control} name="listingPrice" render={({ field }) => (
-                                              <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                              <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                           )}/>
                                       )}
                                   </div>
@@ -579,7 +579,7 @@ export default function PropertyDetailPage() {
                               {watchedStatus === 'Sold' && (
                                   <div className="space-y-4 rounded-md border p-4">
                                       <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                                          <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                          <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                       )}/>
                                       <FormField control={form.control} name="soldDate" render={({ field }) => (
                                           <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
@@ -624,5 +624,7 @@ export default function PropertyDetailPage() {
     </div>
   )
 }
+
+    
 
     
