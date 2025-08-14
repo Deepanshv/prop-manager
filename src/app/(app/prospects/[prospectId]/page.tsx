@@ -70,7 +70,7 @@ export default function ProspectDetailPage() {
 
       // Create a complete property record from the prospect data
       const newPropertyData: Omit<Property, 'id'> = {
-        name: prospectData.name,
+        name: prospectData.name || 'Unnamed Property',
         ownerUid: user.uid,
         address: prospectData.address,
         landDetails: { area: 1, areaUnit: 'Square Feet' }, // Use a valid default

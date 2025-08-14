@@ -63,6 +63,11 @@ export default function PropertyDetailPage() {
     // This is the corrected initial data. We must convert Timestamps to Date objects for the form.
     return {
       ...property,
+      name: property.name || '',
+      remarks: property.remarks || '',
+      landType: property.landType || '',
+      listingPrice: property.listingPrice,
+      soldPrice: property.soldPrice,
       purchaseDate: property.purchaseDate.toDate(),
       soldDate: property.soldDate?.toDate(),
     };
