@@ -55,7 +55,7 @@ const propertyFormSchema = z.object({
   remarks: z.string().optional(),
   landType: z.string().optional(),
   isDiverted: z.boolean().optional(),
-  status: z.string().optional(),
+  status: z.string({required_error: "Status is required."}),
   isListedPublicly: z.boolean().optional(),
   listingPricePerUnit: z.coerce.number().positive().optional(),
   soldPrice: z.coerce.number().positive().optional(),
@@ -84,7 +84,7 @@ const propertyFormSchema = z.object({
 .refine(data => {
     // If status is 'Sold', a sold date is required.
     if (data.status === 'Sold') {
-        return data.soldDate !== undefined;
+        return !!data.soldDate;
     }
     return true;
 }, {
@@ -122,9 +122,8 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
 
   const form = useForm<FormValues>({
     resolver: zodResolver(propertyFormSchema),
-    // Default values are now set in useEffect below to ensure form state is always synchronized.
-  })
-  
+  });
+
   React.useEffect(() => {
     if (initialData) {
       form.reset(initialData);
@@ -132,13 +131,14 @@ export function PropertyForm({ initialData, isSaving, submitButtonText, mode, ch
         if (initialData.address.latitude && initialData.address.longitude) {
             setMapCenter([initialData.address.latitude, initialData.address.longitude]);
         }
-        setSearchQuery([initialData.address.street, initialData.address.city].filter(Boolean).join(', '));
+        setSearchQuery([initialData.address.street, initialData.address.city, initialData.address.state].filter(Boolean).join(', '));
       }
     } else {
         form.reset({
             name: '',
             address: { street: '', city: '', state: '', zip: '', landmark: '' },
-            landDetails: { area: 0.1, areaUnit: 'Square Feet', khasraNumber: '', landbookNumber: '' },
+            landDetails: { area: 0.1, areaUnit: 'Square Feet' },
+            purchaseDate: new Date(),
             remarks: '',
             isDiverted: false,
             isListedPublicly: false,

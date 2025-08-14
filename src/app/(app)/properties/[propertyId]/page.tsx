@@ -59,9 +59,8 @@ export default function PropertyDetailPage() {
 
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
-    
-    // This is the corrected initial data. We no longer perform calculations here.
-    // We pass the raw data from Firestore to the form, which will handle calculations.
+
+    // This is the corrected initial data. We must convert Timestamps to Date objects for the form.
     return {
       ...property,
       purchaseDate: property.purchaseDate.toDate(),
@@ -78,56 +77,30 @@ export default function PropertyDetailPage() {
     setIsSaving(true)
 
     // The 'data' object from PropertyForm now contains all calculated values and has been validated by a robust schema.
-    // This is the corrected submission logic.
+    // This is the corrected submission logic. It uses the validated data directly.
     const propertyData: Record<string, any> = {
-        name: data.name,
+        ...data,
         ownerUid: user.uid,
-        address: {
-            street: data.address.street,
-            city: data.address.city,
-            state: data.address.state,
-            zip: data.address.zip,
-            landmark: data.address.landmark ?? null,
-            latitude: data.address.latitude ?? null,
-            longitude: data.address.longitude ?? null,
-        },
-        landDetails: {
-            area: data.landDetails.area,
-            areaUnit: data.landDetails.areaUnit,
-            khasraNumber: data.landDetails.khasraNumber ?? null,
-            landbookNumber: data.landDetails.landbookNumber ?? null,
-        },
-        propertyType: data.propertyType,
         purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        purchasePrice: data.purchasePrice,
-        pricePerUnit: data.pricePerUnit,
+        // Ensure optional fields are handled correctly
+        landType: data.landType ?? null,
         remarks: data.remarks ?? null,
-        status: data.status,
     };
 
-    // Handle conditional fields based on property type
-    if (data.propertyType === 'Open Land') {
-        propertyData.landType = data.landType ?? null;
-        propertyData.isDiverted = data.isDiverted ?? false;
-    } else {
-        propertyData.landType = null;
-        propertyData.isDiverted = null;
-    }
-
-    // Handle status-specific fields. The Zod schema has already validated these.
+    // Handle status-specific fields and Timestamp conversions
     if (data.status === 'Sold') {
-        propertyData.isListedPublicly = false;
+        propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
+        propertyData.isListedPublicly = false; // Unlist when sold
         propertyData.listingPrice = null;
         propertyData.listingPricePerUnit = null;
-        propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
-        propertyData.soldPrice = data.soldPrice ?? null;
     } else if (data.status === 'For Sale') {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
-        propertyData.isListedPublicly = data.isListedPublicly ?? false;
-        // Correctly save listing prices only if the property is listed
-        propertyData.listingPrice = data.isListedPublicly ? data.listingPrice : null;
-        propertyData.listingPricePerUnit = data.isListedPublicly ? data.listingPricePerUnit : null;
+        // Only save listing prices if the property is actually listed
+        if (!data.isListedPublicly) {
+            propertyData.listingPrice = null;
+            propertyData.listingPricePerUnit = null;
+        }
     } else { // 'Owned' status
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
