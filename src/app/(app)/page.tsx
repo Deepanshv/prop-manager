@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -33,7 +32,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import type { Property } from './properties/page'
 import type { Prospect } from './prospects/page'
-import { CardDescription as Description } from '@/components/ui/card'
+import { CardDescription } from '@/components/ui/card'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 
@@ -148,7 +147,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
-          <Description>Click on a property to view its location on the map.</Description>
+          <CardDescription>Click on a property to view its location on the map.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
