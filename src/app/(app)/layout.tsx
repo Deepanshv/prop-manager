@@ -114,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton asChild tooltip={item.label} isActive={pathname === item.href}>
+                  <SidebarMenuButton asChild tooltip={item.label} isActive={item.href === '/' ? pathname === item.href : pathname.startsWith(item.href)}>
                     <Link href={item.href}>
                       <item.icon />
                       <span>{item.label}</span>
