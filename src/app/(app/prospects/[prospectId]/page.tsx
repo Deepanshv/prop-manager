@@ -77,13 +77,8 @@ export default function ProspectDetailPage() {
         propertyType: prospectData.propertyType as Property['propertyType'],
         purchaseDate: Timestamp.now(),
         purchasePrice: 0, // Default value, to be edited
-        pricePerUnit: 0, // Default value, to be edited
         status: 'Owned',
         isListedPublicly: false,
-        listingPrice: undefined,
-        listingPricePerUnit: undefined,
-        soldPrice: undefined,
-        soldDate: undefined,
         remarks: prospectData.contactInfo ? `Source/Contact: ${prospectData.contactInfo}` : '',
       }
       

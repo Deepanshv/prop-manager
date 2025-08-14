@@ -92,19 +92,16 @@ export default function PropertyDetailPage() {
         propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
         propertyData.isListedPublicly = false; // Unlist when sold
         propertyData.listingPrice = null;
-        propertyData.listingPricePerUnit = null;
     } else if (data.status === 'For Sale') {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
         // Only save listing prices if the property is actually listed
         if (!data.isListedPublicly) {
             propertyData.listingPrice = null;
-            propertyData.listingPricePerUnit = null;
         }
     } else { // 'Owned' status
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
-        propertyData.listingPricePerUnit = null;
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
     }
