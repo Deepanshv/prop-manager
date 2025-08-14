@@ -57,8 +57,6 @@ export default function PropertyDetailPage() {
     }
   }, [user, fetchAndSetProperty]);
 
-  // This is now simplified, as the form component handles its own defaults.
-  // We just pass the fetched property data directly.
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
@@ -77,8 +75,6 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
-    // This logic is now clean and correct. It takes validated data from the form
-    // and prepares it for Firestore.
     const propertyData: Record<string, any> = {
         ...data,
         ownerUid: user.uid,
@@ -159,6 +155,7 @@ export default function PropertyDetailPage() {
                 </CardHeader>
                 <CardContent>
                     <PropertyForm 
+                        key={JSON.stringify(formInitialData)}
                         mode="edit"
                         onSubmit={onSubmit}
                         initialData={formInitialData}
