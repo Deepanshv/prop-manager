@@ -2,9 +2,9 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where, setDoc, addDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, View, Building, MapPin, Edit } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle, Loader2, MoreHorizontal, Plus, Trash, Edit } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -27,7 +27,9 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '../layout'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { PropertyForm, type PropertyFormData } from '@/components/property-form'
+import { Building, MapPin } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 
 const markAsSoldSchema = z.object({
@@ -58,9 +60,7 @@ export interface Property {
   propertyType: 'Open Land' | 'Flat' | 'Villa' | 'Commercial Complex Unit' | 'Apartment'
   purchaseDate: Timestamp
   purchasePrice: number
-  pricePerUnit?: number
   listingPrice?: number
-  listingPricePerUnit?: number
   isListedPublicly?: boolean
   status?: 'Owned' | 'For Sale' | 'Sold'
   soldPrice?: number
@@ -69,6 +69,29 @@ export interface Property {
   landType?: 'Agricultural' | 'Residential' | 'Commercial' | 'Tribal'
   isDiverted?: boolean
 }
+
+
+const propertyTypes = ['Open Land', 'Flat', 'Villa', 'Commercial Complex Unit', 'Apartment'];
+const landAreaUnits = ['Square Feet', 'Acre'];
+
+const addPropertyFormSchema = z.object({
+  name: z.string().min(3, 'Property name must be at least 3 characters.'),
+  address: z.object({
+    street: z.string().min(1, 'Area/Locality is required'),
+    city: z.string().min(1, 'City is required.'),
+    state: z.string().min(1, 'State is required.'),
+    zip: z.string().min(6, 'A 6-digit zip code is required.').max(6, 'A 6-digit zip code is required.'),
+  }),
+  propertyType: z.string({ required_error: 'Please select a property type.' }),
+  purchaseDate: z.date({ required_error: 'A purchase date is required.' }),
+  landDetails: z.object({
+      area: z.coerce.number({invalid_type_error: "Area must be a number"}).min(0.0001, "Land area must be greater than 0."),
+      areaUnit: z.string({ required_error: "Please select a unit." }),
+  }),
+  purchasePrice: z.coerce.number().positive("Purchase price must be positive."),
+  remarks: z.string().optional(),
+});
+type AddPropertyFormData = z.infer<typeof addPropertyFormSchema>;
 
 const PropertyCard = React.memo(({ property, onDelete, onMarkAsSold, onEdit }: { property: Property, onDelete: (p: Property) => void, onMarkAsSold: (p: Property) => void, onEdit: (p: Property) => void }) => {
     const router = useRouter();
@@ -145,12 +168,25 @@ export default function PropertyManagerPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false)
   const [isSoldModalOpen, setIsSoldModalOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
-  const [isSaving, setIsSaving] = React.useState(false)
+  
   const { toast } = useToast()
 
   const soldForm = useForm<MarkAsSoldFormData>({
     resolver: zodResolver(markAsSoldSchema),
   });
+
+  const addPropertyForm = useForm<AddPropertyFormData>({
+    resolver: zodResolver(addPropertyFormSchema),
+    defaultValues: {
+      name: '',
+      address: { street: '', city: '', state: '', zip: '' },
+      landDetails: { area: 1, areaUnit: 'Square Feet' },
+      purchaseDate: new Date(),
+      remarks: '',
+      propertyType: 'Open Land',
+      purchasePrice: 1,
+    }
+  })
 
   React.useEffect(() => {
     if (!user || !db) {
@@ -185,6 +221,7 @@ export default function PropertyManagerPage() {
   
   
   const handleAddProperty = () => {
+    addPropertyForm.reset();
     setIsAddModalOpen(true)
   }
   
@@ -218,54 +255,26 @@ export default function PropertyManagerPage() {
     }
   }
 
-  const onAddSubmit = async (data: PropertyFormData) => {
+  const onAddSubmit = async (data: AddPropertyFormData) => {
     if (!user || !db) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
     }
-    setIsSaving(true);
     
     try {
-        const newPropertyRef = doc(collection(db, 'properties'));
-        const propertyData: Record<string, any> = {
+        await addDoc(collection(db, 'properties'), {
           ...data,
           purchaseDate: Timestamp.fromDate(data.purchaseDate),
           ownerUid: user.uid,
-          status: 'Owned' as const,
-          soldPrice: null,
-          soldDate: null,
-          remarks: data.remarks ?? null,
-          pricePerUnit: data.pricePerUnit ?? null,
-          listingPrice: data.isListedPublicly ? (data.listingPrice ?? null) : null,
-          listingPricePerUnit: data.isListedPublicly ? (data.listingPricePerUnit ?? null) : null,
-          address: {
-            ...data.address,
-            landmark: data.address.landmark ?? null,
-            latitude: data.address.latitude ?? null,
-            longitude: data.address.longitude ?? null,
-          },
-          landDetails: {
-            ...data.landDetails,
-            khasraNumber: data.landDetails.khasraNumber ?? null,
-            landbookNumber: data.landDetails.landbookNumber ?? null,
-          },
-        };
-
-        if (data.propertyType !== 'Open Land') {
-            propertyData.landType = null;
-            propertyData.isDiverted = null;
-        }
+          status: 'Owned',
+        });
         
-        await setDoc(newPropertyRef, propertyData);
-        
-        toast({ title: 'Success', description: 'Property added successfully. You can add documents in the edit screen.' });
+        toast({ title: 'Success', description: 'Property added successfully.' });
         setIsAddModalOpen(false);
 
     } catch (error: any) {
         console.error('Error during property creation: ', error);
         toast({ title: 'Error', description: error.message || 'Failed to save property. Please try again.', variant: 'destructive' });
-    } finally {
-        setIsSaving(false);
     }
   }
 
@@ -281,7 +290,7 @@ export default function PropertyManagerPage() {
             status: 'Sold',
             soldPrice: data.soldPrice,
             soldDate: Timestamp.fromDate(data.soldDate),
-            isListedPublicly: false, // Ensure it's unlisted when sold
+            isListedPublicly: false,
         });
         toast({ title: 'Success', description: 'Property marked as sold and moved to Sales History.' });
         setIsSoldModalOpen(false);
@@ -342,21 +351,90 @@ export default function PropertyManagerPage() {
         )}
       </div>
 
-      {/* Add Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader><DialogTitle>Add New Property</DialogTitle>
-            <DialogDescription>Fill in the details to add a new property. Documents can be added after creation.</DialogDescription>
+            <DialogDescription>Fill in the details to add a new property.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[80vh] overflow-y-auto pr-4 pt-4">
-            <PropertyForm
-                mode="add"
-                onSubmit={onAddSubmit}
-                isSaving={isSaving}
-                submitButtonText="Save Property"
-            >
-                <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-            </PropertyForm>
+             <Form {...addPropertyForm}>
+              <form onSubmit={addPropertyForm.handleSubmit(onAddSubmit)} className="space-y-8">
+                <FormField control={addPropertyForm.control} name="name" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Property Name</FormLabel>
+                        <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={addPropertyForm.control} name="address.street" render={({ field }) => (
+                      <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={addPropertyForm.control} name="address.city" render={({ field }) => (
+                      <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={addPropertyForm.control} name="address.state" render={({ field }) => (
+                      <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={addPropertyForm.control} name="address.zip" render={({ field }) => (
+                      <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                    <FormField control={addPropertyForm.control} name="propertyType" render={({ field }) => (
+                        <FormItem><FormLabel>Property Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={addPropertyForm.control} name="purchaseDate" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl>
+                            <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl></PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={addPropertyForm.control} name="landDetails.areaUnit" render={({ field }) => (
+                        <FormItem><FormLabel>Area Unit</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={addPropertyForm.control} name="landDetails.area" render={({ field }) => (
+                        <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                     <FormField control={addPropertyForm.control} name="purchasePrice" render={({ field }) => (
+                      <FormItem className="md:col-span-2"><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                 </div>
+                 <FormField control={addPropertyForm.control} name="remarks" render={({ field }) => (
+                      <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="Add any other relevant details..." {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+
+                <DialogFooter>
+                  <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={addPropertyForm.formState.isSubmitting}>
+                      {addPropertyForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Property
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </div>
         </DialogContent>
       </Dialog>
