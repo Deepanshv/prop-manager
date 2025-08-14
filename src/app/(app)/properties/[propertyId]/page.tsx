@@ -1,22 +1,22 @@
 
 'use client'
 
-import { addDoc, collection, doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
+import { ArrowLeft } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
+import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
 import type { Property } from '../page'
 import { PropertyForm, type PropertyFormData } from '@/components/property-form'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MediaManager } from '@/components/media-manager'
-import { FileManager } from '@/components/file-manager'
 
 
 export default function PropertyDetailPage() {
@@ -57,17 +57,13 @@ export default function PropertyDetailPage() {
     }
   }, [user, fetchAndSetProperty]);
 
+  // This is now simplified, as the form component handles its own defaults.
+  // We just pass the fetched property data directly.
   const formInitialData = React.useMemo(() => {
     if (!property) return undefined;
 
-    // This is the corrected initial data. We must convert Timestamps to Date objects for the form.
     return {
       ...property,
-      name: property.name || '',
-      remarks: property.remarks || '',
-      landType: property.landType || '',
-      listingPrice: property.listingPrice,
-      soldPrice: property.soldPrice,
       purchaseDate: property.purchaseDate.toDate(),
       soldDate: property.soldDate?.toDate(),
     };
@@ -81,27 +77,27 @@ export default function PropertyDetailPage() {
     }
     setIsSaving(true)
 
-    // The 'data' object from PropertyForm now contains all calculated values and has been validated by a robust schema.
-    // This is the corrected submission logic. It uses the validated data directly.
+    // This logic is now clean and correct. It takes validated data from the form
+    // and prepares it for Firestore.
     const propertyData: Record<string, any> = {
         ...data,
         ownerUid: user.uid,
         purchaseDate: Timestamp.fromDate(data.purchaseDate),
-        // Ensure optional fields are handled correctly
-        landType: data.landType ?? null,
-        remarks: data.remarks ?? null,
+        landType: data.landType || null,
+        remarks: data.remarks || null,
     };
 
     // Handle status-specific fields and Timestamp conversions
     if (data.status === 'Sold') {
         propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
         propertyData.isListedPublicly = false; // Unlist when sold
-        propertyData.listingPrice = null;
+        propertyData.listingPrice = data.listingPrice || null;
     } else if (data.status === 'For Sale') {
         propertyData.soldDate = null;
         propertyData.soldPrice = null;
-        // Only save listing prices if the property is actually listed
-        if (!data.isListedPublicly) {
+        if (data.isListedPublicly) {
+            propertyData.listingPrice = data.listingPrice || null;
+        } else {
             propertyData.listingPrice = null;
         }
     } else { // 'Owned' status
@@ -119,7 +115,7 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty(); // Refresh data on the page
+          await fetchAndSetProperty(); // This will refresh data on the page
       }
     } catch (error) {
       console.error('Error updating document: ', error)

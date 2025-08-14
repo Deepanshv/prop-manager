@@ -136,6 +136,7 @@ export function PropertyForm({
     }
   });
 
+  // This is the definitive fix for the state synchronization bug.
   // This effect correctly synchronizes the form with external data.
   // It runs when the component mounts and any time `initialData` changes.
   React.useEffect(() => {
@@ -143,14 +144,37 @@ export function PropertyForm({
       // Create a clean data object to pass to reset.
       // This ensures all fields are present and correctly typed.
       const resetData = {
-          ...form.formState.defaultValues,
-          ...initialData,
+          name: initialData.name || '',
+          address: {
+            street: initialData.address?.street || '',
+            city: initialData.address?.city || '',
+            state: initialData.address?.state || '',
+            zip: initialData.address?.zip || '',
+            landmark: initialData.address?.landmark || '',
+            latitude: initialData.address?.latitude,
+            longitude: initialData.address?.longitude,
+          },
+          landDetails: {
+            area: initialData.landDetails?.area ?? 1,
+            areaUnit: initialData.landDetails?.areaUnit ?? 'Square Feet',
+            khasraNumber: initialData.landDetails?.khasraNumber || '',
+            landbookNumber: initialData.landDetails?.landbookNumber || '',
+          },
+          propertyType: initialData.propertyType || 'Open Land',
           purchaseDate: initialData.purchaseDate ? new Date(initialData.purchaseDate) : new Date(),
+          purchasePrice: initialData.purchasePrice,
+          remarks: initialData.remarks || '',
+          landType: initialData.landType || '',
+          isDiverted: initialData.isDiverted || false,
+          status: initialData.status || 'Owned',
+          isListedPublicly: initialData.isListedPublicly || false,
+          listingPrice: initialData.listingPrice,
+          soldPrice: initialData.soldPrice,
           soldDate: initialData.soldDate ? new Date(initialData.soldDate) : undefined,
       };
       form.reset(resetData);
     }
-  }, [initialData, form]);
+  }, [initialData, form.reset]);
 
 
   const [mapCenter, setMapCenter] = React.useState<[number, number]>(
