@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { Calendar as CalendarIcon, Loader2, LocateFixed, MapPin, Search } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import * as React from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,7 @@ const landAreaUnits = ['Square Feet', 'Acre'];
 const landTypes = ['Agricultural', 'Residential', 'Commercial', 'Tribal'];
 const propertyStatuses = ['Owned', 'For Sale', 'Sold'];
 
+// This is the definitive, corrected schema.
 const propertyFormSchema = z.object({
   name: z.string().min(3, 'Property name must be at least 3 characters.'),
   address: z.object({
@@ -94,7 +95,7 @@ export type PropertyFormData = z.infer<typeof propertyFormSchema>
 interface PropertyFormProps {
     mode: 'add' | 'edit'
     onSubmit: (data: PropertyFormData) => void
-    initialData?: Partial<PropertyFormData>
+    initialData?: PropertyFormData
     isSaving: boolean
     submitButtonText: string
     children?: React.ReactNode // For cancel button
@@ -112,8 +113,14 @@ export function PropertyForm({
   
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
-    defaultValues: initialData || {},
   });
+
+  // This effect correctly synchronizes the form with external data.
+  React.useEffect(() => {
+    if (initialData) {
+      form.reset(initialData);
+    }
+  }, [initialData, form]);
 
   const [mapCenter, setMapCenter] = React.useState<[number, number]>(
     initialData?.address?.latitude && initialData?.address?.longitude 
@@ -130,16 +137,13 @@ export function PropertyForm({
   const [isFindingOnMap, setIsFindingOnMap] = React.useState(false);
 
   React.useEffect(() => {
-    if (initialData) {
-        form.reset(initialData);
-        if (initialData.address) {
-             if (initialData.address.latitude && initialData.address.longitude) {
-                setMapCenter([initialData.address.latitude, initialData.address.longitude]);
-            }
-            setSearchQuery([initialData.address.street, initialData.address.city, initialData.address.state].filter(Boolean).join(', '));
+    if (initialData?.address) {
+        if (initialData.address.latitude && initialData.address.longitude) {
+            setMapCenter([initialData.address.latitude, initialData.address.longitude]);
         }
+        setSearchQuery([initialData.address.street, initialData.address.city, initialData.address.state].filter(Boolean).join(', '));
     }
-  }, [initialData, form]);
+  }, [initialData]);
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
