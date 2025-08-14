@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { addDoc, collection, Timestamp } from 'firebase/firestore'
@@ -220,24 +221,27 @@ export default function NewPropertyPage() {
 
 
   const watchedPropertyType = form.watch('propertyType');
-  const watchedArea = form.watch('landDetails.area');
   const watchedAreaUnit = form.watch('landDetails.areaUnit');
-  const watchedPricePerUnit = form.watch('purchasePricePerUnit');
-  const watchedPurchasePrice = form.watch('purchasePrice');
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
-      if (name === 'landDetails.area' || name === 'purchasePricePerUnit' || name === 'landDetails.areaUnit') {
-        const area = value.landDetails?.area;
-        const pricePerUnit = value.purchasePricePerUnit;
+      const area = value.landDetails?.area;
+      const pricePerUnit = value.purchasePricePerUnit;
+      const purchasePrice = value.purchasePrice;
+
+      if (name === 'landDetails.area' || name === 'purchasePricePerUnit') {
         if (area && pricePerUnit && area > 0) {
-            form.setValue('purchasePrice', area * pricePerUnit, { shouldValidate: true });
+          const newTotal = area * pricePerUnit;
+          if (purchasePrice !== newTotal) {
+            form.setValue('purchasePrice', newTotal, { shouldValidate: true });
+          }
         }
       } else if (name === 'purchasePrice') {
-        const area = value.landDetails?.area;
-        const purchasePrice = value.purchasePrice;
         if (area && purchasePrice && area > 0) {
-            form.setValue('purchasePricePerUnit', purchasePrice / area, { shouldValidate: true });
+          const newPricePerUnit = purchasePrice / area;
+          if (pricePerUnit !== newPricePerUnit) {
+            form.setValue('purchasePricePerUnit', newPricePerUnit, { shouldValidate: true });
+          }
         }
       }
     });
@@ -431,3 +435,5 @@ export default function NewPropertyPage() {
     </div>
   )
 }
+
+    
