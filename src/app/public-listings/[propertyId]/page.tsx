@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Property } from '@/app/(app)/properties/page';

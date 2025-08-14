@@ -189,5 +189,3 @@ export default function ProspectDetailPage() {
     </div>
   )
 }
-
-    

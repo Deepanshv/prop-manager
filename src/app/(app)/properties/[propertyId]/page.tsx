@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
-import type { Property } from '../properties/page'
+import type { Property } from '../page'
 import { MediaManager } from '@/components/media-manager'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -168,9 +168,10 @@ export default function PropertyDetailPage() {
         remarks: data.remarks || null,
     };
 
+    // Handle status-specific fields and Timestamp conversions
     if (data.status === 'Sold') {
         propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
-        propertyData.isListedPublicly = false;
+        propertyData.isListedPublicly = false; // Unlist when sold
         propertyData.listingPrice = data.listingPrice || null;
     } else if (data.status === 'For Sale') {
         propertyData.soldDate = null;
@@ -180,7 +181,7 @@ export default function PropertyDetailPage() {
         } else {
             propertyData.listingPrice = null;
         }
-    } else {
+    } else { // 'Owned' status
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
         propertyData.soldDate = null;
@@ -195,7 +196,7 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty();
+          await fetchAndSetProperty(); // This will refresh data and the form key
       }
     } catch (error) {
       console.error('Error updating document: ', error)
