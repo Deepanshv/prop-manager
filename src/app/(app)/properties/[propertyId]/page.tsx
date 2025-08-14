@@ -335,6 +335,8 @@ export default function PropertyDetailPage() {
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
+      if (!name) return;
+      
       const area = value.landDetails?.area;
       const pricePerUnit = value.purchasePricePerUnit;
       const purchasePrice = value.purchasePrice;
@@ -515,6 +517,13 @@ export default function PropertyDetailPage() {
                                 )}/>
                               </>
                             )}
+
+                            <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
+                                <FormItem><FormLabel>Khasra Number</FormLabel><FormControl><Input placeholder="Optional Khasra/Survey No." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
+                                <FormItem><FormLabel>Land Book Number</FormLabel><FormControl><Input placeholder="Optional Bhu-Pustika No." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )}/>
                             
                             <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                                 <FormItem><FormLabel>Area Unit</FormLabel>
@@ -624,7 +633,3 @@ export default function PropertyDetailPage() {
     </div>
   )
 }
-
-    
-
-    

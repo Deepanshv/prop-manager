@@ -68,6 +68,7 @@ export interface Property {
   soldPrice?: number
   soldDate?: Timestamp
   listingPricePerUnit?: number
+  purchasePricePerUnit?: number;
 }
 
 const PropertyCard = React.memo(({ property, onDelete }: { property: Property; onDelete: (p: Property) => void }) => {
@@ -299,5 +300,3 @@ export default function PropertiesPage() {
     </>
   )
 }
-
-    
