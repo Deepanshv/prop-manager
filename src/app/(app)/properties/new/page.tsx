@@ -85,11 +85,11 @@ export default function NewPropertyPage() {
     defaultValues: {
         name: '',
         address: { street: '', city: '', state: '', zip: '', landmark: '' },
-        landDetails: { area: 1, areaUnit: 'Square Feet', khasraNumber: '', landbookNumber: '' },
+        landDetails: { area: undefined, areaUnit: 'Square Feet', khasraNumber: '', landbookNumber: '' },
         propertyType: 'Open Land',
         purchaseDate: new Date(),
-        purchasePrice: 100000,
-        purchasePricePerUnit: 100000,
+        purchasePrice: undefined,
+        purchasePricePerUnit: undefined,
         remarks: '',
         landType: '',
         isDiverted: false,
@@ -364,15 +364,22 @@ export default function NewPropertyPage() {
                             </FormItem>
                         )}/>
                         <FormField control={form.control} name="purchaseDate" render={({ field }) => (
-                            <FormItem><FormLabel>Purchase Date</FormLabel>
-                            <Popover><PopoverTrigger asChild><FormControl>
-                                <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl></PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
-                            <FormMessage />
+                            <FormItem>
+                              <FormLabel>Purchase Date</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                      {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
                             </FormItem>
                         )}/>
 
@@ -444,3 +451,5 @@ export default function NewPropertyPage() {
     </div>
   )
 }
+
+    
