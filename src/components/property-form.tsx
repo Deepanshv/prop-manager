@@ -137,15 +137,21 @@ export function PropertyForm({
   });
 
   // This effect correctly synchronizes the form with external data.
+  // It runs when the component mounts and any time `initialData` changes.
   React.useEffect(() => {
     if (initialData) {
-      form.reset({
-        ...initialData,
-        purchaseDate: initialData.purchaseDate ? new Date(initialData.purchaseDate) : new Date(),
-        soldDate: initialData.soldDate ? new Date(initialData.soldDate) : undefined,
-      });
+      // Create a clean data object to pass to reset.
+      // This ensures all fields are present and correctly typed.
+      const resetData = {
+          ...form.formState.defaultValues,
+          ...initialData,
+          purchaseDate: initialData.purchaseDate ? new Date(initialData.purchaseDate) : new Date(),
+          soldDate: initialData.soldDate ? new Date(initialData.soldDate) : undefined,
+      };
+      form.reset(resetData);
     }
-  }, [initialData, form]);
+  }, [initialData, form.reset]);
+
 
   const [mapCenter, setMapCenter] = React.useState<[number, number]>(
     initialData?.address?.latitude && initialData?.address?.longitude 
@@ -371,7 +377,7 @@ export function PropertyForm({
               <>
                 <FormField control={form.control} name="landType" render={({ field }) => (
                     <FormItem><FormLabel>Land Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
                         <SelectContent>
                             {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
@@ -477,3 +483,5 @@ export function PropertyForm({
       </Form>
   )
 }
+
+    
