@@ -160,6 +160,14 @@ export default function ProspectDetailPage() {
     )
   }
 
+  const initialData = {
+    ...prospect,
+    dateAdded: prospect.dateAdded.toDate(),
+    // ensure address is not null
+    address: prospect.address || { street: '', city: '', state: '', zip: '' },
+  };
+
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
@@ -179,7 +187,7 @@ export default function ProspectDetailPage() {
             mode="edit"
             onSubmit={onSubmit}
             isSaving={isSaving}
-            initialData={{...prospect, dateAdded: prospect.dateAdded.toDate()}}
+            initialData={initialData}
             submitButtonText="Save Changes"
           >
              <Button type="button" variant="ghost" onClick={() => router.push('/prospects')}>Cancel</Button>
@@ -189,5 +197,3 @@ export default function ProspectDetailPage() {
     </div>
   )
 }
-
-    
