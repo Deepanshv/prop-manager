@@ -205,86 +205,26 @@ export default function PropertyDetailPage() {
     }
   };
   
-  if (loading || !property || !formInitialData) {
-    return (
-        <div className="p-6 space-y-6">
-            <Skeleton className="h-8 w-48" />
-            <div className="grid gap-6">
-                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
-                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
-            </div>
-        </div>
-    )
-  }
-
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{property.name}</h1>
-      </div>
-      
-      <Tabs defaultValue="details" className="w-full">
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="files">Media & Files</TabsTrigger>
-        </TabsList>
-        <TabsContent value="details">
-            <Card className="mt-4">
-                <CardHeader>
-                    <CardTitle>Edit Property Details</CardTitle>
-                    <CardDescription>Update the information for this property.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <PropertyForm 
-                        key={formKey}
-                        onSubmit={onSubmit}
-                        initialData={formInitialData}
-                        isSaving={isSaving}
-                    />
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="files">
-            <div className="mt-4 space-y-6">
-                <MediaManager entityType="properties" entityId={property.id} />
-                <FileManager entityType="properties" entityId={property.id} />
-            </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  )
-}
-
-interface PropertyFormProps {
-    onSubmit: (data: PropertyFormData) => void;
-    isSaving: boolean;
-    initialData: PropertyFormData;
-}
-
-function PropertyForm({ onSubmit, isSaving, initialData }: PropertyFormProps) {
-  const router = useRouter();
-  const { toast } = useToast()
-
-  const form = useForm<PropertyFormData>({
+    const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
-    defaultValues: initialData,
+    defaultValues: formInitialData,
   });
-
+  
   React.useEffect(() => {
-    form.reset(initialData);
-  }, [initialData, form]);
+    if (formInitialData) {
+        form.reset(formInitialData);
+    }
+  }, [formInitialData, form]);
+
 
   const [mapCenter, setMapCenter] = React.useState<[number, number]>(
-    initialData?.address?.latitude && initialData?.address?.longitude 
-    ? [initialData.address.latitude, initialData.address.longitude] 
+    formInitialData?.address?.latitude && formInitialData?.address?.longitude 
+    ? [formInitialData.address.latitude, formInitialData.address.longitude] 
     : [20.5937, 78.9629]
   );
   
   const [searchQuery, setSearchQuery] = React.useState(
-      initialData?.address ? [initialData.address.street, initialData.address.city, initialData.address.state].filter(Boolean).join(', ') : ''
+      formInitialData?.address ? [formInitialData.address.street, formInitialData.address.city, formInitialData.address.state].filter(Boolean).join(', ') : ''
   );
   const [isSearching, setIsSearching] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
@@ -307,7 +247,7 @@ function PropertyForm({ onSubmit, isSaving, initialData }: PropertyFormProps) {
         } else {
             setSuggestions([]);
         }
-    }, 500);
+    }, 500); // Debounce search
 
     return () => clearTimeout(handler);
   }, [searchQuery, toast]);
@@ -384,218 +324,261 @@ function PropertyForm({ onSubmit, isSaving, initialData }: PropertyFormProps) {
   const watchedIsListedPublicly = form.watch('isListedPublicly');
   const watchedPropertyType = form.watch('propertyType');
 
-  return (
-    <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-           <FormField control={form.control} name="name" render={({ field }) => (
-              <FormItem>
-                  <FormLabel>Property Name</FormLabel>
-                  <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} value={field.value ?? ''} /></FormControl>
-                  <FormMessage />
-              </FormItem>
-          )}/>
-
-          <div className="space-y-4">
-              <h3 className="text-lg font-medium">Address & Location</h3>
-              <div className="border p-4 rounded-md space-y-4">
-                  <div className="space-y-2 relative">
-                      <FormLabel>Smart Address Search</FormLabel>
-                      <FormDescription>Find the address to automatically fill the fields below.</FormDescription>
-                      <div className="relative mt-2">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                              ref={searchInputRef}
-                              placeholder="Start typing an address or pincode..." 
-                              className="pl-10 pr-10"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              autoComplete="off"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => {}} title="Use my current location">
-                              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
-                          </Button>
-                      </div>
-                      {suggestions.length > 0 && (
-                          <div className="absolute z-50 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
-                              {suggestions.map((s) => (
-                                  <div 
-                                      key={s.place_id} 
-                                      onClick={() => handleSuggestionSelect(s)}
-                                      className="p-2 hover:bg-muted cursor-pointer text-sm"
-                                  >
-                                      {s.display_name}
-                                  </div>
-                              ))}
-                          </div>
-                      )}
-                  </div>
-                  
-                  <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField control={form.control} name="address.street" render={({ field }) => (
-                              <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <FormField control={form.control} name="address.city" render={({ field }) => (
-                              <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <FormField control={form.control} name="address.state" render={({ field }) => (
-                              <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <FormField control={form.control} name="address.zip" render={({ field }) => (
-                              <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                      </div>
-                      <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isFindingOnMap} className="w-full md:w-auto">
-                          {isFindingOnMap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                          Find on Map with Manual Address
-                      </Button>
-                  </div>
-              </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Set Location on Map</h3>
-            <div className="border p-4 rounded-md space-y-2">
-                <p className="text-sm text-muted-foreground">
-                    Drag the pin or click on the map to set the exact property location.
-                </p>
-                <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
+  if (loading || !property || !formInitialData) {
+    return (
+        <div className="p-6 space-y-6">
+            <Skeleton className="h-8 w-48" />
+            <div className="grid gap-6">
+                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
             </div>
-          </div>
+        </div>
+    )
+  }
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-             <FormField control={form.control} name="propertyType" render={({ field }) => (
-                <FormItem><FormLabel>Property Type</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}/>
-            <FormField control={form.control} name="purchaseDate" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
-                <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                    {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                </FormControl></PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
-                <FormMessage />
-                </FormItem>
-            )}/>
-
-            {watchedPropertyType === 'Open Land' && (
-              <>
-                <FormField control={form.control} name="landType" render={({ field }) => (
-                    <FormItem><FormLabel>Land Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField control={form.control} name="isDiverted" render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-2"><div className="space-y-0.5">
-                        <FormLabel>Diverted Land</FormLabel>
-                        <FormDescription>Is the land diverted?</FormDescription>
-                    </div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
-                )}/>
-              </>
-            )}
-            
-            <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
-                <FormItem><FormLabel>Area Unit</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}/>
-            <FormField control={form.control} name="landDetails.area" render={({ field }) => (
-                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-            )}/>
-
-            <FormField control={form.control} name="purchasePrice" render={({ field }) => (
-                <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-            )}/>
-          </div>
-
-          <div className="space-y-4">
-              <FormField control={form.control} name="status" render={({ field }) => (
-                  <FormItem><FormLabel>Property Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                          {propertyStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-                  <FormMessage />
-                  </FormItem>
-              )}/>
-
-              {watchedStatus === 'For Sale' && (
-                  <div className="space-y-4 rounded-md border p-4">
-                      <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between">
-                              <div className="space-y-0.5">
-                                  <FormLabel>List Publicly</FormLabel>
-                                  <FormDescription>Make this property visible on the public listings page.</FormDescription>
-                              </div>
-                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                          </FormItem>
-                      )}/>
-                      {watchedIsListedPublicly && (
-                          <FormField control={form.control} name="listingPrice" render={({ field }) => (
-                              <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold tracking-tight">{property.name}</h1>
+      </div>
+      
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="files">Media & Files</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details">
+            <Card className="mt-4">
+                <CardHeader>
+                    <CardTitle>Edit Property Details</CardTitle>
+                    <CardDescription>Update the information for this property.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" key={formKey}>
+                           <FormField control={form.control} name="name" render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Property Name</FormLabel>
+                                  <FormControl><Input placeholder="e.g. My Mumbai Flat" {...field} value={field.value ?? ''} /></FormControl>
+                                  <FormMessage />
+                              </FormItem>
                           )}/>
-                      )}
-                  </div>
-              )}
 
-              {watchedStatus === 'Sold' && (
-                  <div className="space-y-4 rounded-md border p-4">
-                      <FormField control={form.control} name="soldPrice" render={({ field }) => (
-                          <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-                      )}/>
-                      <FormField control={form.control} name="soldDate" render={({ field }) => (
-                          <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
-                          <Popover><PopoverTrigger asChild><FormControl>
-                              <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                          </FormControl></PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
-                          <FormMessage />
-                          </FormItem>
-                      )}/>
-                  </div>
-              )}
-          </div>
+                          <div className="space-y-4">
+                              <h3 className="text-lg font-medium">Address & Location</h3>
+                              <div className="border p-4 rounded-md space-y-4">
+                                  <div className="space-y-2 relative">
+                                      <FormLabel>Smart Address Search</FormLabel>
+                                      <FormDescription>Find the address to automatically fill the fields below.</FormDescription>
+                                      <div className="relative mt-2">
+                                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                          <Input
+                                              ref={searchInputRef}
+                                              placeholder="Start typing an address or pincode..." 
+                                              className="pl-10 pr-10"
+                                              value={searchQuery}
+                                              onChange={(e) => setSearchQuery(e.target.value)}
+                                              autoComplete="off"
+                                          />
+                                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => {}} title="Use my current location">
+                                              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+                                          </Button>
+                                      </div>
+                                      {suggestions.length > 0 && (
+                                          <div className="absolute z-50 w-full bg-background border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                                              {suggestions.map((s) => (
+                                                  <div 
+                                                      key={s.place_id} 
+                                                      onClick={() => handleSuggestionSelect(s)}
+                                                      className="p-2 hover:bg-muted cursor-pointer text-sm"
+                                                  >
+                                                      {s.display_name}
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      )}
+                                  </div>
+                                  
+                                  <div className="space-y-4">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <FormField control={form.control} name="address.street" render={({ field }) => (
+                                              <FormItem><FormLabel>Area / Locality</FormLabel><FormControl><Input placeholder="e.g. Juhu" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                          <FormField control={form.control} name="address.city" render={({ field }) => (
+                                              <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Mumbai" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                          <FormField control={form.control} name="address.state" render={({ field }) => (
+                                              <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="e.g. Maharashtra" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                          <FormField control={form.control} name="address.zip" render={({ field }) => (
+                                              <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="e.g. 400049" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                      </div>
+                                      <Button type="button" variant="outline" onClick={handleFindOnMap} disabled={isFindingOnMap} className="w-full md:w-auto">
+                                          {isFindingOnMap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                          Find on Map with Manual Address
+                                      </Button>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Set Location on Map</h3>
+                            <div className="border p-4 rounded-md space-y-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Drag the pin or click on the map to set the exact property location.
+                                </p>
+                                <InteractiveMap center={mapCenter} onMarkerMove={handleMarkerMove} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                             <FormField control={form.control} name="propertyType" render={({ field }) => (
+                                <FormItem><FormLabel>Property Type</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {propertyTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField control={form.control} name="purchaseDate" render={({ field }) => (
+                                <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
+                                <Popover><PopoverTrigger asChild><FormControl>
+                                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                    {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl></PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+
+                            {watchedPropertyType === 'Open Land' && (
+                              <>
+                                <FormField control={form.control} name="landType" render={({ field }) => (
+                                    <FormItem><FormLabel>Land Type</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select a land type" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {landTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}/>
+                                <FormField control={form.control} name="isDiverted" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-2"><div className="space-y-0.5">
+                                        <FormLabel>Diverted Land</FormLabel>
+                                        <FormDescription>Is the land diverted?</FormDescription>
+                                    </div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                )}/>
+                              </>
+                            )}
+                            
+                            <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
+                                <FormItem><FormLabel>Area Unit</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a unit" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {landAreaUnits.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField control={form.control} name="landDetails.area" render={({ field }) => (
+                                <FormItem><FormLabel>Land Area</FormLabel><FormControl><Input type="number" placeholder="e.g. 1200" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                            )}/>
+
+                            <FormField control={form.control} name="purchasePrice" render={({ field }) => (
+                                <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                            )}/>
+                          </div>
+
+                          <div className="space-y-4">
+                              <FormField control={form.control} name="status" render={({ field }) => (
+                                  <FormItem><FormLabel>Property Status</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                      <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                                      <SelectContent>
+                                          {propertyStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                      </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                  </FormItem>
+                              )}/>
+
+                              {watchedStatus === 'For Sale' && (
+                                  <div className="space-y-4 rounded-md border p-4">
+                                      <FormField control={form.control} name="isListedPublicly" render={({ field }) => (
+                                          <FormItem className="flex flex-row items-center justify-between">
+                                              <div className="space-y-0.5">
+                                                  <FormLabel>List Publicly</FormLabel>
+                                                  <FormDescription>Make this property visible on the public listings page.</FormDescription>
+                                              </div>
+                                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                          </FormItem>
+                                      )}/>
+                                      {watchedIsListedPublicly && (
+                                          <FormField control={form.control} name="listingPrice" render={({ field }) => (
+                                              <FormItem><FormLabel>Listing Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                          )}/>
+                                      )}
+                                  </div>
+                              )}
+
+                              {watchedStatus === 'Sold' && (
+                                  <div className="space-y-4 rounded-md border p-4">
+                                      <FormField control={form.control} name="soldPrice" render={({ field }) => (
+                                          <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
+                                      )}/>
+                                      <FormField control={form.control} name="soldDate" render={({ field }) => (
+                                          <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
+                                          <Popover><PopoverTrigger asChild><FormControl>
+                                              <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                              </Button>
+                                          </FormControl></PopoverTrigger>
+                                          <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                                          <FormMessage />
+                                          </FormItem>
+                                      )}/>
+                                  </div>
+                              )}
+                          </div>
 
 
-          <FormField control={form.control} name="remarks" render={({ field }) => (
-              <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="Add any other relevant details..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-          )} />
-          
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={isSaving}>
-               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-               Save Changes
-            </Button>
-          </div>
-        </form>
-    </Form>
+                          <FormField control={form.control} name="remarks" render={({ field }) => (
+                              <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="Add any other relevant details..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                          
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
+                            <Button type="submit" disabled={isSaving}>
+                               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                               Save Changes
+                            </Button>
+                          </div>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="files">
+            <div className="mt-4 space-y-6">
+                <MediaManager entityType="properties" entityId={property.id} />
+                <FileManager entityType="properties" entityId={property.id} />
+            </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }

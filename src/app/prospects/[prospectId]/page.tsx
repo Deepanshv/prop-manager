@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/app/(app)/layout'
-import type { Prospect } from '../page'
+import type { Prospect } from '@/app/(app)/prospects/page'
 import { ProspectForm, type ProspectFormData } from '@/components/prospect-form'
 import type { Property } from '@/app/(app)/properties/page'
 

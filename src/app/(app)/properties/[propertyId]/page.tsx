@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import { db } from '@/lib/firebase'
 import { FileManager } from '@/components/file-manager'
 import { useAuth } from '../../layout'
-import type { Property } from '../page'
+import type { Property } from '../properties/page'
 import { MediaManager } from '@/components/media-manager'
 
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -112,7 +112,7 @@ export default function PropertyDetailPage() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [property, setProperty] = React.useState<Property | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [formKey, setFormKey] = React.useState(Date.now()); // This is the key change
+  const [formKey, setFormKey] = React.useState(Date.now());
 
   const fetchAndSetProperty = React.useCallback(async () => {
     if (!user || !db) return;
@@ -168,10 +168,9 @@ export default function PropertyDetailPage() {
         remarks: data.remarks || null,
     };
 
-    // Handle status-specific fields and Timestamp conversions
     if (data.status === 'Sold') {
         propertyData.soldDate = data.soldDate ? Timestamp.fromDate(data.soldDate) : null;
-        propertyData.isListedPublicly = false; // Unlist when sold
+        propertyData.isListedPublicly = false;
         propertyData.listingPrice = data.listingPrice || null;
     } else if (data.status === 'For Sale') {
         propertyData.soldDate = null;
@@ -181,7 +180,7 @@ export default function PropertyDetailPage() {
         } else {
             propertyData.listingPrice = null;
         }
-    } else { // 'Owned' status
+    } else {
         propertyData.isListedPublicly = false;
         propertyData.listingPrice = null;
         propertyData.soldDate = null;
@@ -196,7 +195,7 @@ export default function PropertyDetailPage() {
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
-          await fetchAndSetProperty(); // This will refresh data and the form key
+          await fetchAndSetProperty();
       }
     } catch (error) {
       console.error('Error updating document: ', error)
