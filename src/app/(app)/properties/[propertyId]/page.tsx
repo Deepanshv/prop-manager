@@ -491,7 +491,7 @@ export default function PropertyDetailPage() {
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="purchaseDate" render={({ field }) => (
-                                <FormItem className="flex flex-col"><FormLabel>Purchase Date</FormLabel>
+                                <FormItem><FormLabel>Purchase Date</FormLabel>
                                 <Popover><PopoverTrigger asChild><FormControl>
                                     <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
                                     {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
@@ -591,7 +591,7 @@ export default function PropertyDetailPage() {
                                           <FormItem><FormLabel>Final Sale Price (₹)</FormLabel><FormControl><Input type="number" placeholder="6500000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)}  value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                       )}/>
                                       <FormField control={form.control} name="soldDate" render={({ field }) => (
-                                          <FormItem className="flex flex-col"><FormLabel>Sale Date</FormLabel>
+                                          <FormItem><FormLabel>Sale Date</FormLabel>
                                           <Popover><PopoverTrigger asChild><FormControl>
                                               <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
                                               {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
