@@ -472,6 +472,13 @@ export default function PropertyDetailPage() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                            <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
+                                <FormItem><FormLabel>Khasra Number</FormLabel><FormControl><Input placeholder="Optional Khasra/Survey No." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
+                                <FormItem><FormLabel>Land Book Number</FormLabel><FormControl><Input placeholder="Optional Bhu-Pustika No." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            
                              <FormField control={form.control} name="propertyType" render={({ field }) => (
                                 <FormItem><FormLabel>Property Type</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
@@ -517,13 +524,6 @@ export default function PropertyDetailPage() {
                                 )}/>
                               </>
                             )}
-
-                            <FormField control={form.control} name="landDetails.khasraNumber" render={({ field }) => (
-                                <FormItem><FormLabel>Khasra Number</FormLabel><FormControl><Input placeholder="Optional Khasra/Survey No." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="landDetails.landbookNumber" render={({ field }) => (
-                                <FormItem><FormLabel>Land Book Number</FormLabel><FormControl><Input placeholder="Optional Bhu-Pustika No." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                            )}/>
                             
                             <FormField control={form.control} name="landDetails.areaUnit" render={({ field }) => (
                                 <FormItem><FormLabel>Area Unit</FormLabel>
