@@ -620,7 +620,7 @@ export default function PropertyDetailPage() {
                           
                           <div className="flex justify-end gap-2">
                             <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
-                            <Button type="submit" disabled={isSaving}>
+                            <Button type="button" disabled={isSaving} onClick={form.handleSubmit(onSubmit)}>
                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                Save Changes
                             </Button>
