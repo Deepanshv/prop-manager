@@ -268,7 +268,6 @@ export default function InternalListingsPage() {
         soldPrice: data.soldPrice,
         soldDate: Timestamp.fromDate(data.soldDate),
         isListedPublicly: false,
-        listingPrice: null,
       })
       toast({ title: 'Success', description: 'Property marked as sold and moved to Sales History.' })
       setIsSoldModalOpen(false)
