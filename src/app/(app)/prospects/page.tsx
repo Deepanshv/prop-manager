@@ -37,11 +37,24 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
-export interface Prospect extends Partial<Property> {
+interface ProspectAddress {
+  street: string
+  city: string
+  state: string
+  zip: string
+  landmark?: string
+  latitude?: number
+  longitude?: number
+}
+
+export interface Prospect {
   id: string
+  name: string
   ownerUid: string
   status: 'New' | 'Converted' | 'Canceled'
   dateAdded: Timestamp
+  propertyType?: Property['propertyType']
+  address?: ProspectAddress
   contactInfo?: string
 }
 
@@ -207,7 +220,7 @@ export default function ProspectManagerPage() {
     if (!selectedProspect || !db) return
 
     try {
-      await deleteDoc(doc(db, 'prospects', selectedProspect.id))
+      await deleteDoc(doc(db!, 'prospects', selectedProspect.id))
       toast({ title: 'Success', description: 'Prospect deleted successfully.' })
     } catch (error) {
       console.error('Error deleting document: ', error)
@@ -232,7 +245,7 @@ export default function ProspectManagerPage() {
 
     try {
         if (editingProspect) {
-             const prospectDocRef = doc(db, 'prospects', editingProspect.id);
+             const prospectDocRef = doc(db!, 'prospects', editingProspect.id);
              await updateDoc(prospectDocRef, prospectDataToSave);
              toast({ title: 'Success', description: 'Prospect updated successfully.' });
         } else {
@@ -304,7 +317,13 @@ export default function ProspectManagerPage() {
               mode={editingProspect ? 'edit' : 'add'}
               onSubmit={onSubmit}
               isSaving={isSaving}
-              initialData={editingProspect || undefined}
+              initialData={editingProspect ? {
+                name: editingProspect.name,
+                propertyType: (editingProspect.propertyType as string) || 'Open Land',
+                address: editingProspect.address || { street: '', city: '', state: '', zip: '' },
+                contactInfo: editingProspect.contactInfo || '',
+                status: editingProspect.status,
+              } : undefined}
               submitButtonText={editingProspect ? "Save Changes" : "Save Prospect"}
             >
               <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>

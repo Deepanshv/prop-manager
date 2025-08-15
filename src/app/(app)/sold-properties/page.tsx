@@ -239,7 +239,7 @@ export default function SoldPropertiesPage() {
     if (!selectedProperty || !db) return;
 
     try {
-      await deleteDoc(doc(db, 'properties', selectedProperty.id));
+      await deleteDoc(doc(db!, 'properties', selectedProperty.id));
       toast({ title: 'Success', description: 'Property deleted permanently.' });
     } catch (error) {
       console.error('Error deleting document: ', error);
@@ -254,7 +254,7 @@ export default function SoldPropertiesPage() {
     if (!selectedProperty || !db) return;
 
     try {
-      const propDocRef = doc(db, 'properties', selectedProperty.id);
+      const propDocRef = doc(db!, 'properties', selectedProperty.id);
       await updateDoc(propDocRef, {
         status: 'Owned',
         soldPrice: null,

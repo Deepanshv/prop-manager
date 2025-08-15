@@ -149,12 +149,12 @@ export function PublicListingsContent() {
       return;
     }
 
-    const userDocRef = doc(db, 'users', ownerId);
+    const userDocRef = doc(db!, 'users', ownerId);
     let unsubscribeProperties: (() => void) | undefined;
 
     const fetchPropertiesAndMedia = async () => {
         const q = query(
-            collection(db, 'properties'),
+            collection(db!, 'properties'),
             where('ownerUid', '==', ownerId),
             where('isListedPublicly', '==', true)
         );
@@ -162,7 +162,7 @@ export function PublicListingsContent() {
         unsubscribeProperties = onSnapshot(q, async (querySnapshot) => {
             const propsPromises = querySnapshot.docs.map(async (doc) => {
                 const propertyData = { id: doc.id, ...doc.data() } as Property;
-                const mediaCollectionRef = collection(db, 'properties', doc.id, 'media');
+                const mediaCollectionRef = collection(db!, 'properties', doc.id, 'media');
                 const mediaSnapshot = await getDocs(query(mediaCollectionRef));
                 const media = mediaSnapshot.docs.map(mediaDoc => mediaDoc.data() as { url: string; contentType: string });
                 return { ...propertyData, media };

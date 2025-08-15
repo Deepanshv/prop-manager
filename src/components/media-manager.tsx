@@ -122,7 +122,7 @@ export function MediaManager({ entityType, entityId }: MediaManagerProps) {
         const result = await uploadToCloudinary(file);
         
         if (result.success && result.url) {
-            const newFileRef = doc(collection(db, entityType, entityId, 'media'));
+            const newFileRef = doc(collection(db!, entityType, entityId, 'media'));
             await setDoc(newFileRef, {
               id: newFileRef.id,
               fileName: file.name,
@@ -153,7 +153,7 @@ export function MediaManager({ entityType, entityId }: MediaManagerProps) {
         toast({ title: 'Error', description: 'Could not delete file record.', variant: 'destructive' })
         return
     }
-    const fileDocRef = doc(db, entityType, entityId, 'media', fileToDelete.id)
+    const fileDocRef = doc(db!, entityType, entityId, 'media', fileToDelete.id)
 
     try {
       await deleteDoc(fileDocRef)
