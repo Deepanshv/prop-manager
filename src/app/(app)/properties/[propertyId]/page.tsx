@@ -159,7 +159,7 @@ export default function PropertyDetailPage() {
 
 
   const onSubmit = async (data: PropertyFormData) => {
-    if (!user || !propertyId || !db) {
+    if (!user || !propertyId) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
     }
@@ -216,7 +216,6 @@ export default function PropertyDetailPage() {
     const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: formInitialData,
-    shouldUnregister: true,
   });
   
   React.useEffect(() => {
