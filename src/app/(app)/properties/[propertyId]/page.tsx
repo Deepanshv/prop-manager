@@ -334,6 +334,18 @@ export default function PropertyDetailPage() {
   const watchedAreaUnit = form.watch('landDetails.areaUnit');
 
   React.useEffect(() => {
+    if (!watchedStatus) return;
+    if (watchedStatus !== 'Sold') {
+      form.setValue('soldPrice', undefined, { shouldValidate: true });
+      form.setValue('soldDate', undefined, { shouldValidate: true });
+    }
+    if (watchedStatus !== 'For Sale') {
+      form.setValue('isListedPublicly', false, { shouldValidate: true });
+      form.setValue('listingPrice', undefined, { shouldValidate: true });
+    }
+  }, [watchedStatus, form]);
+
+  React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (!name) return;
       

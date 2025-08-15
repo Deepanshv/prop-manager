@@ -82,7 +82,7 @@ const ProspectCard = React.memo(({ prospect, onDelete, onEdit }: { prospect: Pro
         className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg"
       >
         <CardHeader>
-          <CardTitle className="text-lg">{prospect.name}</CardTitle>
+          <CardTitle className="text-lg line-clamp-1">{prospect.name}</CardTitle>
           {prospect.address && (
             <CardDescription className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
@@ -90,7 +90,7 @@ const ProspectCard = React.memo(({ prospect, onDelete, onEdit }: { prospect: Pro
             </CardDescription>
           )}
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 min-h-20">
             <div className="text-sm flex items-center gap-2 text-muted-foreground">
                 <Building2 className="h-4 w-4" />
                 <span>{prospect.propertyType}</span>

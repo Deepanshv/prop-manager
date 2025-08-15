@@ -52,10 +52,10 @@ const SoldPropertyCard = React.memo(({ property, onDelete, onMarkAsUnsold, onVie
         >
             <div className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
                 <CardHeader>
-                    <CardTitle className="text-lg">{property.name}</CardTitle>
+                    <CardTitle className="text-lg line-clamp-1">{property.name}</CardTitle>
                     <CardDescription className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {`${property.address.street}, ${property.address.city}`}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 min-h-28">
                      <div className="text-sm flex items-center gap-2 text-muted-foreground">
                         <Building className="h-4 w-4" />
                         <span>{property.propertyType}</span>

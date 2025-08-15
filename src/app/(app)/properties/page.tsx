@@ -80,12 +80,12 @@ const PropertyCard = React.memo(({ property, onDelete }: { property: Property; o
     >
       <div className="flex-grow flex flex-col hover:bg-muted/50 transition-colors rounded-t-lg">
         <CardHeader>
-          <CardTitle className="text-lg">{property.name}</CardTitle>
+          <CardTitle className="text-lg line-clamp-1">{property.name}</CardTitle>
           <CardDescription className="flex items-center gap-1">
             <Building2 className="h-3 w-3" /> {property.propertyType}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-h-20">
           <p className="text-sm text-muted-foreground">{property.address.street}, {property.address.city}</p>
           <p className="text-sm text-muted-foreground mt-2">Area: {property.landDetails.area} {property.landDetails.areaUnit}</p>
         </CardContent>
