@@ -80,6 +80,29 @@ export default function NewPropertyPage() {
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const [isFindingOnMap, setIsFindingOnMap] = React.useState(false);
 
+  const handleGetCurrentLocation = () => {
+    if (navigator.geolocation) {
+        setIsSearching(true);
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const { latitude, longitude } = position.coords;
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`);
+                const data = await response.json();
+                if (data) {
+                    handleSuggestionSelect(data);
+                }
+            } catch (error) {
+                toast({ title: "Location Error", description: "Could not find address for your location.", variant: "destructive" });
+            } finally {
+                setIsSearching(false);
+            }
+        }, () => {
+            toast({ title: "Location Error", description: "Could not get your location. Please enable location services.", variant: "destructive" });
+            setIsSearching(false);
+        });
+    }
+  };
+
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
@@ -292,7 +315,7 @@ export default function NewPropertyPage() {
                                           onChange={(e) => setSearchQuery(e.target.value)}
                                           autoComplete="off"
                                       />
-                                      <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => {}} title="Use my current location">
+                                      <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleGetCurrentLocation} title="Use my current location">
                                           {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
                                       </Button>
                                   </div>
