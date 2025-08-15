@@ -1,5 +1,3 @@
-
-
 'use client'
 
 import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'
@@ -199,7 +197,7 @@ export default function PropertyDetailPage() {
       const propDocRef = doc(db!, 'properties', propertyId)
       await updateDoc(propDocRef, propertyData)
       toast({ title: 'Success', description: 'Property updated successfully.' })
-        
+      
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
       } else {
@@ -554,7 +552,7 @@ export default function PropertyDetailPage() {
                                   <FormControl><Input type="number" placeholder="e.g. 4167" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
-                             )}/>
+                               )}/>
 
                             <FormField control={form.control} name="purchasePrice" render={({ field }) => (
                                 <FormItem><FormLabel>Total Purchase Price (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 5000000" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={Number.isNaN(field.value) ? '' : field.value ?? ''} /></FormControl><FormMessage /></FormItem>
@@ -641,5 +639,3 @@ export default function PropertyDetailPage() {
     </div>
   )
 }
-
-    
