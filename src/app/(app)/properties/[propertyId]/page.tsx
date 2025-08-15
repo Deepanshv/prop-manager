@@ -159,7 +159,7 @@ export default function PropertyDetailPage() {
 
 
   const onSubmit = async (data: PropertyFormData) => {
-    if (!user || !propertyId) {
+    if (!user || !propertyId || !db) {
       toast({ title: 'Error', description: 'Cannot save property.', variant: 'destructive' })
       return
     }
@@ -222,9 +222,17 @@ export default function PropertyDetailPage() {
     }
   };
   
+  const onInvalid = (errors: any) => {
+    // Extract the first error message to show a concise toast
+    const firstError = Object.values(errors)[0] as any;
+    const message = firstError?.message || firstError?.[0]?.message || 'Please fix the highlighted errors.';
+    toast({ title: 'Validation Error', description: message, variant: 'destructive' });
+  };
+  
     const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: formInitialData,
+    shouldUnregister: true,
   });
   
   React.useEffect(() => {
@@ -403,7 +411,7 @@ export default function PropertyDetailPage() {
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" key={formKey}>
+                        <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-8" key={formKey}>
                            <FormField control={form.control} name="name" render={({ field }) => (
                               <FormItem>
                                   <FormLabel>Property Name</FormLabel>
@@ -629,7 +637,7 @@ export default function PropertyDetailPage() {
                           
                           <div className="flex justify-end gap-2">
                             <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
-                            <Button type="button" disabled={isSaving} onClick={form.handleSubmit(onSubmit)}>
+                            <Button type="button" disabled={isSaving} onClick={form.handleSubmit(onSubmit, onInvalid)}>
                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                Save Changes
                             </Button>
