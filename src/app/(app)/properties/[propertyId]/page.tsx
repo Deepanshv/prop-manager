@@ -199,6 +199,15 @@ export default function PropertyDetailPage() {
       const propDocRef = doc(db!, 'properties', propertyId)
       await updateDoc(propDocRef, propertyData)
       toast({ title: 'Success', description: 'Property updated successfully.' })
+      // Optimistically update local state so UI reflects changes immediately
+      setProperty((prev) => prev ? {
+        ...prev,
+        status: propertyData.status,
+        isListedPublicly: propertyData.isListedPublicly ?? prev.isListedPublicly,
+        listingPrice: propertyData.listingPrice ?? prev.listingPrice,
+        soldPrice: propertyData.soldPrice ?? prev.soldPrice,
+        soldDate: propertyData.soldDate ?? prev.soldDate,
+      } : prev)
         
       if (propertyData.status === 'Sold') {
           router.push('/sold-properties')
